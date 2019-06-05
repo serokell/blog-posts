@@ -6,7 +6,16 @@ Michelson is a smart contract language from tezos community. Akin to Forth, Mich
 You can read more about Michelson instructions and typing in the [official documentation](http://tezos.gitlab.io/zeronet/whitedoc/michelson.html).
 
 In January 2019 in collaboration with Toquiville group of Tezos foundation Serokell started [Morley project](https://gitlab.com/morley-framework/morley/).
-One of Morley’s goals is to implement a comprehensive framework for testing arbitrary Michelson contracts. This testing should support simple unit testing (when contract is fed with particular sets of input and output values) as well as more complex property-based testing. It was decided to use Haskell for implementation of Morley and as a first step we implemented Michelson language as a very simple AST data type:
+One of Morley’s goals is to implement a comprehensive framework for testing arbitrary Michelson contracts. This testing should support simple unit testing (when contract is fed with particular sets of input and output values) as well as more complex property-based testing.
+
+A small remark before we go forward.
+In this article we cover only a small subset of Michelson's instructions and consider only the core of Michelson's type system
+without taking annotations into account.
+Clearing up all these details is a tedious work
+we performed during work on [Morley framework](https://gitlab.com/morley-framework/morley/) and we welcome everybody to go and check the repository to see
+the implementation of [type check](https://gitlab.com/morley-framework/morley/blob/b09fac13839f19056bf3799e25eb9c8f210999e1/src/Michelson/TypeCheck/Instr.hs#L178) and [interpretation](https://gitlab.com/morley-framework/morley/blob/b09fac13839f19056bf3799e25eb9c8f210999e1/src/Michelson/Interpret.hs#L299) with all underlying details.
+
+For Morley it was decided to use Haskell for implementation of Morley and as a first step we implemented Michelson language as a very simple AST data type:
 
 ```haskell
 data T =
@@ -38,7 +47,8 @@ data UInstr =
 
 Soon we understood that this simple AST suffers from certain limitations. One issue was that it was untrivial to generate arbitrary loosely-typed values. In our AST list was merely a constructor `UList [UVal]` and we couldn’t write an `Arbitrary` instance that would generate an arbitrary list of integers or strings depending on type context.
 
-An answer to this problem was obvious: create an AST with stronger types. Expression became annotated with a type, which is easy to implement thanks to awesome GADTs extension. This immediately solves the problem of arbitrary value generation. And moreover, it becomes possible for interpreter to stop unpredictably failing with runtime type errors.
+An answer to this problem was obvious: create an AST with stronger types. Expression became annotated with a type, which is easy to implement thanks to awesome `GADTs` and `DataKinds` extensions.
+This immediately solves the problem of arbitrary value generation. And moreover, it becomes possible for interpreter to stop unpredictably failing with runtime type errors.
 
 ```haskell
 data Val t where
@@ -50,7 +60,7 @@ data Val t where
 
 But after introducing this type we quickly found ourselves at a challenge. It was very easy to parse textual code representation to simple AST, but is obscure how to do the same for the typed representation of Michelson. To simplify things instead of parsing we’ll consider a task of conversion from simple AST to typed AST.
 
-First problem with conversion from simple AST to typed representation lies in the fact that conversion of parent branch in AST depends on the types of children. A useful trick for solving this issue can be found in the [blog post from 2009](http://tezos.gitlab.io/zeronet/whitedoc/michelson.html).
+First problem with conversion from simple AST to typed representation lies in the fact that conversion of parent branch in AST depends on the types of children. A useful trick for solving this issue can be found in the [blog post from 2009](http://augustss.blogspot.com/2009/06/more-llvm-recently-someone-asked-me-on.html).
 In short, we create an existential type which holds value along with its type and return this existential type from our type check function:
 
 ```haskell
@@ -197,7 +207,11 @@ data Instr (inp :: [T]) (out :: [T]) where
 ```
 
 Representation of `ADD` instruction is not very nice, but can be improved
-with clever use of type class (explanation of this goes beyond the scope of this article).
+with use of type class.
+We may create a type class `AddOp` which takes two type arguments
+(for two operands of `ADD` instruction). It would contain one function
+for type checking, one function for interpretation and a type family for
+result type. For simplicity this is not implemented in the article's code.
 
 Our function `typeCheckI` will take input stack type and an untyped instruction
 and should return output stack type along with typed instruction.
@@ -294,7 +308,3 @@ Interestingly, `interpret` function is total. This is a definite benefit of adva
 Data type `Val` contains enough information for type checker to consider all possible cases of input stack
 and an instruction and we do not require to do some additional checks in runtime which may result in error.
 In short, if the program type checks, it won't produce an error.
-
-In this article we covered only a small subset of Michelson's instructions. Also, we consider only the core of Michelson's type system (without taking annotations into account). Clearing up all this details is a tedious work
-we performed during work on [Morley framework](https://gitlab.com/morley-framework/morley/) and we welcome everybody to go and check the repository to see
-the implementation of [type check](https://gitlab.com/morley-framework/morley/blob/master/src/Michelson/TypeCheck/Instr.hs) and [interpretation](https://gitlab.com/morley-framework/morley/blob/master/src/Michelson/Interpret.hs) with all underlying details.
