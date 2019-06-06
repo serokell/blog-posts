@@ -1,21 +1,21 @@
 # Parsing typed eDSL
 
-Embedded DSL (or eDSL) is a popular technique for encoding your domain specific language into Haskell’s type system. One example of such DSL is Ivory -- eDSL for C code generation. Even more often it’s useful to implement your DSL as Haskell data type and interpret it right from Haskell.
+Embedded DSL (or eDSL) is a popular technique for encoding your domain specific language into Haskell’s type system. One example of such DSL is Ivory – eDSL for C code generation. Even more often it’s useful to implement your DSL as a Haskell data type and interpret it right from Haskell.
 
-Michelson is a smart contract language from tezos community. Akin to Forth, Michelson contract is described by a sequence of instructions operating on a typed stack. Each instruction assumes stack of certain type as input and produces an output stack of determined type. For example, `PAIR` instruction presumes stack of type `a : b : s` and produces stack of type `pair a b : s` for any stack tail `s`.
+Michelson is a smart contract language from the Tezos community. Akin to Forth, Michelson contract is described by a sequence of instructions operating on a typed stack. Each instruction assumes a stack of a certain type as input and produces an output stack of determined type. For example, the `PAIR` instruction presumes a stack of the type `a : b : s` and produces a stack of the type `pair a b : s` for any stack tail `s`.
 You can read more about Michelson instructions and typing in the [official documentation](http://tezos.gitlab.io/zeronet/whitedoc/michelson.html).
 
-In January 2019 in collaboration with Toquiville group of Tezos foundation Serokell started [Morley project](https://gitlab.com/morley-framework/morley/).
-One of Morley’s goals is to implement a comprehensive framework for testing arbitrary Michelson contracts. This testing should support simple unit testing (when contract is fed with particular sets of input and output values) as well as more complex property-based testing.
+In January 2019, in collaboration with Tocqueville Group of the Tezos foundation, Serokell started the [Morley project](https://gitlab.com/morley-framework/morley/).
+One of its goals was to implement a comprehensive framework for testing arbitrary Michelson contracts that should support simple unit testing (when a contract is fed with particular sets of input and output values) as well as more complex property-based testing.
 
 A small remark before we go forward.
-In this article we cover only a small subset of Michelson's instructions and consider only the core of Michelson's type system
+In this article, we cover only a small subset of the Michelson's instructions and consider only the core of the Michelson's type system
 without taking annotations into account.
-Clearing up all these details is a tedious work
-we performed during work on [Morley framework](https://gitlab.com/morley-framework/morley/) and we welcome everybody to go and check the repository to see
-the implementation of [type check](https://gitlab.com/morley-framework/morley/blob/b09fac13839f19056bf3799e25eb9c8f210999e1/src/Michelson/TypeCheck/Instr.hs#L178) and [interpretation](https://gitlab.com/morley-framework/morley/blob/b09fac13839f19056bf3799e25eb9c8f210999e1/src/Michelson/Interpret.hs#L299) with all underlying details.
+Clearing up all these details was a complicated task
+we performed during our work on the [Morley framework](https://gitlab.com/morley-framework/morley/), and we welcome everybody to go and check the repository to see
+the implementation of a [type check](https://gitlab.com/morley-framework/morley/blob/b09fac13839f19056bf3799e25eb9c8f210999e1/src/Michelson/TypeCheck/Instr.hs#L178) and [interpretation](https://gitlab.com/morley-framework/morley/blob/b09fac13839f19056bf3799e25eb9c8f210999e1/src/Michelson/Interpret.hs#L299) with all underlying details.
 
-For Morley it was decided to use Haskell for implementation of Morley and as a first step we implemented Michelson language as a very simple AST data type:
+It was decided to use Haskell for the Morley implementation, and as a first step we developed the Michelson language as a very simple AST data type:
 
 ```haskell
 data T =
@@ -45,10 +45,10 @@ data UInstr =
  | UIF_CONS
 ```
 
-Soon we understood that this simple AST suffers from certain limitations. One issue was that it was untrivial to generate arbitrary loosely-typed values. In our AST list was merely a constructor `UList [UVal]` and we couldn’t write an `Arbitrary` instance that would generate an arbitrary list of integers or strings depending on type context.
+Soon we understood this simple AST suffered from certain limitations. First of all, it was untrivial to generate arbitrary loosely-typed values. In our AST list was merely a constructor `UList [UVal]` and we couldn’t write an `Arbitrary` instance that would generate an arbitrary list of integers or strings depending on the type context.
 
-An answer to this problem was obvious: create an AST with stronger types. Expression became annotated with a type, which is easy to implement thanks to awesome `GADTs` and `DataKinds` extensions.
-This immediately solves the problem of arbitrary value generation. And moreover, it becomes possible for interpreter to stop unpredictably failing with runtime type errors.
+The answer to this problem was obvious: create an AST with stronger types. Expression then becomes annotated with a type, which is easy to implement thanks to awesome `GADTs` and `DataKinds` extensions.
+This immediately solves the problem of arbitrary value generation. And moreover, it becomes possible for the interpreter to stop unpredictably failing with runtime type errors.
 
 ```haskell
 data Val t where
@@ -58,10 +58,10 @@ data Val t where
   VPair :: Val p -> Val q -> Val ('TPair p q)
 ```
 
-But after introducing this type we quickly found ourselves at a challenge. It was very easy to parse textual code representation to simple AST, but is obscure how to do the same for the typed representation of Michelson. To simplify things instead of parsing we’ll consider a task of conversion from simple AST to typed AST.
+But after introducing this type, we quickly found ourselves at a challenge. It was very easy to parse textual code representation to a simple AST but was obscure how to do the same for a typed representation of Michelson. To simplify things, instead of parsing, we considered a task of conversion from a simple AST to a typed AST.
 
-First problem with conversion from simple AST to typed representation lies in the fact that conversion of parent branch in AST depends on the types of children. A useful trick for solving this issue can be found in the [blog post from 2009](http://augustss.blogspot.com/2009/06/more-llvm-recently-someone-asked-me-on.html).
-In short, we create an existential type which holds value along with its type and return this existential type from our type check function:
+The first problem with conversion from a simple AST to a typed representation was that conversion of a parent branch in an AST depended on the types of children. A useful trick for solving this issue can be found in the [blog post from 2009](http://augustss.blogspot.com/2009/06/more-llvm-recently-someone-asked-me-on.html).
+In short, we created an existential type holding value along with its type and returning this existential type from our type check function:
 
 ```haskell
 data Sing (t :: T) where
@@ -82,50 +82,49 @@ typeCheckVal1 (UPair p q) = do
 typeCheckVal1 (UList _) = error "not implemented"
 ```
 
-Data type `Sing` can be derived automatically with use of [singletons](http://hackage.haskell.org/package/singletons) library. That library provides `Sing` data family and some useful helper functions and classes for work with singletons.
-Throught this article we'll stick to handwritten `Sing` and conversion functions.
+The `Sing` data type can be derived automatically with the use of the [singletons](http://hackage.haskell.org/package/singletons) library. That library provides the `Sing` data family and useful helper functions and classes for work with singletons.
+Throughout this article, we'll stick to handwritten `Sing` and conversion functions.
 
 There are two major problems with such construction.
 First, a reader may have noticed that neither `STNat` nor `VNat` constructors were ever used.
-Indeed, `UInt` constructor from simple AST was meant to represent both signed and unsigned integers because they roughly the same representation.
+Indeed, the `UInt` constructor from a simple AST was meant to represent both signed and unsigned integers because they roughly the same representation.
 We can not really distinguish between `TInt` and `TNat` literals during parsing.
 
-Similar issue appears in case of list constructor with empty list wrapped in it.
+A similar issue appears in the case of a list constructor with an empty list wrapped in it.
 When given a list constructor, we have no idea what type of values this list contains.
-In case of empty list, we must return type `forall t. TList t`, but our type representation has
-no support for such construction.
+In the case of an empty list, we must return the `forall t. TList t` type, but our type representation does not support such construction.
 
-Second problem with this snippet is of similar nature.
-In case of non-empty list we can take `t` as type of the first element in a list and compare that other elements in
-the list have the same type. But to compare type `t1` of first element of a list to the type `t2` of second element of the list, we need `Typeable t1`, `Typeable t2` constraints to hold.
+The second problem with this snippet is similar.
+In case of a non-empty list, we can take `t` as a type of the first element and figure out if other elements in
+the list have the same type by comparing them. But to compare a `t1` type of the first list element with a `t2` type of the second list element, we need `Typeable t1`, `Typeable t2` constraints to hold.
 
-It's relatively easy to address the second problem. We introduce `SomeVal` data type with `Typeable` constraint
-put in the scope of constructor:
+It's relatively easy to address the second problem. We introduce a `SomeVal` data type with `Typeable` constraint
+put in the scope of the constructor:
 
 ```haskell
 data SomeVal where
  SomeVal :: Typeable t => Val t -> Sing t -> SomeVal
 ```
 
-First problem requires a switch to different approach for type checking.
+The first problem requires a switch to a different approach for type checking.
 One way to solve the problem is to introduce some sort of constrained `forall` quantifier into
-our simplistic type system, similarly to what we have in Haskell.
-This way for an empty list case we can write something like `SomeVal (VList []) (forall n. Num n => n)`.
-This approach is more universal, but significantly heavier to implement and maintain.
+our simplistic type system, similar to what we have in Haskell.
+For the empty list case, we can write something like `SomeVal (VList []) (forall n. Num n => n)`.
+This approach is more universal but far heavier to implement and maintain.
 
 Luckily for us, a lighter approach is possible for type checking Michelson programs.
-Despite the fact that all Michelson instructions are polymorphic, Michelson programs
-are always given in context of a contract.
-A contract defines input stack type and each instruction modifies stack type in umambiguous way.
-Hence there is no actual need to implement type checking algorithm that derives a type (with some `forall` quantifiers)
+Although all Michelson instructions are polymorphic, Michelson programs
+are always given in the context of a contract.
+A contract defines an input stack type, and each instruction modifies a stack type in an unambiguous way.
+Hence, there is no actual need to implement a type checking algorithm that derives a type (with some `forall` quantifiers)
 for an arbitrary sequence of Michelson instructions.
-What we are going to do is to start from the input stack type and iterate through instructions.
-This way we'll be able to stick to type system represented by data type `T`.
+We are going to start with the input stack type and iterate through instructions.
+This way we'll be able to stick to the type system represented by the `T` data type.
 
-In the example above we considered only type checking of values.
-Following rule defined above, we'll implement `typeCheckVal` function with first argument being a type
+In this example, we considered only the type checking of values.
+Following the rule defined above, we'll implement the `typeCheckVal` function with the first argument being a type
 of an expression we're trying to parse. There are only two instructions that introduce new value to the stack
-(namely, `UPUSH` and `UNIL`) and both of them explicitely have type representation included.
+(namely, `UPUSH` and `UNIL`) and both of them explicitly have type representation included.
 
 ```haskell
 typeCheckVal :: Sing t -> UVal -> Maybe (Val t)
@@ -142,11 +141,11 @@ typeCheckVal (STList t) (UList l) =
 typeCheckVal _ _ = Nothing
 ```
 
-Note, that we do not actually need to wrap `Val t` into `SomeVal` here, because first argument defines well the output of the function.
-It's important to emphasize the role of singletons in the construction above. What we do is pattern-matching on the type
-of value that should be parsed. It's not common in Haskell to pattern-match on type in code of term-level functions and singletons is perhaps the most straightforward way.
+Note, that we do not actually need to wrap `Val t` into `SomeVal` here, because the first argument nicely defines the output of the function.
+It's important to emphasise the role of singletons in the construction above. What we do is pattern-matching on the type
+of value that should be parsed. Pattern-matching on type in the code of term-level functions is not common in Haskell, and singletons are perhaps the most straightforward way.
 
-Now, let's implement conversion for instructions. First, we'll have to slightly modify our `Sing` data type
+Now, let's implement a conversion for instructions. First, we'll have to modify our `Sing` data type slightly
 and provide some required helper functions:
 
 ```haskell
@@ -173,10 +172,10 @@ toSing :: T -> SomeSing
 toSing = ...
 ```
 
-Similarly to values, we'll defined typed representation of instruction.
-Data type `Instr` is parametrized by type parameters `inp` and `out` of kind `[T]` which state
+Similarly to values, we'll define a typed representation of an instruction.
+The `Instr` data type is parametrized by type parameters `inp` and `out` of kind `[T]` which state
 for input and output stack types corresponding to an instruction.
-This representation of Michelson instructions is very elegant as it perfectly mimics notation
+This Michelson instructions representation is very elegant as it perfectly mimics the notation
 given in Michelson's documentation.
 
 ```haskell
@@ -206,18 +205,18 @@ data Instr (inp :: [T]) (out :: [T]) where
           -> Instr ('TList a ': s) s'
 ```
 
-Representation of `ADD` instruction is not very nice, but can be improved
-with use of type class.
+The representation of the `ADD` instruction is not very nice but can be improved
+with the use of type class.
 We may create a type class `AddOp` which takes two type arguments
-(for two operands of `ADD` instruction). It would contain one function
-for type checking, one function for interpretation and a type family for
-result type. For simplicity this is not implemented in the article's code.
+(for two operands of the `ADD` instruction). It will contain one function
+for type checking, one function for interpretation and a type family for the
+result type. For simplicity, this is not implemented in the article's code.
 
-Our function `typeCheckI` will take input stack type and an untyped instruction
-and should return output stack type along with typed instruction.
-Hence we introduce data types `Stack` and `SomeInstr`.
-Data type `Stack` is similar to `Rec` from [vinyl package](http://hackage.haskell.org/package/vinyl)
-with difference in that we impose `Typeable` constraint on the first argument of `:&`.
+Our function `typeCheckI` will take an input stack type and an untyped instruction
+and should return an output stack type along with a typed instruction.
+Hence, we introduce `Stack` and `SomeInstr` data types.
+The `Stack` data type is similar to `Rec` from the [vinyl package](http://hackage.haskell.org/package/vinyl)
+with the difference in that, we impose `Typeable` constraint on the first argument of `:&`.
 
 ```haskell
 data Stack inp where
@@ -232,7 +231,7 @@ data SomeInstr inp where
 infixr 5 :::
 ```
 
-Now we're able to finally implement `typeCheck` function:
+Now we're able to finally implement the `typeCheck` function:
 
 ```haskell
 typeCheckI
@@ -273,10 +272,10 @@ typeCheck s (i : is) = do
   pure (a `Seq` b ::: s'')
 ```
 
-In `typeCheckI` we pattern-match on input stack type and an untyped instruction.
-In case of `CONS` we need to additionally check equality of element on top of stack
-and element type of list at the second element of stack.
-In case of `IF_CONS` recursive call to `typeCheck` is used to check both continuations.
+In `typeCheckI` we pattern-match on an input stack type and an untyped instruction.
+In the case of `CONS`, we need to additionally check the equality of an element on top of the stack
+and an element type of the list at the second element of the stack.
+In the case of `IF_CONS`, a recursive call to `typeCheck` is used to check both continuations.
 
 Now, when we finally settled down how to type check a sequence of
 Michelson instructions, let's see how our eDSL can be interpreted.
@@ -304,7 +303,7 @@ interpret (VList (a : l) :& s) (IF_CONS consCase _) =
   interpret (a :& VList l :& s) consCase
 ```
 
-Interestingly, `interpret` function is total. This is a definite benefit of advanced type representation.
-Data type `Val` contains enough information for type checker to consider all possible cases of input stack
-and an instruction and we do not require to do some additional checks in runtime which may result in error.
+Interestingly, the `interpret` function is total, which is a definite benefit of advanced type representation.
+The `Val` data type contains enough information for a type checker to consider all possible cases of an input stack
+and an instruction, and there's no need to perform additional checks in runtime, which is an error-prone practice.
 In short, if the program type checks, it won't produce an error.
