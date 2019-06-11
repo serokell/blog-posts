@@ -6,7 +6,10 @@ Michelson is a smart contract language from the Tezos community. Akin to Forth, 
 You can read more about Michelson instructions and typing in the [official documentation](http://tezos.gitlab.io/zeronet/whitedoc/michelson.html).
 
 In January 2019, in collaboration with Tocqueville Group of the Tezos foundation, Serokell started the [Morley project](https://gitlab.com/morley-framework/morley/).
-One of its goals was to implement a comprehensive framework for testing arbitrary Michelson contracts that should support simple unit testing (when a contract is fed with particular sets of input and output values) as well as more complex property-based testing.
+One of its goals was to implement a comprehensive framework for testing arbitrary
+Michelson contracts that should support simple unit testing
+as well as more complex property-based testing.
+Being more precise, we want to take a contract and feed with various sets of input and output values and see that it behaves as expected.
 
 A small remark before we go forward.
 In this article, we cover only a small subset of the Michelson's instructions and consider only the core of the Michelson's type system
@@ -87,7 +90,7 @@ Throughout this article, we'll stick to handwritten `Sing` and conversion functi
 
 There are two major problems with such construction.
 First, a reader may have noticed that neither `STNat` nor `VNat` constructors were ever used.
-Indeed, the `UInt` constructor from a simple AST was meant to represent both signed and unsigned integers because they roughly the same representation.
+Indeed, the `UInt` constructor from a simple AST was meant to represent both signed and unsigned integers because they have roughly the same representation.
 We can not really distinguish between `TInt` and `TNat` literals during parsing.
 
 A similar issue appears in the case of a list constructor with an empty list wrapped in it.
@@ -96,7 +99,9 @@ In the case of an empty list, we must return the `forall t. TList t` type, but o
 
 The second problem with this snippet is similar.
 In case of a non-empty list, we can take `t` as a type of the first element and figure out if other elements in
-the list have the same type by comparing them. But to compare a `t1` type of the first list element with a `t2` type of the second list element, we need `Typeable t1`, `Typeable t2` constraints to hold.
+the list have the same type by comparing them.
+But to compare a `t1` type of the first list element with a `t2` type of the second list element,
+we need constraints `Typeable t1` and `Typeable t2` to hold.
 
 It's relatively easy to address the second problem. We introduce a `SomeVal` data type with `Typeable` constraint
 put in the scope of the constructor:
@@ -273,8 +278,8 @@ typeCheck s (i : is) = do
 ```
 
 In `typeCheckI` we pattern-match on an input stack type and an untyped instruction.
-In the case of `CONS`, we need to additionally check the equality of an element on top of the stack
-and an element type of the list at the second element of the stack.
+In the case of `CONS`, we need to additionally check the equality of
+first element of the stack and an subtype of the list at the second element of the stack.
 In the case of `IF_CONS`, a recursive call to `typeCheck` is used to check both continuations.
 
 Now, when we finally settled down how to type check a sequence of
@@ -306,4 +311,14 @@ interpret (VList (a : l) :& s) (IF_CONS consCase _) =
 Interestingly, the `interpret` function is total, which is a definite benefit of advanced type representation.
 The `Val` data type contains enough information for a type checker to consider all possible cases of an input stack
 and an instruction, and there's no need to perform additional checks in runtime, which is an error-prone practice.
-In short, if the program type checks, it won't produce an error.
+In short, if the program type checks, it won't produce an error in runtime.
+
+To sum up, in this article we've seen how to apply some advanced typing techniques of Haskell to type-check simple strictly-typed stack-based language.
+We took a simple representation of language AST (a representation which is simple to obtain from text using any technique for parsing),
+converted it to a strictly-typed representation of same language.
+Strictly-typed representation is in 1:1 correspondence to the type system of defined language and by having term in strictly-typed representation
+we are assured that it's well-typed.
+Proposed approach is heavily dependent on that type system defines no abstract types and all types are concrete,
+i.e. only built-in constructions are polymorphic.
+Although this restriction applies to a wide variety of languages, hence we see our approach as highly reusable.
+
