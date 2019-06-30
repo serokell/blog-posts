@@ -4,23 +4,23 @@
 #### Intro
 
 
-[In our previous blogpost](https://serokell.io/blog/dimensions-and-haskell-introduction), we introduced a reader to our subject matter and briefly observed some numeric libraries in Haskell. We explained why we don’t use the popular library called `GHC.TypeLits` with non-inductively defined kind of type level natural numbers. In this part, we describe our approach to matrix data type that parameterised via its numbers of columns and rows.  
+[In our previous blogpost](https://serokell.io/blog/dimensions-and-haskell-introduction), we introduced a reader to our subject matter and briefly observed some numeric libraries in Haskell. We explained why we don’t use the popular library called `GHC.TypeLits` with non-inductively defined kind of type level natural numbers. In this part, we describe our approach to matrix data type that parameterised via its numbers of columns and rows.
 
 
 #### Foreword
 
 
 We had a task to implement a few machine learning algorithms for [dimensionality reduction](https://en.wikipedia.org/wiki/Dimensionality_reduction). One important goal was finding out whether Haskell fit for such sort of tasks and make an open-source library for dimensionality reduction. 
-        At first, we took a look at the [Accelerate](http://hackage.haskell.org/package/accelerate) library due to its efficiency in parallel computations, especially using GPU, but there was not implemented a few required functions from linear algebra. By the way, we are going to implement these functions later via bindings to CUDA-solver. However, we decided to switch to [REPA](http://hackage.haskell.org/package/repa) as base matrix library because it contains the necessary functionality. 
+At first, we took a look at the [Accelerate](http://hackage.haskell.org/package/accelerate) library due to its efficiency in parallel computations, especially using GPU, but there was not implemented a few required functions from linear algebra. By the way, we are going to implement these functions later via bindings to CUDA-solver. However, we decided to switch to [REPA](http://hackage.haskell.org/package/repa) as base matrix library because it contains the necessary functionality. 
 After that, we started to implement given algorithms and received “debug hell” when it wasn’t possible to define a place of mistake (especially in case of PPCA, which can handle and restore missed data in input), even if you have a place of error: 
+
 ```
 GPLVMHaskell-exe: inconsistent dimensions in matrix product (11,2) x (3,1)
 CallStack (from HasCallStack):
 error, called at src/Internal/LAPACK.hs:61:31 in
 hmatrix-0.19.0.0-GJ4OJPujscCE7zmZ8JSwjL:Internal.LAPACK
 ```
-Where is the place of exception? Why there are such specific dimensions? 
-Where we went wrong? It's real detective work. Where is the place of exception? Why there are such specific dimensions? Where we went wrong? It's real detective work. We launched an inquiry each time when we have dealt with such errors. It was quite monotonous and exhausting. That’s why we decided to lift dimensions on the type level. We wanted to check whether would it be easier to debug. The first argument that a great many of errors affect dimensions of interim arrays. The second argument that we have information on unsatisfied general conditions rather than some specific numbers of dimensions that depend on input data in the case of type errors. The third argument that the chance of runtime error appearance is very low on every acceptable input data at least of error which influenсes the dimensions. For these reasons, we decided to try such an approach with type-level dimensions.
+Where is the place of exception? Why there are such specific dimensions? It's real detective work, certainly. Where is the place of exception? Why there are such specific dimensions? Where we went wrong? It's real detective work. We launched an inquiry each time when we have dealt with such errors. It was quite monotonous and exhausting. That’s why we decided to lift dimensions on the type level. We wanted to check whether would that be easier to debug. The first argument that a great many of errors affect interim array dimensions. The second argument that we have information on unsatisfied general conditions rather than some specific numbers of dimensions that depend on input data in the case of type errors. The third argument that the chance of runtime error appearance is very low on every acceptable input data at least of error which influenсes the dimensions. For these reasons, we decided to try such an approach with type-level dimensions.
 
 
 #### The definition of matrix
@@ -33,8 +33,7 @@ As we have already said before, one needs to check matrix dimensions and their p
 ```haskell
 newtype DimMatrix r (y :: Nat) (x :: Nat) a = DimMatrix { getInternal :: Matrix r a }
 ```
-Here `a` is a type of elements, `r` is a representation type. `y` and `x` are types of kind `Nat` from `type-natural` library, which is the most useful for our goals, as we discussed in the introduction. 
-
+Here `a` is a type of elements, `r` is a representation type. `y` and `x` are types of kind `Nat` from `type-natural` library, which is the most useful for our goals, as we discussed in the introduction.
 
 Looks good, but the dimensionality of an input data is unknown at compile-time. Thus, types might be dependent on other values received at the runtime stage. This connection might be described quite straightforwardly via dependent types. Here's a small example on Agda:
 
@@ -81,31 +80,26 @@ sameDims as bs
   | otherwise = Nothing 
 ```
 
-In addition to type-safe dimensions in itself, we also need to check their properties. For example, we need to make sure that the number of columns is less or equal to the input number. We have already promoted our dimensionality into the type level, but we also should verify their properties at the type level too. Let us consider a simple example.
+In addition to type-safe dimensions itself, we also need to check their properties. For example, we need to make sure that the number of columns is less or equal to the input number. We have already promoted our dimensionality into the type level, but we also should verify their properties at the type level too. Let us consider a simple example.
 
+```haskell
+...
 
-```Haskell
-…
   case (sing :: Sing desired) %<= (sing :: Sing x) of  
     Proved LEQ -> foo @desired @x 
     Disproved _ -> error "Something went wrong"
-…
+...
 
-
-foo :: forall (d :: Nat) (x :: Nat). (d <= x ~ 'True) => …
+foo :: forall (d :: Nat) (x :: Nat). (d <= x ~ 'True) => ...
 ```
 where `desired` and  `x` are types of the kind `Nat`, which unknown at compile-time; `foo` is an abritrary function.
 Here, `@` came from the language extension called [`TypeApplications`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeApplications). This extension allows us to apply function to types explicitly.
 
+The example above is quite close to real code. We don’t know any specific dimensions at compile-time, a validation of the property occurs in runtime. We ensure type system that the property holds and in the case of success, we can use it and satisfy the constraint of the function called `foo`.
 
-This example is quite close to real code. We don’t know any specific dimensions at compile-time, a validation of the property occurs in runtime. We ensure type system that the property holds and in the case of success, we can use it and satisfy the constraint of the function called `foo`. 
-
-
-Now we use this property in `foo` and other functions which will be called in `foo`.  
-
+Now we use this property in `foo` and other functions which will be called in `foo`.
 
 `(:<=:)` is a data type implemented as GADT that keeps a justification that $a \leq b$:
-
 
 ```haskell
 data (a :: k) :<=: (b :: k) where
@@ -143,9 +137,8 @@ transposeM (DimMatrix m) = DimMatrix $ transpose m
 
 PCA is one of the simplest procedures of dimensionality reduction. PCA is a widely used technique in pattern recognition and data compression. The process of computation of principal components reduces to the finding [eigenvectors and eigenvalues](https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors) of the given covariance matrix. A covariance matrix is a degree of a spread of data in a given observation set. An eigenvector is a non-zero vector such that an application of the given linear operator yields the same vector up to a scalar factor, i. e. eigenvalue. You may read the more detailed description of PCA and its extensions [here](ftp://statgen.ncsu.edu/pub/thorne/molevoclass/AtchleyOct19.pdf). Also, there is a quite inquisitive [visualisation](http://setosa.io/ev/principal-component-analysis/) of this procedure.
 
-
 PCA works as follows. Suppose we have some data set. Here and below a data set is some two-dimensional matrix $M \in \mathbb{R}^{n \times m}$ of real numbers and each row represents a single observation. On the next step, one needs to subtract the mean from our data set for each dimension to obtain a new equivalent data set which mean equals to zero. After that, you compute the covariance matrix, eigenvectors and eigenvalues to form the set of feature vectors. There is the statement that eigenvectors of covariance matrix form a new basis in the observed space. Eigenvector with the largest eigenvalue forms the axe with the highest dispersion along with it and the lower eigenvalue, the lower dispersions along with the corresponding axe. We can drop eigenvectors with the lowest eigenvalues and reduce the dimension with fewer information losses.
-Finally, the reduced principal component matrix is the product of a feature vector matrix and transposed mean-adjusted data set that we have already obtained on the second step. Note that, the number of intended principal components passes as the separate parameter.
+Finally, the reduced principal component matrix is the product of a feature vector matrix and transposed mean-adjusted data set that we have already obtained on the second step. Note that, the number of intended principal components is passed as the separate parameter.
 
 
 Now, we take a look on our PCA implementation in Haskell. We define PCA as a record data type as follows:
@@ -153,11 +146,11 @@ Now, we take a look on our PCA implementation in Haskell. We define PCA as a rec
 
 ```haskell
 data PCA = PCA
-  { _inputData        :: Matrix D Double
-  , _covariance      :: Matrix D Double
+  { _inputData      :: Matrix D Double
+  , _covariance     :: Matrix D Double
   , _eigenVectors   :: Matrix D Double
   , _eigenValues    :: Matrix D Double
-  , _finalData          :: Matrix D Double
+  , _finalData      :: Matrix D Double
   , _restoredData   :: Matrix D Double
   , _meanMatrix     :: Matrix D Double
   }
@@ -168,12 +161,12 @@ Names of these fields correspond to their roles: `_inputData` is an input matrix
 ```haskell
 data TypeSafePCA =
   forall x y d. (d <= x ~ 'True) => TypeSafePCA
-  { desiredDim     :: Proxy d
-  , inputData_      :: DimMatrix D y x Double
-  , covariance_    :: DimMatrix D x x Double
+  { desiredDim    :: Proxy d
+  , inputData_    :: DimMatrix D y x Double
+  , covariance_   :: DimMatrix D x x Double
   , eigenVectors_ :: DimMatrix D x x Double
   , eigenValues_  :: DimMatrix D x One Double
-  , finalData_        :: DimMatrix D y d Double
+  , finalData_    :: DimMatrix D y d Double
   , restoredData_ :: DimMatrix D y x Double
   , meanMatrix_   :: DimMatrix D y x Double
   }
@@ -181,7 +174,7 @@ data TypeSafePCA =
 In this data type, we have existentially quantified dimensions, where `y` is a number of columns, `x` is a number of rows, `d` is required number of rows for final data in output matrix. Also, we pass a justification that $d \leq x$ as the coercion constraint `d <= x ~ 'True` between type-level less or equal predicate and Boolean value `True` promoted via [`DataKinds`](https://www.parsonsmatt.org/2017/04/26/basic_type_level_programming_in_haskell.html).
 
 
-Now we have the following set of function that make PCA from an input matrix.
+Now we have the following set of function that make PCA from an input matrix:
 
 
 ```haskell
@@ -193,10 +186,10 @@ makePCA dim input =
        Proved LEQ -> convertTypSafeToPCA $ makePCATypeSafe (Proxy @desired) inputMatrix
        Disproved _ -> error "Error: desired dimension is greater than an old number of rows"
 ```
-`makePCA` function applies a new number of dimensions and matrix of real numbers as arguments and yields `PCA` record. In this function, we promote our desirable dimension using functions called `toSing` and `intToNat`, where `toSing` is a method `SingKind` kind class. `intToNat` is a map between integers and natural numbers defined quite naturally. The result of this embedding is a value of type `SomeSing (Sing desired)`, where `desired` is our integer argument obtained after this sophisticated promotion and `SomeSing` is a container for a singleton unknown at compile-time.
+`makePCA` function takes a new number of dimensions and matrix of real numbers as arguments and yields `PCA` record. In this function, we promote our desirable dimension using functions called `toSing` and `intToNat`, where `toSing` is a method `SingKind` kind class. `intToNat` is a map between integers and natural numbers defined quite naturally. The result of this embedding is a value of type `SomeSing (Sing desired)`, where `desired` is our integer argument obtained after this sophisticated promotion and `SomeSing` is a container for a singleton unknown at compile-time.
 
 
-`checkInput` is a function that yields the decision of $d \leq x$, where `d` and `x` are proxy arguments. Note that, these type-level naturals should have instances of `SingI` type class. It ensures that our type has corresponding singleton type. 
+`checkInput` is a function that yields the decision of $d \leq x$, where `d` and `x` are proxy arguments. Note that, these type-level naturals should have instances of `SingI` type class. It ensures that our type has corresponding singleton type.
 
 
 ```haskell
@@ -224,65 +217,62 @@ In contrast to PCA, which is completely linear algebraic, [probabilistic princip
 analysis](http://www.robots.ox.ac.uk/~cvrg/hilary2006/ppca.pdf), or PPCA, is a probabilistic version of PCA. PPCA is a probabilistic extension of PCA. This technique defines principal axes of a matrix via maximum-likelihood estimation applying well-known [expectation-maximisation algorithm](http://cs229.stanford.edu/notes/cs229-notes8.pdf) (or, EM-algorithm). We have two versions of PPCA. The first one is PPCA with so-called missed data, the second one without it.
 
 
-Informally, PPCA works as follows. Suppose again, we have some set of data points $\{ x_i \}_{i \in \{ 1, \dots, m\}}$, where $x_i \in \mathbb{R}^n$ and we need to find a way to represent these data points as $\{ z_i \}_{i \in \{ 1, \dots, m\}}$, where $z_i \in \mathbb{R}^{d}$ and $d < n$. The statement of the problem tells us that we need to optimise our data set somehow. 
-In the case of PPCA, we work with linear model that has form
-
+Informally, PPCA works as follows. Let $\{ x_i \}_{i \in \{ 1, \dots, m\}}$ be a data set, where $x_i \in \mathbb{R}^n$ and we need to find a way to represent these data points as $\{ z_i \}_{i \in \{ 1, \dots, m\}}$, where $z_i \in \mathbb{R}^{d}$ and $d < n$. The statement of the problem tells us that we need to optimise our data set somehow.
+In the case of PPCA, we work with the following linear model:
 
 $z = W x + \mu + \varepsilon$
 
-
-where $W \in \mathbb{R}^{d \times n}$ is a linear transformation matrix; $\varepsilon$ is a Gaussian noise; $\mu$ is a mean. The estimation of the linear transformation matrix $W$ is reached via maximal likelihood(https://en.wikipedia.org/wiki/Likelihood_function). One may find this estimation straightforwardly, but it’s very inefficiently.   
+where $W \in \mathbb{R}^{d \times n}$ is a linear transformation matrix; $\varepsilon$ is a Gaussian noise; $\mu$ is a mean. The estimation of the linear transformation matrix $W$ is reached via maximal likelihood(https://en.wikipedia.org/wiki/Likelihood_function). One may find this estimation straightforwardly, but it’s very inefficiently.
 And here comes the EM-algorithm. It is an iterative algorithm that consists of the following steps:
-1) Initialisation of $\{\bf W}$ и $\sigma^2$ by random values.
-2) Obtain the set of hidden variables ${\bf Z} = {\bf z}_n$ from the corresponding a posteriori distribution of conditional probability $p({\bf z}| {\bf x})$.  
+1) Initialisation of $\{\bf W}$ and $\sigma^2$ by random values.
+2) Obtain the set of hidden variables ${\bf Z} = {\bf z}_n$ from the corresponding a posteriori distribution of conditional probability $p({\bf z}| {\bf x})$.
 3)  Let us assume that we fixed ${\bf z}_n$. After that, we seek the values of $\{\bf W}$ and  $\sigma^2$. These parameters provide a maximal expectation of logarithm likelihood $E[ln p({\bf X}, {\bf Z} | \mu, \{\bf W}, \sigma^2)]$.
 4)  If changes in parameters are greater of the initial value, then we return to step 2 and seek a new $\{\bf Z}$, $\{\bf W}$ and $\sigma^2$. Otherwise, we are done.
 
 
-This way has a few advantages: 
+This way has a few advantages:
 1. This is much faster than the exact solution.
-2. Solution with EM-algorithm can handle and restore missed values in our observations with a little modification. 
+2. Solution with EM-algorithm can handle and restore missed values in our observations with a little modification.
 3. We can use the estimation of logarithm likelihood and variance to assess the quality of the result.
 One can read paragraph 12.2 in “[Pattern recognition and machine learning]” (https://www.springer.com/gp/book/9780387310732) in order to better understand PPCA and EM algorithms.
-
 
 Let us consider how we formalised this procedure in Haskell. We introduce `PPCA` record data type with input and output fields with the Boolean flag on the presence of missed data.
 
 
 ```haskell
 data PPCA = PPCA
-  {  _noMissedData        :: Bool
-   , _learningData           :: Matrix D Double
+  {  _noMissedData       :: Bool
+   , _learningData       :: Matrix D Double
    , desiredDimensions   :: Int
-   , stopParameter          :: Either Int Double
-   , _variance                  :: Double
-   , _W                            :: Matrix D Double
-   , _finalExpLikelihood  :: Double
-   , _restoredMatrix        :: Maybe (Matrix D Double)
+   , stopParameter       :: Either Int Double
+   , _variance           :: Double
+   , _W                  :: Matrix D Double
+   , _finalExpLikelihood :: Double
+   , _restoredMatrix     :: Maybe (Matrix D Double)
   }
 ```
-Input parameters: 
-`_noMissedData`        - If there are no values marked as `NaN`, then, in the case of `True`, 
-                                      we run the fast version of the EM algorithm, which doesn’t try to 
-                                      restore missed values. 
+Input parameters:
+`_noMissedData`        - If there are no values marked as `NaN`, then, in the case of `True`,
+                                      we run the fast version of the EM algorithm, which doesn’t try to
+                                      restore missed values.
 `_learningData`           - The set of observations, matrix $M \times N$
-`desiredDimensions`   -  The desired dimension of a hidden space. This number should be less        
+`desiredDimensions`   -  The desired dimension of a hidden space. This number should be less
                                        or equal to $M$
-`stopParameter`          -  This field stores either the number of iterations or maximally allowed   
+`stopParameter`          -  This field stores either the number of iterations or maximally allowed
                                         change of elements of ${\bf W}$ matrix between iterations.
-Output parameters: 
+Output parameters:
 `_variance`                    - The final value of $\sigma^2$
-`_W`                              -  The transformation matrix between hidden space and observed space 
-`_finalExpLikelihood`    -  Expectation of logarithm likelihood 
-`_restoredMatrix`          - The matrix with restored values. If there are no missed values in    
-                                        `_learningData`, then it would be `Nothing`. 
+`_W`                              -  The transformation matrix between hidden space and observed space
+`_finalExpLikelihood`    -  Expectation of logarithm likelihood
+`_restoredMatrix`          - The matrix with restored values. If there are no missed values in
+                                        `_learningData`, then it would be `Nothing`.
 
 
-The function `makePPCATypeSafe` takes observations, the desired dimension of hidden space, and termination condition. This function generates random values for ${\bf W}$ and $\sigma^2$. This function also creates matrices with dimensions in their types and runs either `emStepsFast` or `emStepsMissed`. At last, the function transforms type-safe matrices of result into usual matrix type and yields `PPCA` record.
+The function `makePPCATypeSafe` takes observations, the desired dimension of hidden space, and termination condition. This function generates random values for ${\bf W}$ and $\sigma^2$. This function also creates matrices with dimensions in their types and runs either `emStepsFast` or `emStepsMissed`. Finally, the function transforms type-safe matrices of result into usual matrix type and yields `PPCA` record.
 
 
 ```haskell
-makePPCATypeSafe :: RandomGen gen => Matrix R.D Double -> Int              
+makePPCATypeSafe :: RandomGen gen => Matrix R.D Double -> Int
   -> Either Int Double -> gen -> PPCA
 ```
 The `emStepsFast` function takes observations, initial values of ${\bf W}$ and $\sigma^2$, and termination condition. The result is final ${\bf W}$, $\sigma^2$ and expectation of likelihood logarithm. Note that we require some properties of dimensions in the constraint. The function `emStepsMissed` of the same type is also quite inquisitive:
@@ -295,7 +285,6 @@ emStepsFast, emStepsMissed :: forall d y1 x1 y2 x2.
   -> Double -> Either Int Double
   -> (DimMatrix D y2 x2 Double, Double, Double, Maybe (DimMatrix D y1 x1 Double))
 ```
-
 `emStepsMissed` also returns the matrix of observations with restored values. Let us consider this function more closely. It is too huge to show the whole function and we consider the implementation partially. At first, we may notice that there are local functions that return matrices which dimensions depend on elements. For instance: 
 ```haskell 
 ...
@@ -309,10 +298,9 @@ We use this function to create the set of `x1` matrices ${\bf OldW_presented}$. 
 `LessEq` is a constructor of data type `LEQThan (x :: Nat)` and consists of `Proxy i`. One may create a value of this type only if $i \leq x$.
 
 
-Secondly, we may find this quite a strange piece of code. 
+Secondly, we may find this quite a strange piece of code.
 
-
-```Haskell 
+```haskell
 expX_ ::forall (i :: Nat). ((i <= x1) ~ 'True ) => Sing i  -> DimMatrix D x2 i Double
 expX_ SZ = emptyM :: DimMatrix D x2 Zero Double
 expX_ (SS l) = case lemma1 l (Sing :: Sing x1) of LEQ -> withSingI l $ (expX_ l) ^++^ ((withDelNumber expXi) (LessEq (Proxy :: Proxy (i - One))))
@@ -332,7 +320,7 @@ Note that, we didn’t use the `singletons` functionality initially since dimens
 
 
 We discussed the way of reducing debug time and make our programs less error prone. At first glance, it looks a bit sophisticated. Why? The question remains about a way to make it less devious and more idiomatic. In other words, we have to recognise the restrictions of Haskell expressive opportunities. What about performance? Also, one should realise that our approach helps to remove only errors that affect the dimensions of arrays. So, can we track other array parameters to reduce a set of possible runtime errors even more? [a]
-        
+
 We’ll talk about all these questions in the next part of our article. To stay tuned, follow Serokell on [Twitter](https://twitter.com/serokell) and [Facebook](https://www.facebook.com/serokell.io)!
 
 
