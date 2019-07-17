@@ -5,8 +5,7 @@
 
 
 [In our previous blogpost](https://serokell.io/blog/dimensions-and-haskell-introduction), we introduced a reader to our subject matter
-and briefly observed some numeric libraries in Haskell. We explained why we don’t use the popular library called [`GHC.TypeLits`](http://hackage.haskell.org/package/base-4.12.0.0/docs/GHC-TypeLits.html) with
-non-inductively defined kind of type level natural numbers.
+and briefly observed some numeric libraries in Haskell. We explained why we don’t use the popular library called [`GHC.TypeLits`](http://hackage.haskell.org/package/base-4.12.0.0/docs/GHC-TypeLits.html) with non-inductively defined kind of type level natural numbers.
 In our approach, we put dimensions of data types on the type level to avoid a large set of errors that might arise at the runtime stage.
 During the compile stage, one may check some properties of matrix dimensions expressed via type-level natural numbers and find out the reason of that error as a type error.
 In this part, we describe our approach to matrix data type that parameterised via its numbers of columns and rows.
@@ -77,7 +76,7 @@ withMat m f =
 
 In the early stages, we created proofs via the function called [`unsafeCoerce`](http://hackage.haskell.org/package/base-4.12.0.0/docs/Unsafe-Coerce.html#v:unsafeCoerce), if some desired condition holds. After that, we used [`Evidence`](http://hackage.haskell.org/package/dimensions-1.0.1.1/docs/Numeric-Type-Evidence.html#t:Evidence) data type that came from `dimensions`, where, however, type-level proofs are created via the same `unsafeCoerce`. Here is a simple example from the library:
 
-```Haskell
+```haskell
 sameDims :: Dims (as :: [Nat]) -> Dims (bs :: [Nat]) -> Maybe (Evidence (as ~ bs))
 sameDims as bs
   | listDims as == listDims bs
@@ -97,7 +96,8 @@ In addition to type-safe dimensions itself, we also need to check their properti
 
 foo :: forall (d :: Nat) (x :: Nat). (d <= x ~ 'True) => ...
 ```
-where `desired` and  `x` are types of the kind `Nat`, which unknown at compile-time; `foo` is an abritrary function.
+where `desired` and  `x` are types of the kind `Nat`, which unknown at compile-time; `foo` is an abritrary function. Here, `LEQ` is a constuctor of data type `(:<=:)` that we introduce below.
+This constuctor stores a proof that the first argument is less or equal to the second one.
 Here, `@` came from the language extension called [`TypeApplications`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeApplications). This extension allows us to apply a function to types as arguments explicitly.
 
 The example above is quite close to real code. We don’t know any specific dimensions at compile-time, a validation of the property occurs in runtime. We ensure type system that the property holds and in the case of success, we can use it and satisfy the constraint of the function called `foo`. After that, we use this property in `foo` and other functions which will be called in `foo`.
@@ -138,7 +138,7 @@ transposeM (DimMatrix m) = DimMatrix $ transpose m
 ##### Principal component analysis
 
 
-PCA is one of the simplest procedures of dimensionality reduction. PCA is a widely used technique in pattern recognition and data compression. The process of computation of principal components reduces to the finding [eigenvectors and eigenvalues](https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors) of the given covariance matrix. A covariance matrix is a degree of a spread of data in a given observation set. An eigenvector is a non-zero vector such that an application of the given linear operator yields the same vector up to a scalar factor, i. e. eigenvalue. You may read the more detailed description of PCA and its extensions [here](ftp://statgen.ncsu.edu/pub/thorne/molevoclass/AtchleyOct19.pdf). Also, there is a quite inquisitive [visualisation](http://setosa.io/ev/principal-component-analysis/) of this procedure.
+PCA is one of the simplest procedures of dimensionality reduction. PCA is a widely used technique in pattern recognition and data compression. The process of computation of principal components reduces to the finding [eigenvectors and eigenvalues](https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors) of the given covariance matrix. A covariance matrix is a degree of a spread of data in a given observation set. An eigenvector is a non-zero vector such that an application of the given linear operator yields the same vector up to a scalar factor, i. e. eigenvalue. You may read the more detailed description of PCA and its extensions [here](ftp://statgen.ncsu.edu/pub/thorne/molevoclass/AtchleyOct19.pdf). Also, there is quite inquisitive [visualisation](http://setosa.io/ev/principal-component-analysis/) of this procedure.
 
 PCA works as follows. Suppose we have some data set. Here and below a data set is some two-dimensional matrix $M \in \mathbb{R}^{n \times m}$ of real numbers and each row represents a single observation. On the next step, one needs to subtract the mean from our data set for each dimension to obtain a new equivalent data set which mean equals to zero. After that, you compute the covariance matrix, eigenvectors and eigenvalues to form the set of feature vectors. There is the statement that eigenvectors of covariance matrix form a new basis in the observed space. Eigenvector with the largest eigenvalue forms the axe with the highest dispersion along with it and the lower eigenvalue, the lower dispersions along with the corresponding axe. We can drop eigenvectors with the lowest eigenvalues and reduce the dimension with fewer information losses.
 Finally, the reduced principal component matrix is the product of a feature vector matrix and transposed mean-adjusted data set that we have already obtained on the second step. Note that, the number of intended principal components is passed as the separate parameter.
@@ -294,7 +294,7 @@ We use this function to create the set of `x1` matrices ${\bf OldW}_{present}$. 
 `LessEq` is a constructor of data type `LEQThan (x :: Nat)` and consists of `Proxy i`. One may create a value of this type only if $i \leq x$.
 
 
-Secondly, we may find this quite a strange piece of code.
+Secondly, we may find this quite strange piece of code.
 
 ```haskell
 expX_ ::forall (i :: Nat). ((i <= x1) ~ 'True ) => Sing i  -> DimMatrix D x2 i Double
