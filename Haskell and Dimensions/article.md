@@ -4,7 +4,12 @@
 #### Intro
 
 
-[In our previous blogpost](https://serokell.io/blog/dimensions-and-haskell-introduction), we introduced a reader to our subject matter and briefly observed some numeric libraries in Haskell. We explained why we don’t use the popular library called `GHC.TypeLits` with non-inductively defined kind of type level natural numbers. In this part, we describe our approach to matrix data type that parameterised via its numbers of columns and rows.
+[In our previous blogpost](https://serokell.io/blog/dimensions-and-haskell-introduction), we introduced a reader to our subject matter
+and briefly observed some numeric libraries in Haskell. We explained why we don’t use the popular library called [`GHC.TypeLits`](http://hackage.haskell.org/package/base-4.12.0.0/docs/GHC-TypeLits.html) with
+non-inductively defined kind of type level natural numbers.
+In our approach, we put dimensions of data types on the type level to avoid a large set of errors that might arise at the runtime stage.
+During the compile stage, one may check some properties of matrix dimensions expressed via type-level natural numbers and find out the reason of that error as a type error.
+In this part, we describe our approach to matrix data type that parameterised via its numbers of columns and rows.
 
 
 #### Foreword
@@ -20,7 +25,7 @@ CallStack (from HasCallStack):
 error, called at src/Internal/LAPACK.hs:61:31 in
 hmatrix-0.19.0.0-GJ4OJPujscCE7zmZ8JSwjL:Internal.LAPACK
 ```
-Where is the place of exception? Why there are such specific dimensions?  Where is the place of exception? It's real detective work, certainly. We launched an inquiry each time when we have dealt with such errors. It was quite monotonous and exhausting. That’s why we decided to lift dimensions on the type level. We wanted to check whether would that be easier to debug. The first argument that a great many of errors affect interim array dimensions. The second argument that we have information on unsatisfied general conditions rather than some specific numbers of dimensions that depend on input data in the case of type errors. The third argument that the chance of runtime error appearance is very low on every acceptable input data at least of error which influenсes the dimensions. For these reasons, we decided to try that approach with type-level dimensions.
+Where is the place of exception? Why there are such specific dimensions? It's real detective work, certainly. We launched an inquiry each time when we have dealt with such errors. It was quite monotonous and exhausting. That’s why we decided to lift dimensions on the type level. We wanted to check whether would that be easier to debug. The first argument that a great many of errors affect interim array dimensions. The second argument that we have information on unsatisfied general conditions rather than some specific numbers of dimensions that depend on input data in the case of type errors. The third argument that the chance of runtime error appearance is very low on every acceptable input data at least of error which influenсes the dimensions. For these reasons, we decided to try that approach with type-level dimensions.
 
 
 #### The definition of matrix
@@ -35,23 +40,23 @@ newtype DimMatrix r (y :: Nat) (x :: Nat) a = DimMatrix { getInternal :: Matrix 
 ```
 Here `a` is a type of elements, `r` is a representation type. `y` and `x` are types of kind `Nat` from `type-natural` library, which is the most useful for our goals, as we discussed in the introduction.
 
-Looks good, but the dimensionality of an input data is unknown at compile-time. Thus, types might be dependent on other values received at the runtime stage. This connection might be described quite straightforwardly via dependent types. Here's a small example on Agda:
+Looks good, but the dimensionality of an input data is unknown at compile-time. Thus, types might be dependent on other values received at the runtime stage. This connection might be described quite straightforwardly via dependent types. Here's a small example written in Agda:
 
 ```agda
 generateVec : {A : Set} → (ℕ → A) → (n : ℕ) → Vec A n
 generateVec f zero = []
 generateVec f (suc n) = (f $ suc n) ∷ generateVec f n
 ```
-In this example, we generate a list with length in its type, the result of which is parametrised by value `n`. In other words, it depends from value. Here, the benefit of dependent types is that the compiler checks the function body. And if the length of the list does not equal `n` or the compiler cannot prove this fact, then we get a compilation error.
+In this example, we generate a list with length in its type, the result of which is parametrised by value `n`. In other words, it depends from value. Here, the benefit of dependent types is that the compiler checks the function body. If the length of that list doesn't equal `n` or the compiler cannot prove this fact, then we obtain a compilation error.
 At the present time, Haskell lacks dependent types. However, there is a necessity to jump from values to types, so we're not able to do it with the actual Haskell type system.
 
-In [`singletons`](http://hackage.haskell.org/package/singletons), one may emulate dependent type by jump mapping some type `a` into datatype `Sing n`, which has exactly one value in runtime. Reader may read [this article](https://cs.brynmawr.edu/~rae/papers/2012/singletons/paper.pdf) to acknowledge with this tool in more detail.
+In [`singletons`](http://hackage.haskell.org/package/singletons), one may emulate dependent type by jump mapping some type `a` into datatype `Sing n`, which has exactly one value in runtime. Reader may read [this article](https://cs.brynmawr.edu/~rae/papers/2012/singletons/paper.pdf) to acknowledge with this tool closely.
 The basic module called `Singletons.Prelude` provides singleton types, prelude-like type-level functions, and promoted types. The main goal of the module is to emulate Haskell prelude at the type-level. One can read about promoted types [here](https://www.parsonsmatt.org/2017/04/26/basic_type_level_programming_in_haskell.html).
 This library is pretty helpful for dependent types emulating in Haskell, but it probably might become irrelevant, when [full-fledged dependent](https://serokell.io/blog/2018/12/17/why-dependent-haskell) types will be able in Haskell. A reader may familiarise with [this tutorial](https://blog.jle.im/entry/introduction-to-singletons-1.html) to introduce in singletons more systematically. We only discuss some basic constructions that we used for type-safe dimensions.
 
 We decided to use `singletons` interface for type-level dimensions. Here we meet the additional important characteristic of `type-natural`. There is an integration between `type-natural` and `singletons` implemented [as follows](https://hackage.haskell.org/package/type-natural-0.8.2.0/docs/Data-Type-Natural.html#g:3).
 
-Let us consider the following example of `singletons` use with `DimMatrix` data type. `withMat` is a function that creates the same matrix with type-level dimensions from the input `repa` matrix. We implemented this function via continuation passing style because type-level dimensions `x` and `y` are bound by the internal universal quantifier, so they cannot appear in the result type `k`. Here, we use CPS for the ability to create a matrix with type-level dimensionality from the usual one and avoid the disappearance of dimension in types.
+Let us consider the following example of `singletons` use with `DimMatrix` data type. `withMat` is a function that creates the same matrix with type-level dimensions from the input `repa` matrix. We implemented this function via continuation passing style because type-level dimensions `x` and `y` are bound by the internal universal quantifier, so they cannot appear in the result type `k`. Here, we use continuation-passing style for the ability to create a matrix with type-level dimensionality from the usual one and avoid the disappearance of dimension in types.
 This function is one the most widely used by us:
 ```haskell
 withMat
@@ -111,7 +116,7 @@ class LEQDecide k where
   (%<=) :: forall (a :: k) (b :: k). Sing a -> Sing b -> Decision (a :<=: b)
   infix 4 %<=
 ```
-It compares two values of `Sing x` type in runtime and yields a value of type `[Decision](http://hackage.haskell.org/package/singletons-2.5.1/docs/Data-Singletons-Decide.html#t:Decision) (a :<=: b)`. Let us describe what `Decision` data type is. In some cases, one may prove decidability of certain relations and predicates. In logic, a proposition $P$ is decidable, if either $P$ provable or $\not P$. In other words, we have a way to either tell “Yes” or “No” according to whether what exactly is provable: the statement or its negation. In Haskell, `Decision` data type expresses decidability of the proposition. This type consists of the following two constructors. The first one is called `Proved`. This constructor stores the term that proves the desired statement. The other constructor `Disproved` contains a proof of negation, that is, a function `a -> Void`, so far as an empty type is the absurdity constant logically.
+It compares two values of `Sing x` type in runtime and yields a value of type [`Decision`](http://hackage.haskell.org/package/singletons-2.5.1/docs/Data-Singletons-Decide.html#t:Decision) `(a :<=: b)`. Let us describe what `Decision` data type is. In some cases, one may prove decidability of certain relations and predicates. In logic, a proposition $P$ is decidable, if either $P$ provable or $\not P$. In other words, we have a way to either tell “Yes” or “No” according to whether what exactly is provable: the statement or its negation. In Haskell, `Decision` data type expresses decidability of the proposition. This type consists of the following two constructors. The first one is called `Proved`. This constructor stores the term that proves the desired statement. The other constructor `Disproved` contains a proof of negation, that is, a function `a -> Void`, so far as an empty type is the absurdity constant logically.
 
 
 #### Type-safe matrix operations
@@ -169,11 +174,9 @@ data TypeSafePCA =
   , meanMatrix_   :: DimMatrix D y x Double
   }
 ```
-In this data type, we have existentially quantified dimensions, where `y` is a number of columns, `x` is a number of rows, `d` is required number of rows for final data in output matrix. Also, we pass a justification that $d \leq x$ as the coercion constraint `d <= x ~ 'True` between type-level less or equal predicate and Boolean value `True` promoted via [`DataKinds`](https://www.parsonsmatt.org/2017/04/26/basic_type_level_programming_in_haskell.html).
-
+In this data type, we have [existentially quantified](https://wiki.haskell.org/Existential_type) dimensions, where `y` is a number of columns, `x` is a number of rows, `d` is required number of rows for final data in output matrix. Also, we pass a justification that $d \leq x$ as the coercion constraint `d <= x ~ 'True` between type-level less or equal predicate and Boolean value `True` promoted via [`DataKinds`](https://www.parsonsmatt.org/2017/04/26/basic_type_level_programming_in_haskell.html).
 
 Now we have the following set of function that make PCA from an input matrix:
-
 
 ```haskell
 makePCA :: Int -> Matrix D Double -> PCA
@@ -184,7 +187,7 @@ makePCA dim input =
        Proved LEQ -> convertTypSafeToPCA $ makePCATypeSafe (Proxy @desired) inputMatrix
        Disproved _ -> error "Error: desired dimension is greater than an old number of rows"
 ```
-`makePCA` function takes a new number of dimensions and matrix of real numbers as arguments and yields `PCA` record. In this function, we promote our desirable dimension using functions called `toSing` and `intToNat`, where `toSing` is a method `SingKind` kind class. `intToNat` is a map between integers and natural numbers defined quite naturally. The result of this embedding is a value of type `SomeSing (Sing desired)`, where `desired` is our integer argument obtained after this sophisticated promotion and `SomeSing` is a container for a singleton unknown at compile-time.
+`makePCA` function takes a new number of dimensions and matrix of real numbers as arguments and yields `PCA` record. In this function, we promote our required dimension using functions called `toSing` and `intToNat`, where `toSing` is a method `SingKind` kind class. `intToNat` is a map between integers and natural numbers defined quite naturally. The result of this embedding is a value of type `SomeSing (Sing desired)`, where `desired` is our integer argument obtained after this sophisticated promotion and `SomeSing` is a container for a singleton unknown at compile-time.
 
 
 `checkInput` is a function that yields the decision of $d \leq x$, where `d` and `x` are proxy arguments. Note that, these type-level naturals should have instances of `SingI` type class. It ensures that our type has corresponding singleton type.
@@ -210,21 +213,18 @@ where `AllConstrained` is a type family from [`vinyl`](http://hackage.haskell.or
 ##### Probabilistic principal component analysis
 
 
-In contrast to PCA, which is completely linear algebraic, [probabilistic principal component
-analysis](http://www.robots.ox.ac.uk/~cvrg/hilary2006/ppca.pdf), or PPCA, is a probabilistic version of PCA. PPCA is a probabilistic extension of PCA. This technique defines principal axes of a matrix via maximum-likelihood estimation applying well-known [expectation-maximisation algorithm](http://cs229.stanford.edu/notes/cs229-notes8.pdf) (or, EM-algorithm). We have two versions of PPCA. The first one is PPCA with so-called missed data. The second one lacks it.
+In contrast to PCA, which is completely linear algebraic, [probabilistic principal component analysis](http://www.robots.ox.ac.uk/~cvrg/hilary2006/ppca.pdf), or PPCA, is a probabilistic version of PCA. PPCA is a probabilistic extension of PCA. This technique defines principal axes of a matrix via maximum-likelihood estimation applying well-known [expectation-maximisation algorithm](http://cs229.stanford.edu/notes/cs229-notes8.pdf) (or, EM-algorithm). We have two versions of PPCA. The first one is PPCA with so-called missed data. The second one lacks it.
 
-
-Informally, PPCA works as follows. Let $\{ x_i \}_{i \in \{ 1, \dots, m\}}$ be a data set, where $x_i \in \mathbb{R}^n$ and we need to find a way to represent these data points as $\{ z_i \}_{i \in \{ 1, \dots, m\}}$, where $z_i \in \mathbb{R}^{d}$ and $d < n$. The statement of the problem tells us that we need to optimise our data set somehow.
-In the case of PPCA, we work with the following linear model:
+Informally, PPCA works as follows. Let $\{ x_i \}_{i \in \{ 1, \dots, m\}}$ be a data set, where $x_i \in \mathbb{R}^n$ and one needs to find a way to represent these data points as $\{ z_i \}_{i \in \{ 1, \dots, m\}}$, where $z_i \in \mathbb{R}^{d}$ and $d < n$. The statement of the problem tells us that we need to optimise our data set somehow. That's the same dimensionality reduction task, but, as you know, the devil is in the detail. In the case of PPCA, we work with the following linear model:
 
 $z = W x + \mu + \varepsilon$
 
-where $W \in \mathbb{R}^{d \times n}$ is a linear transformation matrix; $\varepsilon$ is a Gaussian noise; $\mu$ is a mean. The estimation of the linear transformation matrix $W$ is reached via maximal likelihood(https://en.wikipedia.org/wiki/Likelihood_function). One may find this estimation straightforwardly, but it’s very inefficiently.
+where $W \in \mathbb{R}^{d \times n}$ is a [linear transformation matrix](http://mathworld.wolfram.com/LinearTransformation.html); $\varepsilon$ is [Gaussian noise](https://www.quora.com/What-is-Gaussian-noise); $\mu$ is a mean. One should reach the estimation of the linear transformation matrix $W$ [maximal likelihood](https://en.wikipedia.org/wiki/Likelihood_function). There is the way to obtain this estimation straightforwardly, but it’s very inefficiently.
 And here comes the EM-algorithm. It is an iterative algorithm that consists of the following steps:
-1) Initialisation of $\{\bf W}$ and $\sigma^2$ by random values.
-2) Obtain the set of hidden variables ${\bf Z} = {\bf z}_n$ from the corresponding a posteriori distribution of conditional probability $p({\bf z}| {\bf x})$.
-3) Let us assume that we fixed ${\bf z}_n$. After that, we seek the values of $\{\bf W}$ and  $\sigma^2$. These parameters provide a maximal expectation of logarithm likelihood $E[ln p({\bf X}, {\bf Z} | \mu, \{\bf W}, \sigma^2)]$.
-4) If changes in parameters are greater of the initial value, then we return to step 2 and seek a new $\{\bf Z}$, $\{\bf W}$ and $\sigma^2$. Otherwise, we are done.
+1) The initialisation of $\{\bf W}$ and $\sigma^2$ by random values, where $\{\bf W}$ and $\sigma^2$ are linear transformation matrix from the definition above and variance (in other words, squared expectation) correspondingly.
+2) After that, we obtain the set of latent variables ${\bf Z} = {\bf z}_n$ from the corresponding a posteriori distribution of conditional probability $p({\bf z}| {\bf x})$.
+3) Let us assume that ${\bf z}_n$ is fixed. After that, we seek the values of the linear transformation map $\{\bf W}$ and variance $\sigma^2$. These parameters provide a maximal expectation of logarithm likelihood $E[ln p({\bf X}, {\bf Z} | \mu, \{\bf W}, \sigma^2)]$.
+4) If those changes in parameters are greater of the initial value, then we return to step 2 and seek a new $\{\bf Z}$, $\{\bf W}$ and $\sigma^2$. Otherwise, we are done.
 
 
 This way has a few advantages:
@@ -253,25 +253,25 @@ Input parameters:
                         we run the fast version of the EM algorithm, which doesn’t try to
                         restore missed values.
 `_learningData`       - The set of observations, matrix $M \times N$
-`desiredDimensions`   - The desired dimension of a hidden space. This number should be less or equal to $M$
+`desiredDimensions`   - The desired dimension of a latent space. This number should be less or equal to $M$
 `stopParameter`       - This field stores either the number of iterations or maximally allowed
                         change of elements of ${\bf W}$ matrix between iterations.
 Output parameters:
 `_variance`              - The final value of $\sigma^2$
-`_W`                     - The transformation matrix between hidden space and observed space
+`_W`                     - The transformation matrix between latent space and observed space
 `_finalExpLikelihood`    - Expectation of logarithm likelihood
 `_restoredMatrix`        - The matrix with restored values. If there are no missed values in
                            `_learningData`, then it would be `Nothing`.
 
 
-The function `makePPCATypeSafe` takes observations, the desired dimension of hidden space, and termination condition. This function generates random values for ${\bf W}$ and $\sigma^2$. This function also creates matrices with dimensions in their types and runs either `emStepsFast` or `emStepsMissed`. Finally, the function transforms type-safe matrices of result into usual matrix type and yields `PPCA` record.
+The function `makePPCATypeSafe` takes observations, the required dimension of latent space, and termination condition. This function generates random values for ${\bf W}$ and $\sigma^2$. This function also creates matrices with dimensions in their types and runs either `emStepsFast` or `emStepsMissed`. Finally, the function transforms type-safe matrices of result into usual matrix type and yields `PPCA` record.
 
 
 ```haskell
-makePPCATypeSafe :: RandomGen gen => Matrix R.D Double -> Int
+makePPCATypeSafe :: RandomGen gen => Matrix D Double -> Int
   -> Either Int Double -> gen -> PPCA
 ```
-The `emStepsFast` function takes observations, initial values of ${\bf W}$ and $\sigma^2$, and termination condition. The result is final ${\bf W}$, $\sigma^2$ and expectation of likelihood logarithm. Note that we require some properties of dimensions in the constraint. The function `emStepsMissed` of the same type is also quite inquisitive:
+The `emStepsFast` function takes observations, initial values of the linear transformation matrix ${\bf W}$ and variance $\sigma^2$, and termination condition. The result is final ${\bf W}$, $\sigma^2$ and expectation of likelihood logarithm. Note that we require some properties of dimensions in the constraint. The function `emStepsMissed` of the same type is also quite inquisitive:
 
 
 ```haskell
@@ -281,16 +281,16 @@ emStepsFast, emStepsMissed :: forall d y1 x1 y2 x2.
   -> Double -> Either Int Double
   -> (DimMatrix D y2 x2 Double, Double, Double, Maybe (DimMatrix D y1 x1 Double))
 ```
-`emStepsMissed` also returns the matrix of observations with restored values. Let us consider this function more closely. It is too huge to show the whole function and we consider the implementation partially. At first, we may notice that there are local functions that return matrices which dimensions depend on elements. For instance:
+`emStepsMissed` also returns the matrix of observations with restored values. Let us consider this function more closely. It is too huge to show the whole function and we consider the implementation partially. First of all, let us notice that there are local functions that return matrices which dimensions depend on elements. For instance:
 ```haskell
 ...
   oldWP :: forall i toDel. ((i <= x1) ~ 'True, (toDel <= y1) ~ 'True, SingI i)
-           => Proxy i -> Proxy toDel -> DimMatrix R.D (y1 - toDel) x2 Double
+           => Proxy i -> Proxy toDel -> DimMatrix D (y1 - toDel) x2 Double
   oldWP iP _ = withListOfIndexes @y1 (unknownIndexes (LessEq iP)) (deleteRowsM @toDel oldW)
 ...
 ```
 
-We use this function to create the set of `x1` matrices ${\bf OldW}_{present}$. We remove rows from ${\bf OldW}$ with the same index as the index of unknown value in i-th column of observations matrix for each $i \in \{0, \dots, x_1}\$ . Here ${\bf OldW}$ is ${\bf W}$(transformation matrix between spaces) from the previous iteration. As a result, we have the matrix with `(y1 - toDel)` columns, where `toDel` depends on the number of unknown values in $i$-th column of unknown values. Its value is unknown at compile-time, but we can ensure the type checker that we checked its property (`(toDel <= y1) ~ 'True`) using singletons in the same way as we have described before.
+We use this function to create the set of `x1` matrices ${\bf OldW}_{present}$. We remove rows from ${\bf OldW}$ with the same index as the index of unknown value in $i$-th column of observations matrix for each $i \in \{0, \dots, x_1}\$ . Here ${\bf OldW}$ is ${\bf W}$(transformation matrix between spaces) from the previous iteration. As a result, we have the matrix with `(y1 - toDel)` columns, where `toDel` depends on the number of unknown values in $i$-th column of unknown values. Its value is unknown at compile-time, but we can ensure the type checker that we checked its property (`(toDel <= y1) ~ 'True`) using singletons in the same way as we have described before.
 `LessEq` is a constructor of data type `LEQThan (x :: Nat)` and consists of `Proxy i`. One may create a value of this type only if $i \leq x$.
 
 
@@ -301,7 +301,7 @@ expX_ ::forall (i :: Nat). ((i <= x1) ~ 'True ) => Sing i  -> DimMatrix D x2 i D
 expX_ SZ = emptyM :: DimMatrix D x2 Zero Double
 expX_ (SS l) = case lemma1 l (Sing :: Sing x1) of LEQ -> withSingI l $ (expX_ l) ^++^ ((withDelNumber expXi) (LessEq (Proxy :: Proxy (i - One))))
 ```
-Here we form the expectation (in terms of probability theory) of missed values and other elements in the presence of such missed values. Of course, we can't restore the real values of missed cells, this algorithm just finds an expectation of all values.  `expX_` is a recursive function: on every step of recursion, the function adds a new column to the accumulator. It is a suitable example of work with dependent types. The compiler checks the body of this function and ensures that this function creates a matrix with exactly `i` columns at runtime stage. On the other hand, there is also `lemma1`. Why do we need it? Unfortunately, the type checker is not so smart. We should prove such trivial statements as this one:
+Here we form the expectation (in terms of probability theory) of missed values and other elements in the presence of such missed values. Of course, we can't restore the real values of missed cells, this algorithm just finds an expectation of all values.  `expX_` is a recursive function: on every step of recursion, the function adds a new column to the accumulator. It is a suitable example of work with dependent types. The compiler checks the body of this function and ensures that this function creates a matrix with exactly `i` columns at runtime stage. On the other hand, there is also `lemma1`. Why do we need it? Unfortunately, the type checker is not so smart as we are. We should prove such trivial statements as this one:
 ```haskell
 lemma1 :: forall (n :: Nat) (x :: Nat). (('S n <= x) ~ 'True) => Sing n -> Sing x -> (n :<=: x)
 lemma1 SZ _ = LEQ
