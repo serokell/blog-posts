@@ -272,7 +272,7 @@ Output parameters:
                            `_learningData`, then it will be `Nothing`.
 
 
-The function `makePPCATypeSafe` takes observations, the required dimension of latent space, and termination condition. This function generates random values for ${\bf W}$ and $\sigma^2$. This function also creates matrixes with dimensions in their types and runs either `emStepsFast` or `emStepsMissed`. Finally, the function transforms type-safe matrixes of the result into the usual matrix type and yields `PPCA` record.
+The function `makePPCATypeSafe` takes observations, the required dimension of latent space, and termination condition. This function generates random values for ${\bf W}$ and $\sigma^2$. This function also creates matrices with dimensions in their types and runs either `emStepsFast` or `emStepsMissed`. Finally, the function transforms type-safe matrices of the result into the usual matrix type and yields `PPCA` record.
 
 
 ```haskell
@@ -289,7 +289,7 @@ emStepsFast, emStepsMissed :: forall d y1 x1 y2 x2.
   -> Double -> Either Int Double
   -> (DimMatrix D y2 x2 Double, Double, Double, Maybe (DimMatrix D y1 x1 Double))
 ```
-`emStepsMissed` also returns the matrix of observations with restored values. Let's look at the function more closely. It is too huge to show the whole function, so we consider the implementation partially. First of all, let us notice that there are local functions that return matrixes which dimensions depend on the elements. For instance:
+`emStepsMissed` also returns the matrix of observations with restored values. Let's look at the function more closely. It is too huge to show the whole function, so we consider the implementation partially. First of all, let us notice that there are local functions that return matrices which dimensions depend on the elements. For instance:
 ```haskell
 ...
   oldWP :: forall i toDel. ((i <= x1) ~ 'True, (toDel <= y1) ~ 'True, SingI i)
@@ -298,7 +298,7 @@ emStepsFast, emStepsMissed :: forall d y1 x1 y2 x2.
 ...
 ```
 
-We use this function to create the set of `x1` matrixes ${\bf OldW}_{present}$. We remove the rows from ${\bf OldW}$ with the same index as the index of unknown value in the $i$-th column of observations matrix for each $i \in \{0, \dots, x_1}\$ . Here ${\bf OldW}$ is ${\bf W}$(transformation matrix between spaces) from the previous iteration. As a result, we have the matrix with `(y1 - toDel)` columns, where `toDel` depends on the number of unknown values in the $i$-th column of unknown values. Its value is unknown at compile-time, but we can ensure the type checker that we checked its property (`(toDel <= y1) ~ 'True`) using singletons in the same way as we have described before.
+We use this function to create the set of `x1` matrices ${\bf OldW}_{present}$. We remove the rows from ${\bf OldW}$ with the same index as the index of unknown value in the $i$-th column of observations matrix for each $i \in \{0, \dots, x_1}\$ . Here ${\bf OldW}$ is ${\bf W}$(transformation matrix between spaces) from the previous iteration. As a result, we have the matrix with `(y1 - toDel)` columns, where `toDel` depends on the number of unknown values in the $i$-th column of unknown values. Its value is unknown at compile-time, but we can ensure the type checker that we checked its property (`(toDel <= y1) ~ 'True`) using singletons in the same way as we have described before.
 `LessEq` is a constructor of data type `LEQThan (x :: Nat)` and consists of `Proxy i`. One may create a value of this type only if $i \leq x$.
 
 
@@ -320,9 +320,9 @@ lemma1 (SS l) (SS k) = case lemma1 l k of LEQ -> LEQ
 It is obvious for us that $(n + 1) \leq x$ implies $n \leq x$, but not for the compiler. Of course, we may merely apply `unsafeCoerce` for similar examples, but we prefer to use it as rarely as possible. Unsafe coercion is not the way for more complicated examples.
 We need this proof because at each iteration except the last one, we call this function again on `(i -1)`, but we proved only that `i <= x1`, not `(i - 1) <= x1`.
 
-We didn't use the `singletons` functionality initially since dimensions of intermediate matrixes don't depend on their values. In other words, these dimensions depend on the input values and applied operations at each step. The case of PPCA with missed data is completely different in this aspect. That's why we had to use `singletons` when we were working on this algorithm. A need to infer some form of properties of such dimensions that may depend on intermediate matrices values caused `singletons` use. By the way, one can verify within the type system quite safely that required property really has a proof as we have already shown above.
+We didn't use the `singletons` functionality initially since dimensions of intermediate matrices don't depend on their values. In other words, these dimensions depend on the input values and applied operations at each step. The case of PPCA with missed data is completely different in this aspect. That's why we had to use `singletons` when we were working on this algorithm. A need to infer some form of properties of such dimensions that may depend on intermediate matrices values caused `singletons` use. By the way, one can verify within the type system quite safely that required property really has a proof as we have already shown above.
 
 #### Summary
 
 
-We discussed one way to reduce the debugging time and make our programs less error-prone. At first glance, it looks a bit sophisticated. Why? The question about the way to make it less devious and more idiomatic remains. In other words, we have to recognise the restrictions of Haskell expressive opportunities. What about performance? Also, one should realise that our approach helps to remove only errors that affect the dimensions of arrays. So, can we track other array parameters to reduce a set of possible runtime errors even more? We’ll talk about it in the next part of our article.
+We discussed one way to reduce the debugging time and make our programs less error-prone. In this approach, matrix dimensions are lifted to the type level with the use of the Singletons library. At first glance, our solution looks a bit sophisticated. Why? There remains a question about the way to make it less devious and more idiomatic. In other words, we have to recognise the restrictions of Haskell expressive opportunities. What about performance? Also, our approach helps to remove only errors that affect the dimensions of arrays. Can we track other array parameters to reduce a set of possible runtime errors even more? We’ll talk about it in the next part of our article.
