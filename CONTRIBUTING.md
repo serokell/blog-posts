@@ -9,4 +9,4 @@ The repository structure must be as follows:
 
 The names of folders and files should be descriptive and reflect the article subject.
 
-When starting the article, an author has to create a PR to the `blog-posts` repository, all changes must be added as new PRs, reviewed and approved by the marketing team.
+When starting the article, an author has to create a PR to the `blog-posts` repository, all changes must be added as new PRs, reviewed and approved by the [marketing team](https://github.com/orgs/serokell/teams/marketing).
