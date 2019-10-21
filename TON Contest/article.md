@@ -13,8 +13,8 @@ abstract: |
 ## Telegram Open Network
 
 Telegram Open Network is a relatively new smart-contracts platform developed
-by the team behind the Telegram messenger. It was announced in (TODO year) and
-the first source code was published on (TODO date). Three (TODO update) weeks
+by the team behind the Telegram messenger. It was announced in late 2017 and
+the first source code was published in September this year. Three (TODO update) weeks
 ago they started a [competition for developers][contest-announce], who were asked
 to either implement a smart-contract or contribute to the platform in one way or
 another.
@@ -71,6 +71,27 @@ Nix will magically handle everything for you whether you are running NixOS,
 Ubuntu, or macOS on a MacBook.
 Everyone should be using Nix for all their building needs!
 
+### Programming for TON
+
+The code of smart-contracts existing in the TON Network is executed by a virtual
+machine called TON Virtual Machine (TVM). Unlike most virtual machines that
+try to be simple, this one provides some quite unconvential capabilities, such as
+native support for continuations and data references.
+
+They created three (!) new programming languages:
+
+* _Fift_ is a general-purpose stack-based programming language, somewhat
+  similar to [Forth][wiki:forth]. Its special power is the built-in support
+  for interfacing with the TON Virtual Machine (TVM) that runs smart-contracts
+  in the TON Network.
+* _Func_ is a smart-contract programming language that feels a lot like [C][wiki:c]
+  and compiles to yet another language called Fift Assembler.
+* _Fift Assembler_ is a little different from “traditional” programming languages
+  in that it doesn’t have a compiler. Instead, it is an
+  [Embedded Domain-Specific Language (EDSL)][wiki:edsl], in other words, it is
+  a Forth _library_ that allows one to write Forth programs that generate binary
+  executable code for the TVM.
+
 
 ## Our competition entries
 
@@ -96,30 +117,20 @@ some of the messages get lost on their way, while the total sums and thus
 the final settlement will be correct, the users wouldn’t notice that something
 was lost.
 
-In order to verify our idea we did a quick search and to our great surprise
-did not find this simple and elegant payment channel protocol documented
-anywhere. The closest thing is [this explanation][medium:paychan] of
-essentially the same idea but only for the case of a uni-directional channel.
-Somewhat puzzled we drafted our own specification of this protocol and
-after a couple of iterations it was ready and you are welcome to
+In order to verify our idea we did a quick search, and to our great surprise
+did not find a lot of mentions of this simple and elegant payment channel protocol.
+In fact, we found only two:
+
+1. [this explanation][medium:paychan] of essentially the same idea but only for
+   the case of a uni-directional channel, and
+2. [this tutorial][ptb:paychan] that present the same idea as ours, but does not
+   go into a lot of detail regarding correctness and dispute resolution.
+
+Somewhat puzzled we drafted our own specification of this protocol, trying to make
+it very detailed and focusing on the explanation of its correctness.
+After a couple of iterations it was ready and you are welcome to
 [have a look at it][spec]. With the specification at hand we set off to
 write the code.
-
-For this contract we picked _Fift_ and _Func_ as our tools of choice. These
-are two programming languages created by the TON team specifically for their
-blockchain platform:
-
-* _Fift_ is a general-purpose stack-based programming language, somewhat
-  similar to [Forth][wiki:forth]. Its special power is the built-in support
-  for interfacing with the TON Virtual Machine (TVM) that runs smart-contracts
-  in the TON Network.
-* _Func_ is a smart-contract programming language that feels a lot like [C][wiki:c]
-  and compiles to yet another language called Fift Assembler.
-* _Fift Assembler_ is a little different from “traditional” programming languages
-  in that it doesn’t have a compiler. Instead, it is an
-  [Embedded Domain-Specific Language (EDSL)][wiki:edsl], in other words, it is
-  a Forth _library_ that allows one to write Forth programs that generate binary
-  executable code for the TVM.
 
 We implemented the contract in Func and, following the recommendations of the
 organisers, the command-line tool for interacting with our contract was entirely
@@ -129,18 +140,201 @@ it would be interesting to try Fift and see how it works for us in this case.
 In retrospect we can say that we don’t really see any good reasons to prefer
 Fift to other well-established and supported languages with good libraries
 and tooling. Programming in a stack-based language is unnecessarily hard and
-is especially bad due to Fift’s lack of static types – keeping track of your
+is especially bad due to Fift’s lack of static types – keeping track of your
 stack layout requires a lot of effort.
 
 Because of the above, the only justification for the existence of Fift seems to
 be its role as a host language for Fift Assemebler. “But wouldn’t it be a better
 idea to embed the TVM Aseembler into some other language, instead of inventing
-a new one for this sole purpose?” – you might wonder. Well, we are glad you asked!
+a new one for this sole purpose?” – you might wonder. Well, we are glad you asked!
 
 ### TVM Haskell EDSL
 
+We also decided to implement a multisignature wallet, but we thought that writing
+another Func contract would be not that interesting, so we added a twist to it.
+We created our own assembler language for TVM. Just as Fift Assembler, our
+new language was embedded into another language, however unlike Fift Assembler
+we chose Haskell as the host. This gave us access to all the power of Haskell’s
+static types, and we are firm believers into static typing, especially when working
+with smart-contracts – an area where the cost of a small mistake can be very high.
+
+To give you an idea of what TVM assembler embedded into Haskell feels like, we
+have reimplemented the standard wallet contract in it. Before you take a look at
+the code, here are a couple of important things to keep in mind:
+
+* This contract constist of a single function, but you can have many of them.
+  When you define a new function in the host language (that is Haskell), our
+  eDSL allows you to choose whether you want it to be translated into a seaprate
+  routine in TVM or inlined at the place of the call.
+* Just like in Haskell, functions have their types specified and these are checked
+  during compilation. In our eDSL the input type of a function is the type of the
+  stack that it expects, and the output type is the type of the stack that its
+  invocation will result in.
+* There are `stacktype` annotations here in there in the code. In the original
+  wallet contract these were just comments, but in our eDSL they are actually
+  part of the code and are checked at _compile time_. These can serve as documentation
+  and as assertions that can help the developer find an issue in case they make
+  a change in the code and something doesn’t compile. Of course, they do not have
+  any effect on performance at _run time_ as they do not result in any TVM code
+  being generated.
+* It is still a prototype quickly put together in about two weeks. There is plenty
+  of room for improvement, for example all class instances you will see in the code
+  below can (and should) be auto-generated.
+
+And now, here is a full reimplementation of the simple wallet in our eDSL:
+
+```haskell
+main :: IO ()
+main = putText $ pretty $ declProgram procedures methods
+  where
+    procedures =
+      [ ("recv_external", decl recvExternal)
+      , ("recv_internal", decl recvInternal)
+      ]
+    methods =
+      [ ("seqno", declMethod getSeqno)
+      ]
 
 
+data Storage = Storage
+  { sCnt :: Word32
+  , sPubKey :: PublicKey
+  }
+
+instance DecodeSlice Storage where
+  type DecodeSliceFields Storage = [PublicKey, Word32]
+  decodeFromSliceImpl = do
+    decodeFromSliceImpl @Word32
+    decodeFromSliceImpl @PublicKey
+
+instance EncodeBuilder Storage where
+  encodeToBuilder = do
+    encodeToBuilder @Word32
+    encodeToBuilder @PublicKey
+
+data WalletError
+  = SeqNoMismatch
+  | SignatureMismatch
+  deriving (Eq, Ord, Show, Generic)
+
+instance Exception WalletError
+
+instance Enum WalletError where
+  toEnum 33 = SeqNoMismatch
+  toEnum 34 = SignatureMismatch
+  toEnum _ = error "Uknown MultiSigError id"
+
+  fromEnum SeqNoMismatch = 33
+  fromEnum SignatureMismatch = 34
+
+recvInternal :: '[Slice] :-> '[]
+recvInternal = drop
+
+recvExternal :: '[Slice] :-> '[]
+recvExternal = do
+  decodeFromSlice @Signature
+  dup
+  preloadFromSlice @Word32
+  stacktype @[Word32, Slice, Signature]
+  -- cnt cs sign
+
+  pushRoot
+  decodeFromCell @Storage
+  stacktype @[PublicKey, Word32, Word32, Slice, Signature]
+  -- pk cnt' cnt cs sign
+
+  xcpu @1 @2
+  stacktype @[Word32, Word32, PublicKey, Word32, Slice, Signature]
+  -- cnt cnt' pk cnt cs sign
+
+  equalInt >> throwIfNot SeqNoMismatch
+
+  push @2
+  sliceHash
+  stacktype @[Hash Slice, PublicKey, Word32, Slice, Signature]
+  -- hash pk cnt cs sign
+
+  xc2pu @0 @4 @4
+  stacktype @[PublicKey, Signature, Hash Slice, Word32, Slice, PublicKey]
+  -- pubk sign hash cnt cs pubk
+
+  chkSignU
+  stacktype @[Bool, Word32, Slice, PublicKey]
+  -- ? cnt cs pubk
+
+  throwIfNot SignatureMismatch
+  accept
+
+  swap
+  decodeFromSlice @Word32
+  nip
+
+  dup
+  srefs @Word8
+
+  pushInt 0
+  if IsEq
+  then ignore
+  else do
+    decodeFromSlice @Word8
+    decodeFromSlice @(Cell MessageObject)
+    stacktype @[Slice, Cell MessageObject, Word8, Word32, PublicKey]
+    xchg @2
+    sendRawMsg
+    stacktype @[Slice, Word32, PublicKey]
+
+  endS
+  inc
+
+  encodeToCell @Storage
+  popRoot
+
+
+getSeqno :: '[] :-> '[Word32]
+getSeqno = do
+  pushRoot
+  cToS
+  preloadFromSlice @Word32
+```
+
+## Our thoughts
+
+First of all, we enjoyed the contest a lot! It gave us an unexpected break
+from our daily responsibilities (not that we don’t enjoy doing what we do
+daily!). This spirit of a hackathon, close team work, the need to quickly
+dive into a new technology – I think all engineers know how exciting it is.
+
+We were impressed by the amount of work done by the TON team. They managed
+to build a pretty complex and at the same time beautiful system. And, most
+importantly, it works! However, we are not convinced _all_ of this work
+was strictly necessary. As engineers ourselves we can definitely relate
+to the idea of Fift, a brand-new stack based (that is, in some sense, somewhat
+esoteric) programming language, but we believe that real-world applications
+more complex than simple CLI _prototypes_ are beyond its capabilities, and
+what became _Fift_ Assembler could have as easily been embedded into some
+other language (like Haskell!).
+
+The same can be said about Func. Implementing a new high-level language from
+the ground up (they even have their own parser!) is certainly _fun_,
+but we can’t really _see_ the need for it. As a short-term strategy,
+the team could have taken an existing smart-contract language and adapted
+it to emit code for TVM; while in the long run we fell that having an
+[LLVM][wiki:llvm] backend for TVM would be great, as it would allow for
+a wide variety of source languages.
+
+The above is especially true, given that it is clear that TVM has been designed
+with very high-level source languages (Haskell!) in mind. This makes us think
+that Func is not meant to be used for actual production code, but is merely a
+demo, a prototype of a TVM-compatible high-level programming language, and
+if this is the case, then it does not make sense to put a lot of effort into it.
+
+Overall, TON feels like a great platform and it surely has potential. There
+is a lot to be done to make the TON ecosystem truly flourish, both in terms
+of using it to implement solutions that require a blockchain infrastructure,
+and improving the tooling used to implement such solutions, and we would be
+proud to be part of this endeavour. So, if you think about relying on TON
+to solve your problem, [let us know](mailto:hi@serokell.io), we will be
+able to help.
 
 
 [contest-announce]: https://t.me/contest/102
@@ -152,11 +346,13 @@ a new one for this sole purpose?” – you might wonder. Well, we are glad you
 [nixops]: https://nixos.org/nixops
 [ton.nix]: https://github.com/serokell/ton.nix
 
-[medium:paychan]: https://TODO
+[medium:paychan]: https://medium.com/@matthewdif/ethereum-payment-channel-in-50-lines-of-code-a94fad2704bc
+[ptb:paychan]: https://programtheblockchain.com/posts/2018/02/23/writing-a-simple-payment-channel/
 
-[wiki:vectorc]: https://en.wikipedia.org/TODO
-[wiki:forth]: https://en.wikipedia.org/TODO
-[wiki:c]: https://en.wikipedia.org/TODO
-[wiki:edsl]: https://en.wikipedia.org/TODO
+[wiki:vectorc]: https://en.wikipedia.org/wiki/Vector_clock
+[wiki:forth]: https://en.wikipedia.org/wiki/Forth_(programming_language)
+[wiki:c]: https://en.wikipedia.org/wiki/C_(programming_language)
+[wiki:edsl]: https://en.wikipedia.org/wiki/Domain-specific_language
+[wiki:llvm]: https://en.wikipedia.org/wiki/LLVM
 
 [spec]: https://github.com/serokell/ton-paychan/tree/master/doc/Payment-channel.md
