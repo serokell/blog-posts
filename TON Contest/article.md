@@ -297,6 +297,11 @@ getSeqno = do
   preloadFromSlice @Word32
 ```
 
+You can see the full source code of our eDSL and the multisig contract in
+[this repository][repo:fift-asm-dsl] and if you got interested in typed
+eDSLs, you will most certainly like [this blog post][blog:edsl] by one of
+my brilliant colleagues that goes into way greater depths than I ever could.
+
 ## Our thoughts
 
 First of all, we enjoyed the contest a lot! It gave us an unexpected break
@@ -356,3 +361,5 @@ able to help.
 [wiki:llvm]: https://en.wikipedia.org/wiki/LLVM
 
 [spec]: https://github.com/serokell/ton-paychan/tree/master/doc/Payment-channel.md
+[repo:fift-asm-dsl]: https://github.com/serokell/fift-asm-dsl
+[blog:edsl]: https://serokell.io/blog/parsing-typed-edsl
