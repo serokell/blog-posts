@@ -14,40 +14,40 @@ abstract: |
 
 Telegram Open Network is a relatively new smart-contracts platform developed
 by the team behind the Telegram messenger. It was announced in late 2017 and
-the first source code was published in September this year. Three (TODO update) weeks
-ago they started a [competition for developers][contest-announce], who were asked
+first source code was published in September this year. Three (TODO update) weeks
+ago, they started a [contest.][contest-announce] In it, developers were asked
 to either implement a smart-contract or contribute to the platform in one way or
 another.
 
-After giving it a little consideration we decided to participate as a company.
-We decided to implement two smart-contracts from the list that the organisers
-suggested and while for one of them we chose to use the development tools provided
+After giving it a little consideration, we decided to participate as a company and
+implement two smart-contracts from the list of organizer suggestions.
+For one of them we chose to use the development tools provided
 with the TON distribution, for the other one we decided to do what we like doing
 the most: implement it in a new language built specifically for TON and embedded
 into Haskell with its incredibly rich type system.
 
-Let us say right away that we believe the plan worked out exceptionally well,
-so we would like to show you (TODO blabla we want to share what we did and
-tell everyone how amazing it is and why it is so amazing and explain why we
-did it this way).
+We believe the plan worked out exceptionally well, so we would like to showcase
+our entries and our approach to smart contracts and EDSLs. 
+The contest was incredibly fun and engaging and, hopefully, so will be 
+this blog post. Let's dive right in. 
 
-### Research
+### TON Blockchain Research
 
 We always try to keep on top of recent developments in the areas that we work in,
 blockchain being one of them, thus we were already familiar with the ideas
-from the [TON white paper][ton:whitepaper]. However, we haven’t looked at the
+from the [TON white paper][ton:whitepaper]. However, we hadn’t looked at the
 _technical_ documentation and the actual source code of the platform before, so
 this was an obvious first step. If you are interested too, you can find the
 official documentation at <https://test.ton.org> and in the [source repository][repo:doc].
 
 Since the code had been published for quite a while by that time, we also tried searching
 for guides or summaries produced by _users_, but, unfortunately, all we could find
-were tutorials showing how to build the platform  on Ubuntu, which was not relevant
+were tutorials showing how to build the platform on Ubuntu, which was not relevant
 to us anyway (you will see why in a minute).
 
 The documentation turned out to be very thorough but sometimes hard to read as it
-is constantly jumping back and forth between high level explanations of abstract
-ideas and the low level details of their specific implementation.
+was constantly jumping back and forth between high level explanations of abstract
+ideas and low level details of their specific implementations.
 
 ### Nix: Building the code
 
@@ -69,13 +69,14 @@ $ cd /path/to/ton/repo && nix-shell
 Note that you don’t have to worry about installing the build dependencies,
 Nix will magically handle everything for you whether you are running NixOS,
 Ubuntu, or macOS on a MacBook.
+
 Everyone should be using Nix for all their building needs!
 
-### Programming for TON
+### Programming for TON Virtual Machine
 
 The code of smart-contracts existing in the TON Network is executed by a virtual
-machine called TON Virtual Machine (TVM). Unlike most virtual machines that
-try to be simple, this one provides some quite unconvential capabilities, such as
+machine called TON Virtual Machine (TVM). More complex than most virtual 
+machines, this one provides some quite unconvential capabilities, such as
 native support for continuations and data references.
 
 They created three (!) new programming languages:
@@ -93,43 +94,44 @@ They created three (!) new programming languages:
   executable code for the TVM.
 
 
-## Our competition entries
+## Our contest entries
 
 ### Asynchronous payment channel
 
 A “payment channel” is a smart-contract that allows two users to send payments
-to each other off-chain, thus saving on the transaction costs and not having
-to wait for a new block being issued every time. This way the payments can
-be as small and as frequent as needed, and the users still do not need to trust
-each other, as the final settlement is _guaranteed_ by the smart contract.
+to each other off-chain, thus saving money (transaction fees) and time 
+(you don't have to wait for a block to be issued). This way, the payments can
+be as small and frequent as needed, and the users still do not need to trust
+each other, as the final settlement is _guaranteed_ by a smart contract.
 
 After thinking about it for a couple of times, we realised that there was a
 pretty simple solution to the problem: the two parties can exchange signed
 messages where each message will, essentially, carry two numbers: the
 _total_ amounts paid by each of them so far. These two numbers will work
-as [Vector clock][wiki:vectorc] in traditional distributed systems and thus
+as the [Vector clock][wiki:vectorc] in traditional distributed systems and thus
 will induce a “happened-before“ order on the payment transactions, which will
 allow the contract to resolve any possible conflicts in the end. We played
 a little with the idea and realised that just one number is enough, however
 we still decided to keep both for UX purposes; we also decided to include
-the payment amount in every message merely for UX as well: without it if
+the payment amount in every message merely for UX as well. Without it, if
 some of the messages get lost on their way, while the total sums and thus
 the final settlement will be correct, the users wouldn’t notice that something
 was lost.
 
-In order to verify our idea we did a quick search, and to our great surprise
+In order to verify our idea, we did a quick search. To our great surprise, we
 did not find a lot of mentions of this simple and elegant payment channel protocol.
+
 In fact, we found only two:
 
 1. [this explanation][medium:paychan] of essentially the same idea but only for
-   the case of a uni-directional channel, and
-2. [this tutorial][ptb:paychan] that present the same idea as ours, but does not
+   the case of a uni-directional channel;
+2. [this tutorial][ptb:paychan] that presents the same idea as ours, but does not
    go into a lot of detail regarding correctness and dispute resolution.
 
 Somewhat puzzled we drafted our own specification of this protocol, trying to make
 it very detailed and focusing on the explanation of its correctness.
 After a couple of iterations it was ready and you are welcome to
-[have a look at it][spec]. With the specification at hand we set off to
+[have a look at it][spec]. With the specification at hand, we set off to
 write the code.
 
 We implemented the contract in Func and, following the recommendations of the
@@ -137,7 +139,7 @@ organisers, the command-line tool for interacting with our contract was entirely
 in Fift. We could have chosen any other language for our CLI, but we thought
 it would be interesting to try Fift and see how it works for us in this case.
 
-In retrospect we can say that we don’t really see any good reasons to prefer
+In retrospect, we can say that we don’t really see any good reasons to prefer
 Fift to other well-established and supported languages with good libraries
 and tooling. Programming in a stack-based language is unnecessarily hard and
 is especially bad due to Fift’s lack of static types – keeping track of your
@@ -146,31 +148,31 @@ stack layout requires a lot of effort.
 Because of the above, the only justification for the existence of Fift seems to
 be its role as a host language for Fift Assemebler. “But wouldn’t it be a better
 idea to embed the TVM Aseembler into some other language, instead of inventing
-a new one for this sole purpose?” – you might wonder. Well, we are glad you asked!
+a new one for this sole purpose?” – you might wonder. Well, we're glad you asked!
 
 ### TVM Haskell EDSL
 
 We also decided to implement a multisignature wallet, but we thought that writing
-another Func contract would be not that interesting, so we added a twist to it.
-We created our own assembler language for TVM. Just as Fift Assembler, our
-new language was embedded into another language, however unlike Fift Assembler
+another Func contract would be not that interesting, so we added a twist: our 
+own assembler language for TVM. Just as Fift Assembler, our
+new language was embedded into another language but
 we chose Haskell as the host. This gave us access to all the power of Haskell’s
-static types, and we are firm believers into static typing, especially when working
+static types, and we are firm believers of static typing, especially when working
 with smart-contracts – an area where the cost of a small mistake can be very high.
 
 To give you an idea of what TVM assembler embedded into Haskell feels like, we
-have reimplemented the standard wallet contract in it. Before you take a look at
+have reimplemented a standard wallet contract in it. Before you take a look at
 the code, here are a couple of important things to keep in mind:
 
-* This contract constist of a single function, but you can have many of them.
+* This contract consists of a single function, but you can have many of them.
   When you define a new function in the host language (that is Haskell), our
-  eDSL allows you to choose whether you want it to be translated into a seaprate
+  eDSL allows you to choose whether you want it to be translated into a separate
   routine in TVM or inlined at the place of the call.
 * Just like in Haskell, functions have their types specified and these are checked
-  during compilation. In our eDSL the input type of a function is the type of the
+  during compilation. In our eDSL, the input type of a function is the type of the
   stack that it expects, and the output type is the type of the stack that its
   invocation will result in.
-* There are `stacktype` annotations here in there in the code. In the original
+* There are `stacktype` annotations here and there in the code. In the original
   wallet contract these were just comments, but in our eDSL they are actually
   part of the code and are checked at _compile time_. These can serve as documentation
   and as assertions that can help the developer find an issue in case they make
@@ -181,7 +183,7 @@ the code, here are a couple of important things to keep in mind:
   of room for improvement, for example all class instances you will see in the code
   below can (and should) be auto-generated.
 
-And now, here is a full reimplementation of the simple wallet in our eDSL:
+And now, here is a full reimplementation of a simple wallet in our eDSL:
 
 ```haskell
 main :: IO ()
@@ -298,11 +300,11 @@ getSeqno = do
 ```
 
 You can see the full source code of our eDSL and the multisig contract in
-[this repository][repo:fift-asm-dsl] and if you got interested in typed
+[this repository][repo:fift-asm-dsl]. If you got interested in typed
 eDSLs, you will most certainly like [this blog post][blog:edsl] by one of
 my brilliant colleagues that goes into way greater depths than I ever could.
 
-## Our thoughts
+## Our thoughts on contest & TON
 
 First of all, we enjoyed the contest a lot! It gave us an unexpected break
 from our daily responsibilities (not that we don’t enjoy doing what we do
@@ -312,7 +314,7 @@ dive into a new technology – I think all engineers know how exciting it is.
 We were impressed by the amount of work done by the TON team. They managed
 to build a pretty complex and at the same time beautiful system. And, most
 importantly, it works! However, we are not convinced _all_ of this work
-was strictly necessary. As engineers ourselves we can definitely relate
+was strictly necessary. Being engineers, we can definitely relate
 to the idea of Fift, a brand-new stack based (that is, in some sense, somewhat
 esoteric) programming language, but we believe that real-world applications
 more complex than simple CLI _prototypes_ are beyond its capabilities, and
