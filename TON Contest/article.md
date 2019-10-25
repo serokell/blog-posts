@@ -15,7 +15,7 @@ abstract: |
 Telegram Open Network is a relatively new smart-contracts platform developed
 by the team behind the Telegram messenger. It was announced in late 2017 and
 first source code was published in September this year. Three (TODO update) weeks
-ago, they started a [contest.][contest-announce] In it, developers were asked
+ago, they started a [competition.][contest-announce] In it, developers were asked
 to either implement a smart-contract or contribute to the platform in one way or
 another.
 
@@ -27,9 +27,9 @@ the most: implement it in a new language built specifically for TON and embedded
 into Haskell with its incredibly rich type system.
 
 We believe the plan worked out exceptionally well, so we would like to showcase
-our entries and our approach to smart contracts and EDSLs. 
-The contest was incredibly fun and engaging and, hopefully, so will be 
-this blog post. Let's dive right in. 
+our entries and our approach to smart contracts and eDSLs.
+The competition was incredibly fun and engaging and, hopefully, so will be
+this blog post. Let’s dive right in.
 
 ### TON Blockchain Research
 
@@ -72,10 +72,10 @@ Ubuntu, or macOS on a MacBook.
 
 Everyone should be using Nix for all their building needs!
 
-### Programming for TON Virtual Machine
+### Programming for TON
 
 The code of smart-contracts existing in the TON Network is executed by a virtual
-machine called TON Virtual Machine (TVM). More complex than most virtual 
+machine called TON Virtual Machine (TVM). More complex than most virtual
 machines, this one provides some quite unconvential capabilities, such as
 native support for continuations and data references.
 
@@ -89,26 +89,26 @@ They created three (!) new programming languages:
   and compiles to yet another language called Fift Assembler.
 * _Fift Assembler_ is a little different from “traditional” programming languages
   in that it doesn’t have a compiler. Instead, it is an
-  [Embedded Domain-Specific Language (EDSL)][wiki:edsl], in other words, it is
+  [Embedded Domain-Specific Language (eDSL)][wiki:edsl], in other words, it is
   a Forth _library_ that allows one to write Forth programs that generate binary
   executable code for the TVM.
 
 
-## Our contest entries
+## Our competition entries
 
 ### Asynchronous payment channel
 
 A “payment channel” is a smart-contract that allows two users to send payments
-to each other off-chain, thus saving money (transaction fees) and time 
-(you don't have to wait for a block to be issued). This way, the payments can
+to each other off-chain, thus saving money (transaction fees) and time
+(you don’t have to wait for a block to be issued). This way, the payments can
 be as small and frequent as needed, and the users still do not need to trust
-each other, as the final settlement is _guaranteed_ by a smart contract.
+each other, as the final settlement is _guaranteed_ by the smart contract.
 
 After thinking about it for a couple of times, we realised that there was a
 pretty simple solution to the problem: the two parties can exchange signed
 messages where each message will, essentially, carry two numbers: the
 _total_ amounts paid by each of them so far. These two numbers will work
-as the [Vector clock][wiki:vectorc] in traditional distributed systems and thus
+as [Vector clock][wiki:vectorc] in traditional distributed systems and thus
 will induce a “happened-before“ order on the payment transactions, which will
 allow the contract to resolve any possible conflicts in the end. We played
 a little with the idea and realised that just one number is enough, however
@@ -120,7 +120,6 @@ was lost.
 
 In order to verify our idea, we did a quick search. To our great surprise, we
 did not find a lot of mentions of this simple and elegant payment channel protocol.
-
 In fact, we found only two:
 
 1. [this explanation][medium:paychan] of essentially the same idea but only for
@@ -148,12 +147,12 @@ stack layout requires a lot of effort.
 Because of the above, the only justification for the existence of Fift seems to
 be its role as a host language for Fift Assemebler. “But wouldn’t it be a better
 idea to embed the TVM Aseembler into some other language, instead of inventing
-a new one for this sole purpose?” – you might wonder. Well, we're glad you asked!
+a new one for this sole purpose?” – you might wonder. Well, we’re glad you asked!
 
-### TVM Haskell EDSL
+### TVM Haskell eDSL
 
 We also decided to implement a multisignature wallet, but we thought that writing
-another Func contract would be not that interesting, so we added a twist: our 
+another Func contract would be not that interesting, so we added a twist: our
 own assembler language for TVM. Just as Fift Assembler, our
 new language was embedded into another language but
 we chose Haskell as the host. This gave us access to all the power of Haskell’s
@@ -161,7 +160,7 @@ static types, and we are firm believers of static typing, especially when workin
 with smart-contracts – an area where the cost of a small mistake can be very high.
 
 To give you an idea of what TVM assembler embedded into Haskell feels like, we
-have reimplemented a standard wallet contract in it. Before you take a look at
+have reimplemented the standard wallet contract in it. Before you take a look at
 the code, here are a couple of important things to keep in mind:
 
 * This contract consists of a single function, but you can have many of them.
@@ -183,7 +182,7 @@ the code, here are a couple of important things to keep in mind:
   of room for improvement, for example all class instances you will see in the code
   below can (and should) be auto-generated.
 
-And now, here is a full reimplementation of a simple wallet in our eDSL:
+And now, here is a full reimplementation of the simple wallet in our eDSL:
 
 ```haskell
 main :: IO ()
@@ -304,9 +303,9 @@ You can see the full source code of our eDSL and the multisig contract in
 eDSLs, you will most certainly like [this blog post][blog:edsl] by one of
 my brilliant colleagues that goes into way greater depths than I ever could.
 
-## Our thoughts on contest & TON
+## Our thoughts on the competition & TON
 
-First of all, we enjoyed the contest a lot! It gave us an unexpected break
+First of all, we enjoyed the competition a lot! It gave us an unexpected break
 from our daily responsibilities (not that we don’t enjoy doing what we do
 daily!). This spirit of a hackathon, close team work, the need to quickly
 dive into a new technology – I think all engineers know how exciting it is.
