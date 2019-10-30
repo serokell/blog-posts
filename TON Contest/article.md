@@ -85,7 +85,7 @@ They created three (!) new programming languages:
   similar to [Forth][wiki:forth]. Its special power is the built-in support
   for interfacing with the TON Virtual Machine (TVM) that runs smart-contracts
   in the TON Network.
-* _Func_ is a smart-contract programming language that feels a lot like [C][wiki:c]
+* _FunC_ is a smart-contract programming language that feels a lot like [C][wiki:c]
   and compiles to yet another language called Fift Assembler.
 * _Fift Assembler_ is a little different from “traditional” programming languages
   in that it doesn’t have a compiler. Instead, it is an
@@ -133,7 +133,7 @@ After a couple of iterations it was ready and you are welcome to
 [have a look at it][spec]. With the specification at hand, we set off to
 write the code.
 
-We implemented the contract in Func and, following the recommendations of the
+We implemented the contract in FunC and, following the recommendations of the
 organisers, the command-line tool for interacting with our contract was entirely
 in Fift. We could have chosen any other language for our CLI, but we thought
 it would be interesting to try Fift and see how it works for us in this case.
@@ -152,7 +152,7 @@ a new one for this sole purpose?” – you might wonder. Well, we’re glad you
 ### TVM Haskell eDSL
 
 We also decided to implement a multisignature wallet, but we thought that writing
-another Func contract would be not that interesting, so we added a twist: our
+another FunC contract would be not that interesting, so we added a twist: our
 own assembler language for TVM. Just as Fift Assembler, our
 new language was embedded into another language but
 we chose Haskell as the host. This gave us access to all the power of Haskell’s
@@ -320,7 +320,7 @@ more complex than simple CLI _prototypes_ are beyond its capabilities, and
 what became _Fift_ Assembler could have as easily been embedded into some
 other language (like Haskell!).
 
-The same can be said about Func. Implementing a new high-level language from
+The same can be said about FunC. Implementing a new high-level language from
 the ground up (they even have their own parser!) is certainly _fun_,
 but we can’t really _see_ the need for it. As a short-term strategy,
 the team could have taken an existing smart-contract language and adapted
@@ -330,7 +330,7 @@ a wide variety of source languages.
 
 The above is especially true, given that it is clear that TVM has been designed
 with very high-level source languages (Haskell!) in mind. This makes us think
-that Func is not meant to be used for actual production code, but is merely a
+that FunC is not meant to be used for actual production code, but is merely a
 demo, a prototype of a TVM-compatible high-level programming language, and
 if this is the case, then it does not make sense to put a lot of effort into it.
 
