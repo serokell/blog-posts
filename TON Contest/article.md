@@ -2,7 +2,7 @@
 title: TON Blockchain Competition
 author: kirelagin
 date: 2019-10-23
-keywords: [eDSL, Haskell, smart contracts, TON]
+keywords: [eDSL, Haskell, smart-contracts, TON]
 abstract: |
   We participated in the Blockchain Developer competition announced by the
   Telegram Open Network team.  Here is what we submitted as our entry and what
@@ -13,25 +13,25 @@ abstract: |
 ## Telegram Open Network
 
 Telegram Open Network is a relatively new smart-contracts platform developed
-by the team behind the Telegram messenger. It was announced in late 2017 and
-first source code was published in September this year. Three (TODO update) weeks
-ago, they started a [competition.][contest-announce] In it, developers were asked
+by the team behind the [Telegram messenger][tg]. It was announced in late 2017 and
+first source code was published in September this year. Five weeks
+ago, they [started a competition][contest-announce]. In it, developers were asked
 to either implement a smart-contract or contribute to the platform in one way or
 another.
 
 After giving it a little consideration, we decided to participate as a company and
-implement two smart-contracts from the list of organizer suggestions.
+implement two smart-contracts from the list of organisers’ suggestions.
 For one of them we chose to use the development tools provided
 with the TON distribution, for the other one we decided to do what we like doing
 the most: implement it in a new language built specifically for TON and embedded
 into Haskell with its incredibly rich type system.
 
 We believe the plan worked out exceptionally well, so we would like to showcase
-our entries and our approach to smart contracts and eDSLs.
+our entries and our approach to smart-contracts and embedded languages.
 The competition was incredibly fun and engaging and, hopefully, so will be
-this blog post. Let’s dive right in.
+this blog post.
 
-### TON Blockchain Research
+### TON Blockchain research
 
 We always try to keep on top of recent developments in the areas that we work in,
 blockchain being one of them, thus we were already familiar with the ideas
@@ -60,7 +60,7 @@ we build our projects with [Nix] and deploy using [NixOps]. It helps us make sur
 are builds are reproducible and will work on any OS supported by Nix without us
 worrying about OS or distribution specific aspects of the build.
 
-Therefore, we started by creating a [Nix overlay with a build expression for TON][ton.nix].
+Therefore, we started by creating a [Nix overlay][ton.nix] with a build expression for TON.
 You can find more details if you follow the link, but, long story short, with this
 overlay compiling TON is as simple as:
 
@@ -78,17 +78,16 @@ Everyone should be using Nix for all their building needs!
 
 ### Programming for TON
 
-The code of smart-contracts existing in the TON Network is executed by a virtual
-machine called TON Virtual Machine (TVM). More complex than most virtual
+The code of smart-contracts deployed to the TON Network is executed by a virtual
+machine called the TON Virtual Machine (TVM). More complex than most virtual
 machines, this one provides some quite unconvential capabilities, such as
 native support for continuations and data references.
 
-They created three (!) new programming languages:
+TON developers created three (!) new programming languages:
 
 * _Fift_ is a general-purpose stack-based programming language, somewhat
   similar to [Forth][wiki:forth]. Its special power is the built-in support
-  for interfacing with the TON Virtual Machine (TVM) that runs smart-contracts
-  in the TON Network.
+  for interfacing with the TVM.
 * _FunC_ is a smart-contract programming language that feels a lot like [C][wiki:c]
   and compiles to yet another language called Fift Assembler.
 * _Fift Assembler_ is a little different from “traditional” programming languages
@@ -104,13 +103,13 @@ They created three (!) new programming languages:
 
 A “payment channel” is a smart-contract that allows two users to send payments
 to each other off-chain, thus saving money (transaction fees) and time
-(you don’t have to wait for a block to be issued). This way, the payments can
+(they don’t have to wait for a block to be issued). This way, the payments can
 be as small and frequent as needed, and the users still do not need to trust
-each other, as the final settlement is _guaranteed_ by the smart contract.
+each other, as the final settlement is _guaranteed_ by the smart-contract.
 
-After thinking about it for a couple of times, we realised that there was a
+After thinking about it for a couple of days, we realised that there was a
 pretty simple solution to the problem: the two parties can exchange signed
-messages where each message will, essentially, carry two numbers: the
+messages where each message will, essentially, carry two numbers – the
 _total_ amounts paid by each of them so far. These two numbers will work
 as [Vector clock][wiki:vectorc] in traditional distributed systems and thus
 will induce a “happened-before“ order on the payment transactions, which will
@@ -133,7 +132,7 @@ In fact, we found only two:
 
 Somewhat puzzled we drafted our own specification of this protocol, trying to make
 it very detailed and focusing on the explanation of its correctness.
-After a couple of iterations it was ready and you are welcome to
+After a number of iterations it was ready and you are welcome to
 [have a look at it][spec]. With the specification at hand, we set off to
 write the code.
 
@@ -150,7 +149,7 @@ stack layout requires a lot of effort.
 
 Because of the above, the only justification for the existence of Fift seems to
 be its role as a host language for Fift Assemebler. “But wouldn’t it be a better
-idea to embed the TVM Aseembler into some other language, instead of inventing
+idea to embed the TVM Assembler into some other language, instead of inventing
 a new one for this sole purpose?” – you might wonder. Well, we’re glad you asked!
 
 ### TVM Haskell eDSL
@@ -311,7 +310,7 @@ my brilliant colleagues that goes into way greater depths than I ever could.
 
 First of all, we enjoyed the competition a lot! It gave us an unexpected break
 from our daily responsibilities (not that we don’t enjoy doing what we do
-daily!). This spirit of a hackathon, close team work, the need to quickly
+daily, but nevertheless). This spirit of a hackathon, close team work, the need to quickly
 dive into a new technology – I think all engineers know how exciting it is.
 
 We were impressed by the amount of work done by the TON team. They managed
@@ -328,10 +327,10 @@ would justify the creation of Fift? It is possible, and if they did, we
 can’t wait to find out more.
 
 The same can be said about FunC. Implementing a new high-level language from
-the ground up (they even have their own parser!) is certainly _fun_,
-but we can’t really _see_ the need for it. As a short-term strategy,
+the ground up (they even have their own parser!) is certainly _Fun_,
+but we can’t really _C_ the need for it. As a short-term strategy,
 the team could have taken an existing smart-contract language and adapted
-it to emit code for TVM; while in the long run we fell that having an
+it to emit code for TVM; while in the long run we feel that having an
 [LLVM][wiki:llvm] backend for TVM would be great, as it would allow for
 a wide variety of source languages.
 
@@ -342,14 +341,15 @@ demo, a prototype of a TVM-compatible high-level programming language, and
 if this is the case, then it does not make sense to put a lot of effort into it.
 
 Overall, TON feels like a great platform and it surely has potential. There
-is a lot to be done to make the TON ecosystem truly flourish, both in terms
+is a lot to be done to make the TON ecosystem flourish, both in terms
 of using it to implement solutions that require a blockchain infrastructure,
-and improving the tooling used to implement such solutions, and we would be
+and improving the tooling used to implement such solutions; and we would be
 proud to be part of this endeavour. So, if you think about relying on TON
-to solve your problem, [let us know](mailto:hi@serokell.io), we will be
+to solve your problem, [let us know](mailto:hi@serokell.io), we will definitely be
 able to help.
 
 
+[tg]: https://telegram.org/
 [contest-announce]: https://t.me/contest/102
 [ton:whitepaper]: https://test.ton.org/ton.pdf
 [repo:doc]: https://github.com/ton-blockchain/ton/tree/master/doc
