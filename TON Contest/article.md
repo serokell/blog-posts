@@ -46,8 +46,12 @@ were tutorials showing how to build the platform on Ubuntu, which was not releva
 to us anyway (you will see why in a minute).
 
 The documentation turned out to be very thorough but sometimes hard to read as it
-was constantly jumping back and forth between high level explanations of abstract
-ideas and low level details of their specific implementations.
+was often jumping back and forth between high level explanations of abstract
+ideas and low level details of their specific implementations. We thought it
+would be a huge improvement to extract the implementation details into a separate
+document, as it would not only make the specifications more approachable, but
+also reduce their sizes. Developers creating smart-contracts for the TON platform
+do not need to know how the virtual machine represents its stack internally.
 
 ### Nix: Building the code
 
@@ -319,6 +323,9 @@ esoteric) programming language, but we believe that real-world applications
 more complex than simple CLI _prototypes_ are beyond its capabilities, and
 what became _Fift_ Assembler could have as easily been embedded into some
 other language (like Haskell!).
+Could it be that the developers had some other applications in mind that
+would justify the creation of Fift? It is possible, and if they did, we
+can’t wait to find out more.
 
 The same can be said about FunC. Implementing a new high-level language from
 the ground up (they even have their own parser!) is certainly _fun_,
