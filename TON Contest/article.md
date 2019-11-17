@@ -31,6 +31,8 @@ our entries and our approach to smart-contracts and embedded languages.
 The competition was incredibly fun and engaging and, hopefully, so will be
 this blog post.
 
+(_Update:_ We have won the largest prize!)
+
 ### TON Blockchain research
 
 We always try to keep on top of recent developments in the areas that we work in,
@@ -148,7 +150,7 @@ is especially bad due to Fift’s lack of static types – keeping track of your
 stack layout requires a lot of effort.
 
 Because of the above, the only justification for the existence of Fift seems to
-be its role as a host language for Fift Assemebler. “But wouldn’t it be a better
+be its role as a host language for Fift Assembler. “But wouldn’t it be a better
 idea to embed the TVM Assembler into some other language, instead of inventing
 a new one for this sole purpose?” – you might wonder. Well, we’re glad you asked!
 
