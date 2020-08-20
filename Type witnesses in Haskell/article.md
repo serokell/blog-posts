@@ -113,7 +113,7 @@ data UserPrivilege = Member | Admin | Guest
 and the users can now be represented by something like,
 
 ```
-data User = User { userId :: Integer, userName :: Text, userPrivilege :: UserType }
+data User = User { userId :: Integer, userName :: String, userPrivilege :: UserType }
 ```
 
 Since we are interested in type safety, we want to make the `userPrivilege` attribute to be
@@ -125,7 +125,7 @@ extension so that the constructors of `UserPrivilege` will be available at the t
 to tag the `User` type with. So, we end up with something like,
 
 ```
-data User (ut :: UserType) = User { userId :: Integer, userName :: Text }
+data User (ut :: UserType) = User { userId :: Integer, userName :: String }
 ```
 
 Now, we have the user privilege at the type level, and this will prevent us from passing
@@ -258,8 +258,8 @@ data SomeUser where
 -- type level privilege is hidden in the return value `SomeUser`.
 readUser :: Integer -> IO SomeUser
 readUser userId = pure $ case find ((== userId) . (\(a, _, _) -> a)) dbRows of
-  Just (id_, name_, type_) -> let
-    in case type_ of
+  Just (id_, name_, type_) ->
+    case type_ of
       "member" -> SomeUser (User id_ name_ WitnessMember)
       "guest" -> SomeUser (User id_ name_ WitnessGuest)
       "admin" -> SomeUser (User id_ name_ WitnessAdmin)
