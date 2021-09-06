@@ -14,7 +14,7 @@ module Main (main) where
 class Printable a where
   printMe :: a -> IO ()
 
-instance {-# OVERLAPPABLE #-} Printable a where
+instance Printable a where
   printMe a = putStrLn "dummy instance"
 
 instance Printable Int where
@@ -103,7 +103,7 @@ class Printable a where
 instance Printable a where
   printMe a = putStrLn "general instance"
 
-instance {-# INCOHERENT #-} Printable Int where
+instance Printable Int where
   printMe a = putStrLn "int instance"
 
 fn :: a -> IO ()
@@ -171,7 +171,8 @@ But what if you want the `Int` instance to be called instead? One way is to use
 `Typeable` and prove to the compiler that `a` is in fact, and `Int`. And once
 you prove that `a` is an `Int` GHC will happily call the `printMe` in the `Int`
 instance for you, of course at the cost of including `Typeable` constraint in
-the signature of `fn` function.
+the signature of `fn` function (and a small runtime cost because of the Typeable
+constraint to the function).
 
 ```
 {-# LANGUAGE FlexibleInstances   #-}
@@ -312,8 +313,7 @@ and re-compile, and we get..
 To our great surprise, we find that removing one instance from the two eligible
 instances made GHC reject the remaining instance as well!
 
-So we end up in a "damned if you do, damned if you don't" situtation where GHC
-flip-flops between these two errors.
+So we end up in this situtation where where GHC flip-flops between these two errors.
 
 It shows that it might not be a good idea to blindly remove instances when you
 come across overlapping instance errors. It is better to carefully examine the
@@ -330,7 +330,7 @@ has to work with any type for `a`, it triggers a 'cannot deduce' error.
 
 ### The Fix
 
-After lookin closer it becomes clear that we removed the wrong instance. And when we
+After looking closer it becomes clear that we removed the wrong instance. And when we
 remove the instance for `Convertable a Int`, it works, since the remaining instance
 `Convertable Int a` matches the required instance exactly.
 
