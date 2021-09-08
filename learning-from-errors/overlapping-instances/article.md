@@ -36,11 +36,17 @@ This gives us the error
 ```
 
 Note that the error happens where there is a call to `printMe` function. If
-there is no call to the function, the error won't be there. Let us see what
-happens in the call site `printMe (5 ::Int)`.  We have two matching instances
-in scope. The general instance for `Printable a`, and an specific instance for
-`Int`. We call it a 'general instance' because it can match any type, while the
-instance for `Int` can only specifically match the `Int` type.
+there is no call to the function, the error won't be there. ( overlapping
+instance error is triggered by a function call, and not by an instance
+declaration.  You can put all kinds of overlapping instances in your code, and
+GHC won't bat an eye until you try to call a method in the respective
+typeclass)
+
+Let us see what happens in the call site `printMe (5 ::Int)`.  We have two
+matching instances in scope. The general instance for `Printable a`, and an
+specific instance for `Int`. We call it a 'general instance' because it can
+match any type, while the instance for `Int` can only specifically match the
+`Int` type.
 
 Here GHC chooses to throw an error, rather than go with the more specific `Int`
 instance. This behavior could help the programmer to not accidentally override a
@@ -92,7 +98,6 @@ Here we slightly change one of the above fixes, to call the `printMe` function
 via another function `fn` that accepts a polymorphic argument.
 
 ```
-
 {-# LANGUAGE FlexibleInstances    #-}
 
 module Main (main) where
@@ -103,7 +108,7 @@ class Printable a where
 instance Printable a where
   printMe a = putStrLn "general instance"
 
-instance Printable Int where
+instance {-# OVERLAPPING #-} Printable Int where
   printMe a = putStrLn "int instance"
 
 fn :: a -> IO ()
@@ -126,13 +131,13 @@ lo and behold the dreaded error appears again.
       when compiling the other instance declarations)
 ```
 
-Here we have some additional information in the error message, where it says
+Here we have some additional information in the error message. It says
 'The choice depends on the instantiation of ‘a’ To pick the first instance
 above, use IncoherentInstances'.
 
-So this happens because at the call site of `printMe x` GHC only know `x` can be
-of any type, including `Int`, so it wouldn't know if it should call the `printMe`
-in the `Int` instance or the one in the general instance, causing the error.
+So this happens because at the call site of `printMe x` GHC only know `x` can
+be of any type, including `Int`. Without knowing if `a` is an `Int` or not,
+it cannot pick the most specific instance, causing the error.
 
 ### The Fix
 
@@ -229,85 +234,74 @@ fn x = printMe x
 ## Flip-Flop Overlapping instances
 
 Here we look at a variant of this error that seemingly flip flops when
-attempts are made to fix it. Let us look at a sample, which involves
-a typeclass called `convert`.
+attempts are made to fix it. Let us look at a sample.
 
 ```
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
 
 import Data.Typeable
 
-class Convertable a b where
-  convert :: a -> b
+class Printable a where
+  printMe :: a -> IO ()
 
-instance Integral a => Convertable a Int where
-  convert = fromIntegral
+instance Printable a where
+  printMe _ = putStrLn "General instance"
 
-instance {-# OVERLAPPING #-} Integral a => Convertable Int a where
-  convert = fromIntegral
+instance Functor f => Printable (f a) where
+  printMe _ = putStrLn "Instance for a Functor"
+
+newtype MyType a = MyType a
 
 main :: IO ()
-main = putStrLn $ show (fn 10 :: Integer)
+main = printMe (MyType 5)
 
-fn :: (Show a, Integral a) => Int -> a
-fn x = convert x
 ```
 
 As expected, we get the overlapping instances error.
 
 ```
-• Overlapping instances for Convertable Int a
-        arising from a use of ‘convert’
-      Matching instances:
-        instance Integral a => Convertable a Int
-          -- Defined at app/Main.hs:11:10
-        instance [overlapping] Integral a => Convertable Int a
-          -- Defined at app/Main.hs:14:30
-      (The choice depends on the instantiation of ‘a’
-       To pick the first instance above, use IncoherentInstances
-       when compiling the other instance declarations)
+• Overlapping instances for Printable (MyType Char)
+    arising from a use of ‘printMe’
+  Matching instances:
+    instance Printable a -- Defined at app/Main.hs:10:10
+    instance Functor f => Printable (f a)
+      -- Defined at app/Main.hs:13:10
 ```
 
-Since we had a similar error in the last example, and we could have fixed it by
+Since we saw a similar error in the last example, and we could have fixed it by
 removing one of the instances, it might appear that same could work here as well.
 
 And it also kind of makes sense, since GHC is confused by two eligebile instances,
 so in all probablity, removing one of them should fix it, right?
 
-So we try by removing the instance for `Convertable Int a`, as below,
+So we try by removing the instance for `Printable a`, as below,
 
 ```
-
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
 
 import Data.Typeable
 
-class Convertable a b where
-  convert :: a -> b
+class Printable a where
+  printMe :: a -> IO ()
 
-instance Integral a => Convertable a Int where
-  convert = fromIntegral
+instance Functor f => Printable (f a) where
+  printMe _ = putStrLn "Instance for a Functor"
+
+newtype MyType a = MyType a
 
 main :: IO ()
-main = putStrLn $ show (fn 10 :: Integer)
-
-fn :: (Show a, Integral a) => Int -> a
-fn x = convert x
+main = printMe (MyType 'c')
 ```
 and re-compile, and we get..
 
 ```
-    • Could not deduce (Convertable Int a)
-        arising from a use of ‘convert’
-      from the context: (Show a, Integral a)
-        bound by the type signature for:
-                   fn :: forall a. (Show a, Integral a) => Int -> a
+• No instance for (Functor MyType) arising from a use of ‘printMe’
+• In the expression: printMe (MyType 'c')
+  In an equation for ‘main’: main = printMe (MyType 'c')
 ```
 
 To our great surprise, we find that removing one instance from the two eligible
@@ -317,22 +311,104 @@ So we end up in this situtation where where GHC flip-flops between these two err
 
 It shows that it might not be a good idea to blindly remove instances when you
 come across overlapping instance errors. It is better to carefully examine the
-actual cause of the issue.
+actual cause of the issue, keeping in mind the algorith GHC follow to resolve
+instances.
 
-After we look at the instances and the call to `convert` function, we can see
-that when both instances are present, it triggers an overlapping instance error
-in the same way we saw in the example in the last section; without knowing
-`a`, the most specific instance cannot be selected.
+Let us walk through this algorithm and see why the first error happens.
 
-When we remove the instance for `Convertable Int a`, it means that the remaining
-instance for `Convertable a Int` will work only if `a` is Int. But since the function
-has to work with any type for `a`, it triggers a 'cannot deduce' error.
+So the very first step is:
+
+```
+Find all instances I that match the target constraint; that is, the target
+constraint is a substitution instance of I. These instance declarations are the
+candidates.
+```
+
+Our target constraint here is `MyType Char`, and both the instances for `Printable a`
+and `Printable (f a)`, matches.
+
+The next step says.
+
+```
+If no candidates remain, the search fails
+```
+
+Since we have two instances that match, we can continue to the next step, which says,
+
+```
+Eliminate any candidate IX for which there is another candidate IY such that
+both of the following hold: IY is strictly more specific than IX. That is, IY
+is a substitution instance of IX but not vice versa. Either IX is overlappable,
+or IY is overlapping. (This “either/or” design, rather than a “both/and”
+design, allow a client to deliberately override an instance from a library,
+without requiring a change to the library.)
+```
+
+We have two candidates `Printable a` and `Printable (f a)`. Let us process
+`Printable a` first. The rule says to check if there is another candidate `IY`
+such that `IY` is a substitution instance of IX. Here `f a` is a
+substituation instance for `a`, because if something can accept `a`, it can accept
+`f a` as well, but not the other way around. So it fits, and the next part of the rule
+says that either `Printable a` is overlappable, or `Printable (f a)` should
+be overlapping. And since this does not match, we cannot eliminate `Printable a`.
+
+The next one is `Printable (f a)`, and we cannot eliminate it since the other
+instance `a` is not a substitution instance of `f a`. If something is expecting `f a`
+you cannot give `a` to it. Or in other words, `a` is not more specific than `f a`, but
+instead it is more general.
+
+So after this rule, both instances remain, and the next rule says
+
+```
+If all the remaining candidates are incoherent, the search succeeds, returning an arbitrary surviving candidate.
+```
+
+None of our instances are marked `Incoherent` so we proceed to the next rule.
+
+```
+If more than one non-incoherent candidate remains, the search fails.
+```
+
+And here the lookup fails.
+
+Let us try adding an `OVERLAPPING` pragma to the instance for `f a`.
+
+```
+instance {-# OVERLAPPING #-} Functor f => Printable (f a) where
+  printMe _ = putStrLn "Instance for a Functor"
+```
+
+And now we get the error
+
+```
+• No instance for (Functor MyType) arising from a use of ‘printMe’
+• In the expression: printMe (MyType 'c')
+  In an equation for ‘main’: main = printMe (MyType 'c')
+```
+
+We can see that adding `OVERLAPPING` pragma enabled the elimination of
+instance for `Printable a` at step 3. But the remaining instance `Functor f => Printable (f a)`
+failed at the last step which says.
+
+```
+Now find all instances, or in-scope given constraints, that unify with the
+target constraint, but do not match it. Such non-candidate instances might
+match when the target constraint is further instantiated. If all of them are
+incoherent top-level instances, the search succeeds, returning the prime
+candidate. Otherwise the search fails.
+```
+
+Here we come across a crucial aspect of instance resolution, that the algorithm
+never backtracks. When the algorithm failed at the last step, if it could
+backtrack, it could have picked the instance for `Printable a` which was
+eliminated at step 3, in favor of the failed instance for `f a`. But instead, the
+algorithm just fails.
 
 ### The Fix
 
-After looking closer it becomes clear that we removed the wrong instance. And when we
-remove the instance for `Convertable a Int`, it works, since the remaining instance
-`Convertable Int a` matches the required instance exactly.
+We can either remove the instance for `f a`, which makes the algorithm pick the
+instance for `Printable a`. Or else we can add a Functor instance for `MyType a`
+if it makese sense.
 
 Possible references:
 
