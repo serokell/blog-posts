@@ -410,6 +410,83 @@ We can either remove the instance for `f a`, which makes the algorithm pick the
 instance for `Printable a`. Or else we can add a Functor instance for `MyType a`
 if it makese sense.
 
+
+## Higher kinded overlapping instances
+
+Don't worry if you have never heard of that name. Because I just made that up.
+
+To demonstrate this we unfortunately need a bit more elaborate setup; So we have
+this code below which throws our beloved error
+
+```
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE KindSignatures         #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE UndecidableInstances   #-}
+
+module Main (main) where
+
+import Data.Typeable
+import GHC.TypeLits
+
+data Dummy = Dummy
+
+class Printable n a where
+  printMe :: Proxy n -> a -> IO ()
+
+class SomeNameClass (n :: k) a where
+
+instance (SomeNameClass (n :: Symbol) (Maybe a)) where
+
+class SomeOtherNameClass (n :: k) a where
+
+instance SomeNameClass n a => Printable n a where
+  printMe p a = putStrLn "General instance"
+
+instance {-# OVERLAPPING #-} Printable (n :: *) (Maybe a) where
+  printMe p a = putStrLn "Specific instance"
+
+fn :: Proxy n -> IO ()
+fn p = printMe p (Just 'c')
+
+main :: IO ()
+main = fn Proxy
+```
+
+Here we have these two instance
+
+```
+instance SomeNameClass n a => Printable n a where
+  printMe p a = putStrLn "General instance"
+
+instance {-# OVERLAPPING #-} Printable (n :: *) (Maybe a) where
+  printMe p a = putStrLn "Specific instance"
+```
+
+And as per what we have seen already, this the second instance should be
+selected in the call to `printMe p (Just 'c')`, because it has `OVERLAPPING`
+pragma and it appears to be the more specific instance.
+
+But nevertheless, here is the error
+
+```
+• Overlapping instances for Printable n (Maybe Char)
+    arising from a use of ‘printMe’
+  Matching instances:
+    instance [overlapping] forall k (n :: k) a. Printable n (Maybe a)
+      -- Defined at app/Main.hs:24:30
+    instance SomeNameClass n a => Printable n a
+      -- Defined at app/Main.hs:21:10
+  (The choice depends on the instantiation of ‘k, n’
+   To pick the first instance above, use IncoherentInstances
+   when compiling the other instance declarations)
+• In the expression: printMe p (Just 'c')
+  In an equation for ‘fn’: fn p = printMe p (Just 'c')
+```
+
 Possible references:
 
 https://homepage.cs.uiowa.edu/~jgmorrs/pubs/morris-icfp2010-instances.pdf
