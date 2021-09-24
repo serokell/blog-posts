@@ -187,13 +187,13 @@ There are lot of ways to deal with it:
     </td>
     <td>
       <ul>
-        <li> Easy to implement - descent and rename vars, stop when finding that name is re-defined.
-        <li> The code can be pretty printed easily.
+        <li> Easy to implement - descent and rename vars, stop when finding that name is re-defined.</li>
+        <li> The code can be pretty printed easily.</li>
       </ul>
     </td>
     <td>
       <ul>
-        <li> It is slow to be used in production. N strings comparisons OR map lookups when calling or unifying a function, where N is a count of variables in it.
+        <li> It is slow to be used in production. N strings comparisons OR map lookups when calling or unifying a function, where N is a count of variables in it.</li>
       </ul>
     </td>
   <tr>
@@ -203,16 +203,16 @@ There are lot of ways to deal with it:
     </td>
     <td>
       <ul>
-        <li> You can check if two programs are the same by just comparing them structurally.
-        <li> The context is just a stack.
-        <li> There is a library that does the thing.
+        <li> You can check if two programs are the same by just comparing them structurally.</li>
+        <li> The context is just a stack.</li>
+        <li> There is a library that does the thing.</li>
       </ul>
     </td>
     <td>
       <ul>
-        <li> <a href="https://www.slideshare.net/ekmett/bound-making-de-bruijn-succ-less">You'll have to walk the tree a lot</a>, tweaking each variable positions.
-        <li> It is a good <a href=https://twitter.com/edwinbrady/status/857585751684501504>cylon detector</a>, because making it right from the first time might be quite hard for a mere human.
-        <li> You have to store names at binders, if you want to print something the humans can wrap their heads around.
+        <li> <a href="https://www.slideshare.net/ekmett/bound-making-de-bruijn-succ-less">You'll have to walk the tree a lot</a>, tweaking each variable positions.</li>
+        <li> It is a good <a href=https://twitter.com/edwinbrady/status/857585751684501504>cylon detector</a>, because making it right from the first time might be quite hard for a mere human.</li>
+        <li> You have to store names at binders, if you want to print something the humans can wrap their heads around.</li>
       </ul>
     </td>
   <tr>
@@ -222,12 +222,12 @@ There are lot of ways to deal with it:
     </td>
     <td>
       <ul>
-        <li> The substituion is a function from a library (in haskell, at least), the traversal is automatic.
+        <li> The substituion is a function from a library (in haskell, at least), the traversal is automatic.</li>
       </ul>
     </td>
     <td>
       <ul>
-        <li> Quadratically slow, unless heavy artillery like <a href="https://hackage.haskell.org/package/kan-extensions/docs/Control-Monad-Codensity.html"/>Codensity</a> is used.
+        <li> Quadratically slow, unless heavy artillery like <a href="https://hackage.haskell.org/package/kan-extensions/docs/Control-Monad-Codensity.html"/>Codensity</a> is used.</li>
       </ul>
     </td>
   <tr>
