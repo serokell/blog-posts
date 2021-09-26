@@ -488,20 +488,12 @@ And now we get the error
 
 We can see that adding `OVERLAPPING` pragma enabled the elimination of
 instance for `Printable a` at step 3. But the remaining instance `Functor f => Printable (f a)`
-failed at the last step which says.
-
-```
-Now find all instances, or in-scope given constraints, that unify with the
-target constraint, but do not match it. Such non-candidate instances might
-match when the target constraint is further instantiated. If all of them are
-incoherent top-level instances, the search succeeds, returning the prime
-candidate. Otherwise the search fails.
-```
-
-It fails because the remaining instance is not incoherent.
+failed to work, but this failure happens at a later phase, when constraints are matched,
+after GHC has picked an instance. Which is why we get a `No instance for Functor MyType`
+error instead of an overlapping instance error.
 
 Here we come across a crucial aspect of instance resolution, that the algorithm
-never backtracks. When the algorithm failed at the last step, if it could
+never backtracks. When the algorithm failed during matching the constraints, if it could
 backtrack, it could have picked the instance for `Printable a` which was
 eliminated at step 3, in favor of the failed instance for `f a`. But instead, the
 algorithm just fails.
