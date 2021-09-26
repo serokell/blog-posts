@@ -250,8 +250,8 @@ But what if you want the `Int` instance to be called instead? One way is to use
 `Typeable` and prove to the compiler that `a` is in fact, and `Int`. And once
 you prove that `a` is an `Int` GHC will happily call the `printMe` in the `Int`
 instance for you, of course at the cost of including `Typeable` constraint in
-the signature of `fn` function (and a small runtime cost because of the Typeable
-constraint to the function).
+the signature of `fn` function (and a small runtime cost added to the function because of the Typeable
+constraint).
 
 ```
 fn :: forall a. Typeable a => a -> IO ()
