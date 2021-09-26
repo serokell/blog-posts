@@ -208,6 +208,14 @@ it cannot pick the most specific instance, causing the error.
 One fix of course is to mark the `Int` instance as `INCOHERENT`.
 
 ```
+instance {-# INCOHERENT #-} Printable Int where
+  printMe a = putStrLn "int instance"
+```
+
+<details>
+<summary>Full code</summary>
+
+```
 
 {-# LANGUAGE FlexibleInstances #-}
 
@@ -228,6 +236,7 @@ main = fn (5 :: Int)
 fn :: a -> IO ()
 fn x = printMe x
 ```
+</details>
 
 The rules followed by the instance resolution algorithm are described
 [here](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/instances.html#extension-IncoherentInstances)
