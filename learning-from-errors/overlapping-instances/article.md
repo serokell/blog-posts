@@ -75,6 +75,7 @@ instance {-# OVERLAPPING #-} Printable Int where
   <summary>
     Full code
   </summary>
+
 ```
   {-# LANGUAGE FlexibleInstances #-}
 
