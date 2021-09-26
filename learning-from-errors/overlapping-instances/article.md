@@ -7,6 +7,7 @@ a couple of intersting and advanced things about the behavior of GHC.
 ## Simple overlapping instances
 
 ```
+
 {-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
@@ -69,6 +70,30 @@ instance Printable a where
 instance {-# OVERLAPPING #-} Printable Int where
   printMe x = putStrLn ("I am an Int with value :" ++ show x)
 ```
+
+<details>
+  <summary>
+    Full code
+  </summary>
+```
+  {-# LANGUAGE FlexibleInstances #-}
+
+  module Main (main) where
+
+  class Printable a where
+    printMe :: a -> IO ()
+
+  instance Printable a where
+    printMe a = putStrLn "dummy instance"
+
+  instance {-# OVERLAPPING #-} Printable Int where
+    printMe x = putStrLn ("I am an Int with value :" ++ show x)
+
+  main :: IO ()
+  main = printMe (5 :: Int)
+```
+</details>
+
 
 We can also do it by marking the general instance as being safely over ridable
 by using the `OVERLAPPABLE` pragma, as shown below.
@@ -410,7 +435,6 @@ We can either remove the instance for `f a`, which makes the algorithm pick the
 instance for `Printable a`. Or else we can add a Functor instance for `MyType a`
 if it makese sense.
 
-
 ## Higher kinded overlapping instances
 
 Don't worry if you have never heard of that name. Because I just made that up.
@@ -498,23 +522,24 @@ instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) 
 
 Here it appears that the kind of `n` can by any kind, but the `PolyKinds`
 extension and constraint `SomeNameClass n (Maybe a)` causes the kind inference
-system to infer that `n` must be of kind `Symbol`. And at the call site, in
-`fn` function, we don't know the kind of `n`. If it is of kind `Symbol` then
+system to infer that type `n` must be of kind `Symbol`. And at the call site,
+in `fn` function, we don't know the kind of `n`. If it is of kind `Symbol` then
 the second instance should be called, but if it something else, then the first
-instance should be called. And this dilemma make GHC give up and throw the error.
+instance should be called. And this dilemma make GHC give up and throw the
+error.
 
 ### The Fix
 
 We can see the error disappear once we remove the `SomeNameClass n (Maybe a)`
 constraint from the second instance. Alternatively we can keep the constraint
 and just kind annotate the proxy from the call site. For example the following
-code will fix the error and call the first (general) instance.
+change to the call site will fix the error and call the first (general) instance.
 
 ```
 fn :: Proxy (n :: *) -> Maybe Char -> IO ()
 fn p a = printMe p a
 ```
-And the following will call the specific instance.
+And the following will fix it and call the second (specific) instance.
 
 ```
 fn :: Proxy (n :: Symbol) -> Maybe Char -> IO ()
