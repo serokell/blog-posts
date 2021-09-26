@@ -1,10 +1,12 @@
 Not all GHC errors are born equal. Some of them are easy to trace and fix,
-while some of them are not so. And some errors like the 'overlapping
+while some of them are not. And some errors like the 'overlapping
 instances', can have variants that span the entire spectrum. Here we look at
 what this error mean and many of its variants. Along the way, we might learn
 a couple of intersting and advanced things about the behavior of GHC.
 
 ## Simple overlapping instances
+
+Let us look at a basic version of this error that is thrown by the following code.
 
 ```
 
@@ -37,24 +39,23 @@ This gives us the error
 ```
 
 Note that the error happens where there is a call to `printMe` function. If
-there is no call to the function, the error won't be there. ( overlapping
+there is no call to the function, the error won't be there. (overlapping
 instance error is triggered by a function call, and not by an instance
 declaration.  You can put all kinds of overlapping instances in your code, and
 GHC won't bat an eye until you try to call a method in the respective
 typeclass)
 
 Let us see what happens in the call site `printMe (5 ::Int)`.  We have two
-matching instances in scope. The general instance for `Printable a`, and an
+matching instances in scope. The general instance, `Printable a`, and an
 specific instance for `Int`. We call it a 'general instance' because it can
-match any type, while the instance for `Int` can only specifically match the
-`Int` type.
+match any type, while the instance for `Int` can only match the `Int` type.
 
 Here GHC chooses to throw an error, rather than go with the more specific `Int`
 instance. This behavior could help the programmer to not accidentally override a
-general instance. It is easy to spot when both instances are in the same
+general instance by mistake. It is easy to spot when both instances are in the same
 module, but what if the general instance is in another module, or in a
 different package. Silently overriding an existing instance, or not being
-aware of an existing instance could break the program in subtle ways.
+aware of an existing instance while adding a new one could break the program in subtle ways.
 
 ### The Fix
 
@@ -137,7 +138,7 @@ our example, you can use the `OVERLAPS` pragma in either of these instances and
 it will work.
 
 Note that 'OVERLAPPING' pragma just means that it is alright to use that
-instance, if there are other, more general instances, and not an explicit
+instance, even if there are other, more general instances, and not an explicit
 instruction to prefer that instance.
 
 Read more about these pragmas [here](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/pragmas.html#overlapping-overlappable-overlaps-and-incoherent-pragmas)
