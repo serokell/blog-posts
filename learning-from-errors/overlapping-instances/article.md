@@ -371,7 +371,10 @@ removing one of the instances, it might appear that same could work here as well
 And it also kind of makes sense, since GHC is confused by two eligebile instances,
 so in all probablity, removing one of them should fix it, right?
 
-So we try by removing the instance for `Printable a`, as below,
+So we try by removing the instance for `Printable a`.
+
+<details>
+  <summary>Show changed code</summary>
 
 ```
 {-# LANGUAGE FlexibleInstances #-}
@@ -391,6 +394,7 @@ newtype MyType a = MyType a
 main :: IO ()
 main = printMe (MyType 'c')
 ```
+</details>
 and re-compile, and we get..
 
 ```
