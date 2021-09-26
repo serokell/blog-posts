@@ -415,8 +415,9 @@ if it makese sense.
 
 Don't worry if you have never heard of that name. Because I just made that up.
 
-To demonstrate this we unfortunately need a bit more elaborate setup; So we have
-this code below which throws our beloved error
+To demonstrate this we unfortunately need a bit more elaborate setup, and
+frankly this example is a bit contrived. Anyway, so we have this code below
+which throws our beloved error,
 
 ```
 {-# LANGUAGE DataKinds              #-}
@@ -425,66 +426,99 @@ this code below which throws our beloved error
 {-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
 module Main (main) where
 
-import Data.Typeable
+import Data.Proxy
 import GHC.TypeLits
-
-data Dummy = Dummy
 
 class Printable n a where
   printMe :: Proxy n -> a -> IO ()
 
-class SomeNameClass (n :: k) a where
+class SomeNameClass (n :: Symbol) a where
 
-instance (SomeNameClass (n :: Symbol) (Maybe a)) where
+instance SomeNameClass n (Maybe Char) where
 
-class SomeOtherNameClass (n :: k) a where
-
-instance SomeNameClass n a => Printable n a where
+instance Printable n a where
   printMe p a = putStrLn "General instance"
 
-instance {-# OVERLAPPING #-} Printable (n :: *) (Maybe a) where
+instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) where
   printMe p a = putStrLn "Specific instance"
 
-fn :: Proxy n -> IO ()
-fn p = printMe p (Just 'c')
+fn :: Proxy n -> Maybe Char -> IO ()
+fn p a = printMe p a
 
 main :: IO ()
-main = fn Proxy
+main = fn Proxy (Just 'c')
 ```
 
-Here we have these two instance
+As you can see, apart from enabling a bunch of language extensions, we have
+added a `Proxy` argument to the `printMe` method. It serves no other purpose
+other than to trigger and demonstrate the error.
+
+Here we have these two instances,
 
 ```
-instance SomeNameClass n a => Printable n a where
+instance Printable n a where
   printMe p a = putStrLn "General instance"
 
-instance {-# OVERLAPPING #-} Printable (n :: *) (Maybe a) where
+instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) where
   printMe p a = putStrLn "Specific instance"
 ```
 
-And as per what we have seen already, this the second instance should be
+And as per what we have seen already, the second instance should be
 selected in the call to `printMe p (Just 'c')`, because it has `OVERLAPPING`
 pragma and it appears to be the more specific instance.
 
 But nevertheless, here is the error
 
 ```
-• Overlapping instances for Printable n (Maybe Char)
-    arising from a use of ‘printMe’
-  Matching instances:
-    instance [overlapping] forall k (n :: k) a. Printable n (Maybe a)
-      -- Defined at app/Main.hs:24:30
-    instance SomeNameClass n a => Printable n a
-      -- Defined at app/Main.hs:21:10
-  (The choice depends on the instantiation of ‘k, n’
-   To pick the first instance above, use IncoherentInstances
-   when compiling the other instance declarations)
-• In the expression: printMe p (Just 'c')
-  In an equation for ‘fn’: fn p = printMe p (Just 'c')
+||     • Overlapping instances for Printable n (Maybe Char)
+||         arising from a use of ‘printMe’
+||       Matching instances:
+||         instance forall k (n :: k) a. Printable n a
+||           -- Defined at app/Main.hs:22:10
+||         instance [overlapping] SomeNameClass n (Maybe a) =>
+||                                Printable n (Maybe a)
+||           -- Defined at app/Main.hs:25:30
+||       (The choice depends on the instantiation of ‘k, n’
+||        To pick the first instance above, use IncoherentInstances
+||        when compiling the other instance declarations)
+||     • In the expression: printMe p a
+||       In an equation for ‘fn’: fn p a = printMe p a
+```
+
+Let us look closer at the second instance, just at the instance heads.
+
+```
+instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) where
+```
+
+Here it appears that the kind of `n` can by any kind, but the `PolyKinds`
+extension and constraint `SomeNameClass n (Maybe a)` causes the kind inference
+system to infer that `n` must be of kind `Symbol`. And at the call site, in
+`fn` function, we don't know the kind of `n`. If it is of kind `Symbol` then
+the second instance should be called, but if it something else, then the first
+instance should be called. And this dilemma make GHC give up and throw the error.
+
+### The Fix
+
+We can see the error disappear once we remove the `SomeNameClass n (Maybe a)`
+constraint from the second instance. Alternatively we can keep the constraint
+and just kind annotate the proxy from the call site. For example the following
+code will fix the error and call the first (general) instance.
+
+```
+fn :: Proxy (n :: *) -> Maybe Char -> IO ()
+fn p a = printMe p a
+```
+And the following will call the specific instance.
+
+```
+fn :: Proxy (n :: Symbol) -> Maybe Char -> IO ()
+fn p a = printMe p a
 ```
 
 Possible references:
