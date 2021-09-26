@@ -8,7 +8,7 @@ a couple of intersting and advanced things about the behavior of GHC.
 
 Let us look at a basic version of this error that is thrown by the following code.
 
-```
+```hs
 
 {-# LANGUAGE FlexibleInstances #-}
 
