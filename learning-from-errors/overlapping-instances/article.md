@@ -64,7 +64,7 @@ instance in the presence of other matching instances. We do it by using the
 `OVERLAPPING` pragma. For example,
 
 
-```
+```hs
 instance Printable a where
   printMe a = putStrLn "dummy instance"
 
@@ -77,7 +77,7 @@ instance {-# OVERLAPPING #-} Printable Int where
     Full code
   </summary>
 
-```
+```hs
   {-# LANGUAGE FlexibleInstances #-}
 
   module Main (main) where
@@ -100,7 +100,7 @@ instance {-# OVERLAPPING #-} Printable Int where
 We can also do it by marking the general instance as being safely over ridable
 by using the `OVERLAPPABLE` pragma, as shown below.
 
-```
+```hs
 instance {-# OVERLAPPABLE #-} Printable a where
   printMe a = putStrLn "dummy instance"
 
@@ -113,7 +113,7 @@ instance Printable Int where
     Full code
   </summary>
 
-```
+```hs
   {-# LANGUAGE FlexibleInstances #-}
 
   module Main (main) where
@@ -148,7 +148,7 @@ Read more about these pragmas [here](https://ghc.gitlab.haskell.org/ghc/doc/user
 Here we slightly change one of the above fixes, to call the `printMe` function
 via another function `fn` that accepts a polymorphic argument.
 
-```
+```hs
 
 fn :: a -> IO ()
 fn x = printMe x
@@ -160,7 +160,7 @@ fn x = printMe x
   </summary>
 
 
-```
+```hs
 {-# LANGUAGE FlexibleInstances    #-}
 
 module Main (main) where
@@ -208,7 +208,7 @@ it cannot pick the most specific instance, causing the error.
 
 One fix of course is to mark the `Int` instance as `INCOHERENT`.
 
-```
+```hs
 instance {-# INCOHERENT #-} Printable Int where
   printMe a = putStrLn "int instance"
 ```
@@ -216,7 +216,7 @@ instance {-# INCOHERENT #-} Printable Int where
 <details>
 <summary>Full code</summary>
 
-```
+```hs
 
 {-# LANGUAGE FlexibleInstances #-}
 
@@ -253,7 +253,7 @@ instance for you, of course at the cost of including `Typeable` constraint in
 the signature of `fn` function (and a small runtime cost added to the function because of the Typeable
 constraint).
 
-```
+```hs
 fn :: forall a. Typeable a => a -> IO ()
 fn x = case cast x of
   (Just a :: Maybe Int) -> printMe a
@@ -263,7 +263,7 @@ fn x = case cast x of
 <details>
   <summary>Full code</summary>
 
-```
+```hs
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -293,7 +293,7 @@ fn x = case cast x of
 Similarly we could change/hack the general instance to use `Typeable` and implement
 specialized behavior for `Int` in the general instance itself.
 
-```
+```hs
 instance Typeable a => Printable a where
   printMe a = case cast a of
     (Just x :: Maybe Int) -> putStrLn "general instance for int"
@@ -303,7 +303,7 @@ instance Typeable a => Printable a where
 <details>
   <summary>Full code</summary>
 
-```
+```hs
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -332,7 +332,7 @@ fn x = printMe x
 Here we look at a variant of this error that seemingly flip flops when
 attempts are made to fix it. Let us look at a sample.
 
-```
+```hs
 {-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
@@ -377,7 +377,7 @@ So we try by removing the instance for `Printable a`.
 <details>
   <summary>Show changed code</summary>
 
-```
+```hs
 {-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
@@ -512,7 +512,7 @@ To demonstrate this we unfortunately need a bit more elaborate setup, and
 frankly this example is a bit contrived. Anyway, so we have this code below
 which throws our beloved error,
 
-```
+```hs
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -553,7 +553,7 @@ other than to trigger and demonstrate the error.
 
 Here we have these two instances,
 
-```
+```hs
 instance Printable n a where
   printMe p a = putStrLn "General instance"
 
@@ -604,13 +604,13 @@ constraint from the second instance. Alternatively we can keep the constraint
 and just kind annotate the proxy from the call site. For example the following
 change to the call site will fix the error and call the first (general) instance.
 
-```
+```hs
 fn :: Proxy (n :: *) -> Maybe Char -> IO ()
 fn p a = printMe p a
 ```
 And the following will fix it and call the second (specific) instance.
 
-```
+```hs
 fn :: Proxy (n :: Symbol) -> Maybe Char -> IO ()
 fn p a = printMe p a
 ```
