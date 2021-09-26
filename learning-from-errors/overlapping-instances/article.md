@@ -253,6 +253,16 @@ the signature of `fn` function (and a small runtime cost because of the Typeable
 constraint to the function).
 
 ```
+fn :: forall a. Typeable a => a -> IO ()
+fn x = case cast x of
+  (Just a :: Maybe Int) -> printMe a
+  Nothing               -> printMe x
+```
+
+<details>
+  <summary>Full code</summary>
+
+```
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -277,9 +287,20 @@ fn x = case cast x of
   (Just a :: Maybe Int) -> printMe a
   Nothing               -> printMe x
 ```
+</details>
 
 Similarly we could change/hack the general instance to use `Typeable` and implement
 specialized behavior for `Int` in the general instance itself.
+
+```
+instance Typeable a => Printable a where
+  printMe a = case cast a of
+    (Just x :: Maybe Int) -> putStrLn "general instance for int"
+    Nothing               -> putStrLn "general instance"
+```
+
+<details>
+  <summary>Full code</summary>
 
 ```
 {-# LANGUAGE FlexibleInstances   #-}
@@ -303,6 +324,7 @@ main = fn (5 :: Int)
 fn :: forall a. Typeable a => a -> IO ()
 fn x = printMe x
 ```
+</details>
 
 ## Flip-Flop Overlapping instances
 
