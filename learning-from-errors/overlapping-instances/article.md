@@ -107,6 +107,30 @@ instance Printable Int where
   printMe x = putStrLn ("I am an Int with value :" ++ show x)
 ```
 
+<details>
+  <summary>
+    Full code
+  </summary>
+
+```
+  {-# LANGUAGE FlexibleInstances #-}
+
+  module Main (main) where
+
+  class Printable a where
+    printMe :: a -> IO ()
+
+  instance {-# OVERLAPPABLE #-} Printable a where
+    printMe a = putStrLn "dummy instance"
+
+  instance Printable Int where
+    printMe x = putStrLn ("I am an Int with value :" ++ show x)
+
+  main :: IO ()
+  main = printMe (5 :: Int)
+```
+</details>
+
 If you want to mark an instance as being overridable, as well as it being able
 to safely override other instances, you can use the `OVERLAPS` pragme. So in
 our example, you can use the `OVERLAPS` pragma in either of these instances and
@@ -122,6 +146,18 @@ Read more about these pragmas [here](https://ghc.gitlab.haskell.org/ghc/doc/user
 
 Here we slightly change one of the above fixes, to call the `printMe` function
 via another function `fn` that accepts a polymorphic argument.
+
+```
+
+fn :: a -> IO ()
+fn x = printMe x
+```
+
+<details>
+  <summary>
+    Full code
+  </summary>
+
 
 ```
 {-# LANGUAGE FlexibleInstances    #-}
@@ -144,6 +180,8 @@ main :: IO ()
 main = fn (5 :: Int)
 
 ```
+</details>
+
 lo and behold the dreaded error appears again.
 
 ```
