@@ -468,7 +468,7 @@ None of our instances are marked `Incoherent` so we proceed to the next rule.
 If more than one non-incoherent candidate remains, the search fails.
 ```
 
-And here the lookup fails.
+Considering that we have now two such instances now, the lookup fails here.
 
 Let us try adding an `OVERLAPPING` pragma to the instance for `f a`.
 
@@ -496,6 +496,8 @@ match when the target constraint is further instantiated. If all of them are
 incoherent top-level instances, the search succeeds, returning the prime
 candidate. Otherwise the search fails.
 ```
+
+It fails because the remaining instance is not incoherent.
 
 Here we come across a crucial aspect of instance resolution, that the algorithm
 never backtracks. When the algorithm failed at the last step, if it could
@@ -620,6 +622,9 @@ fn :: Proxy (n :: Symbol) -> Maybe Char -> IO ()
 fn p a = printMe p a
 ```
 
-Possible references:
+## Conclusion
 
-https://homepage.cs.uiowa.edu/~jgmorrs/pubs/morris-icfp2010-instances.pdf
+Here we saw some commonly occuring instances of the Overlapping Instances error
+that GHC seemingly loves to throw at us now and then. We have hopefully learned
+a thing or two about how GHC resolves type class instances, which might help us
+track down and fix it properly the next time we come across it.
