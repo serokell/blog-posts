@@ -1,8 +1,8 @@
 Not all GHC errors are born equal. Some of them are easy to trace and fix,
-while some of them are not. And some errors like the 'overlapping
-instances', can have variants that span the entire spectrum. Here we look at
-what this error mean and many of its variants. Along the way, we might learn
-a couple of intersting and advanced things about the behavior of GHC.
+while some of them are not. And some errors can have variants that span the entire spectrum. 
+
+In this article, we'll look at the `overlapping instances` error. We'll understand the many variants of it and what the error means in each of those cases. Along the way, we might also learn
+a couple of interesting and advanced things about the behavior of GHC.
 
 ## Simple overlapping instances
 
@@ -27,7 +27,7 @@ main :: IO ()
 main = printMe (5 :: Int)
 ```
 
-This gives us the error
+This gives us the following error:
 
 ```
 • Overlapping instances for Printable Int
@@ -39,25 +39,26 @@ This gives us the error
 ```
 
 Note that the error happens where there is a call to `printMe` function. If
-there is no call to the function, the error won't be there. (overlapping
-instance error is triggered by a function call, and not by an instance
+there is no call to the function, the error won't be there. 
+
+Overlapping instance error is triggered by a function call, and not by an instance
 declaration.  You can put all kinds of overlapping instances in your code, and
 GHC won't bat an eye until you try to call a method in the respective
-typeclass)
+typeclass.
 
 Let us see what happens in the call site `printMe (5 ::Int)`.  We have two
-matching instances in scope. The general instance, `Printable a`, and an
-specific instance for `Int`. We call it a 'general instance' because it can
+matching instances in scope. The general instance, `Printable a`, and a
+specific instance for `Int`. We call it the 'general instance' because it can
 match any type, while the instance for `Int` can only match the `Int` type.
 
-Here GHC chooses to throw an error, rather than go with the more specific `Int`
-instance. This behavior could help the programmer to not accidentally override a
+Here GHC chooses to throw an error rather than go with the more specific `Int`
+instance. This behavior can help the programmer to not accidentally override a
 general instance by mistake. It is easy to spot when both instances are in the same
 module, but what if the general instance is in another module, or in a
-different package. Silently overriding an existing instance, or not being
+different package? Silently overriding an existing instance or not being
 aware of an existing instance while adding a new one could break the program in subtle ways.
 
-### The Fix
+### How to fix it? 
 
 One way to fix this is to let GHC know that it is alright to choose the
 instance in the presence of other matching instances. We do it by using the
@@ -97,7 +98,7 @@ instance {-# OVERLAPPING #-} Printable Int where
 </details>
 
 
-We can also do it by marking the general instance as being safely over ridable
+We can also do it by marking the general instance as being safely overridable
 by using the `OVERLAPPABLE` pragma, as shown below.
 
 ```hs
@@ -134,18 +135,18 @@ instance Printable Int where
 
 If you want to mark an instance as being overridable, as well as it being able
 to safely override other instances, you can use the `OVERLAPS` pragme. So in
-our example, you can use the `OVERLAPS` pragma in either of these instances and
+our example, you can use the `OVERLAPS` pragma in either of these instances, and
 it will work.
 
-Note that 'OVERLAPPING' pragma just means that it is alright to use that
-instance, even if there are other, more general instances, and not an explicit
+Note that the 'OVERLAPPING' pragma just means that it is alright to use that
+instance (even if there are other, more general instances) and not an explicit
 instruction to prefer that instance.
 
-Read more about these pragmas [here](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/pragmas.html#overlapping-overlappable-overlaps-and-incoherent-pragmas)
+You can read more about these pragmas [here](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/pragmas.html#overlapping-overlappable-overlaps-and-incoherent-pragmas).
 
 ## Overlapping instances with type variables
 
-Here we slightly change one of the above fixes, to call the `printMe` function
+Here we slightly change one of the above fixes to call the `printMe` function
 via another function `fn` that accepts a polymorphic argument.
 
 ```hs
@@ -183,7 +184,7 @@ main = fn (5 :: Int)
 ```
 </details>
 
-lo and behold the dreaded error appears again.
+Lo and behold, the dreaded error appears again.
 
 ```
    • Overlapping instances for Printable a
@@ -200,13 +201,13 @@ Here we have some additional information in the error message. It says
 'The choice depends on the instantiation of ‘a’ To pick the first instance
 above, use IncoherentInstances'.
 
-So this happens because at the call site of `printMe x` GHC only know `x` can
+So this happens because at the call site of `printMe x`, GHC only knows that `x` can
 be of any type, including `Int`. Without knowing if `a` is an `Int` or not,
 it cannot pick the most specific instance, causing the error.
 
 ### The Fix
 
-One fix of course is to mark the `Int` instance as `INCOHERENT`.
+One fix, of course, is to mark the `Int` instance as `INCOHERENT`.
 
 ```hs
 instance {-# INCOHERENT #-} Printable Int where
@@ -242,15 +243,15 @@ fn x = printMe x
 The rules followed by the instance resolution algorithm are described
 [here](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/instances.html#extension-IncoherentInstances)
 and in this specific case, the general instance will get applied because it
-ends up being a single 'prime candidate' which gets selected since the
+ends up being the single 'prime candidate' which gets selected since the
 remaining instance is marked as 'INCOHERENT'. This means that the program
 will print "general instance" if you run it.
 
 But what if you want the `Int` instance to be called instead? One way is to use
-`Typeable` and prove to the compiler that `a` is in fact, and `Int`. And once
-you prove that `a` is an `Int` GHC will happily call the `printMe` in the `Int`
-instance for you, of course at the cost of including `Typeable` constraint in
-the signature of `fn` function (and a small runtime cost added to the function because of the Typeable
+`Typeable` and prove to the compiler that `a` is, in fact, an `Int`. And once
+you prove that `a` is an `Int`, GHC will happily call the `printMe` in the `Int`
+instance for you. Of course, this will happen at the cost of including a `Typeable` constraint in
+the signature of the `fn` function (and a small runtime cost added to the function because of the Typeable
 constraint).
 
 ```hs
@@ -290,7 +291,7 @@ fn x = case cast x of
 ```
 </details>
 
-Similarly we could change/hack the general instance to use `Typeable` and implement
+Similarly, we could change/hack the general instance to use `Typeable` and implement
 specialized behavior for `Int` in the general instance itself.
 
 ```hs
@@ -327,9 +328,9 @@ fn x = printMe x
 ```
 </details>
 
-## Flip-Flop Overlapping instances
+## Flip-Flopping overlapping instances
 
-Here we look at a variant of this error that seemingly flip flops when
+Here we look at a variant of this error that seemingly flip-flops when
 attempts are made to fix it. Let us look at a sample.
 
 ```hs
@@ -366,11 +367,10 @@ As expected, we get the overlapping instances error.
       -- Defined at app/Main.hs:13:10
 ```
 
-Since we saw a similar error in the last example, and we could have fixed it by
+Since we saw a similar error in the last example and fixed it by
 removing one of the instances, it might appear that same could work here as well.
 
-And it also kind of makes sense, since GHC is confused by two eligebile instances,
-so in all probablity, removing one of them should fix it, right?
+And it also kind of makes sense. Since GHC is confused by two eligible instances, in all probability, removing one of them should fix it, right?
 
 So we try by removing the instance for `Printable a`.
 
@@ -396,7 +396,8 @@ main :: IO ()
 main = printMe (MyType 'c')
 ```
 </details>
-and re-compile, and we get..
+
+And when we re-compile, we get...
 
 ```
 • No instance for (Functor MyType) arising from a use of ‘printMe’
@@ -407,11 +408,11 @@ and re-compile, and we get..
 To our great surprise, we find that removing one instance from the two eligible
 instances made GHC reject the remaining instance as well!
 
-So we end up in this situtation where where GHC flip-flops between these two errors.
+So we end up in the situation where GHC flip-flops between these two errors.
 
 It shows that it might not be a good idea to blindly remove instances when you
 come across overlapping instance errors. It is better to carefully examine the
-actual cause of the issue, keeping in mind the algorith GHC follow to resolve
+actual cause of the issue, keeping in mind the algorithm GHC follows to resolve
 instances.
 
 Let us walk through this algorithm and see why the first error happens.
@@ -425,12 +426,12 @@ candidates.
 ```
 
 Our target constraint here is `MyType Char`, and both the instances for `Printable a`
-and `Printable (f a)`, matches.
+and `Printable (f a)` match.
 
-The next step says.
+The next step says:
 
 ```
-If no candidates remain, the search fails
+If no candidates remain, the search fails.
 ```
 
 Since we have two instances that match, we can continue to the next step, which says,
@@ -440,11 +441,11 @@ Eliminate any candidate `IX` for which there is another candidate `IY` such that
 both of the following hold: `IY` is strictly more specific than `IX`. That is, `IY`
 is a substitution instance of `IX` but not vice versa. Either `IX` is overlappable,
 or `IY` is overlapping. (This “either/or” design, rather than a “both/and”
-design, allow a client to deliberately override an instance from a library,
+design, allow a client to deliberately override an instance from a library
 without requiring a change to the library.)
 ```
 
-We have two candidates `Printable a` and `Printable (f a)`. Let us process
+We have two candidates, `Printable a` and `Printable (f a)`. Let us process
 `Printable a` first. The rule says to check if there is another candidate `IY`
 such that `IY` is a substitution instance of `IX`. Here `f a` is a
 substituation instance for `a`, because if something can accept `a`, it can accept
@@ -455,21 +456,21 @@ be overlapping. And since this does not match, we cannot eliminate `Printable a`
 The next one is `Printable (f a)`, and we cannot eliminate it since the other
 instance `a` is not a substitution instance of `f a`. If something is expecting `f a`
 you cannot give `a` to it. Or in other words, `a` is not more specific than `f a`, but
-instead it is more general.
+instead, it is more general.
 
-So after this rule, both instances remain, and the next rule says
+So after this rule, both instances remain, and the next rule says:
 
 ```
 If all the remaining candidates are incoherent, the search succeeds, returning an arbitrary surviving candidate.
 ```
 
-None of our instances are marked `Incoherent` so we proceed to the next rule.
+None of our instances are marked `Incoherent`, so we proceed to the next rule.
 
 ```
 If more than one non-incoherent candidate remains, the search fails.
 ```
 
-Considering that we have now two such instances now, the lookup fails here.
+Considering that we have two such instances now, the lookup fails here.
 
 Let us try adding an `OVERLAPPING` pragma to the instance for `f a`.
 
@@ -478,7 +479,7 @@ instance {-# OVERLAPPING #-} Functor f => Printable (f a) where
   printMe _ = putStrLn "Instance for a Functor"
 ```
 
-And now we get the error
+And now we get the error:
 
 ```
 • No instance for (Functor MyType) arising from a use of ‘printMe’
@@ -486,31 +487,31 @@ And now we get the error
   In an equation for ‘main’: main = printMe (MyType 'c')
 ```
 
-We can see that adding `OVERLAPPING` pragma enabled the elimination of
+We can see that adding `OVERLAPPING` pragma enabled the elimination of the
 instance for `Printable a` at step 3. But the remaining instance `Functor f => Printable (f a)`
-failed to work, but this failure happens at a later phase, when constraints are matched,
-after GHC has picked an instance. Which is why we get a `No instance for Functor MyType`
+failed to work, but this failure happens at a later phase: when constraints are matched and
+after GHC has picked an instance. This is why we get a `No instance for Functor MyType`
 error instead of an overlapping instance error.
 
-Here we come across a crucial aspect of instance resolution, that the algorithm
+Here we come across a crucial aspect of instance resolution: the algorithm
 never backtracks. When the algorithm failed during matching the constraints, if it could
-backtrack, it could have picked the instance for `Printable a` which was
+backtrack, it could have picked the instance for `Printable a`, which was
 eliminated at step 3, in favor of the failed instance for `f a`. But instead, the
 algorithm just fails.
 
-### The Fix
+### How to fix it?
 
 We can either remove the instance for `f a`, which makes the algorithm pick the
 instance for `Printable a`. Or else we can add a Functor instance for `MyType a`
-if it makese sense.
+if it makes sense.
 
-## Higher kinded overlapping instances
+## Higher-kinded overlapping instances
 
-Don't worry if you have never heard of that name. Because I just made that up.
+Don't worry if you have never heard of that name. That's because I just made it up.
 
-To demonstrate this we unfortunately need a bit more elaborate setup, and
-frankly this example is a bit contrived. Anyway, so we have this code below
-which throws our beloved error,
+To demonstrate this, we unfortunately need a bit more elaborate setup, and
+frankly, this example is a bit contrived. Anyway, so we have this code below
+which throws our beloved error:
 
 ```hs
 {-# LANGUAGE DataKinds              #-}
@@ -562,10 +563,10 @@ instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) 
 ```
 
 And as per what we have seen already, the second instance should be
-selected in the call to `printMe p (Just 'c')`, because it has `OVERLAPPING`
+selected in the call to `printMe p (Just 'c')` because it has the `OVERLAPPING`
 pragma and it appears to be the more specific instance.
 
-But nevertheless, here is the error
+But nevertheless, here is the error:
 
 ```
 ||     • Overlapping instances for Printable n (Maybe Char)
@@ -583,7 +584,7 @@ But nevertheless, here is the error
 ||       In an equation for ‘fn’: fn p a = printMe p a
 ```
 
-Let us look closer at the second instance, just at the instance heads.
+Let us look closer at the second instance – just at the instance heads.
 
 ```
 instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) where
@@ -592,16 +593,16 @@ instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) 
 Here it appears that the kind of `n` can by any kind, but the `PolyKinds`
 extension and constraint `SomeNameClass n (Maybe a)` causes the kind inference
 system to infer that type `n` must be of kind `Symbol`. And at the call site,
-in `fn` function, we don't know the kind of `n`. If it is of kind `Symbol` then
+in the `fn` function, we don't know the kind of `n`. If it is of kind `Symbol` then
 the second instance should be called, but if it something else, then the first
-instance should be called. And this dilemma make GHC give up and throw the
+instance should be called. And this dilemma makes GHC give up and throw the
 error.
 
-### The Fix
+### How to fix it?
 
 We can see the error disappear once we remove the `SomeNameClass n (Maybe a)`
-constraint from the second instance. Alternatively we can keep the constraint
-and just kind annotate the proxy from the call site. For example the following
+constraint from the second instance. Alternatively, we can keep the constraint
+and kind annotate the proxy from the call site. For example, the following
 change to the call site will fix the error and call the first (general) instance.
 
 ```hs
@@ -617,7 +618,9 @@ fn p a = printMe p a
 
 ## Conclusion
 
-Here we saw some commonly occuring instances of the Overlapping Instances error
-that GHC seemingly loves to throw at us now and then. We have hopefully learned
+Here we saw some commonly occurring instances of the Overlapping Instances error
+that GHC seemingly loves to throw at us now and then. Hopefully, we have learned
 a thing or two about how GHC resolves type class instances, which might help us
-track down and fix it properly the next time we come across it.
+track down and fix the error properly the next time we come across it.
+
+If you would like to read more of our Haskell articles, be sure to check our [Haskell section](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell). 
