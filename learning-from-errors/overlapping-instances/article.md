@@ -1,5 +1,5 @@
 Not all GHC errors are born equal. Some of them are easy to trace and fix,
-while some of them are not. And some errors can have variants that span the entire spectrum. 
+while some of them are not. And some errors can have variants that span the entire spectrum.
 
 In this article, we'll look at the `overlapping instances` error. We'll understand the many variants of it and what the error means in each of those cases. Along the way, we might also learn
 a couple of interesting and advanced things about the behavior of GHC.
@@ -39,7 +39,7 @@ This gives us the following error:
 ```
 
 Note that the error happens where there is a call to `printMe` function. If
-there is no call to the function, the error won't be there. 
+there is no call to the function, the error won't be there.
 
 Overlapping instance error is triggered by a function call, and not by an instance
 declaration.  You can put all kinds of overlapping instances in your code, and
@@ -58,7 +58,7 @@ module, but what if the general instance is in another module, or in a
 different package? Silently overriding an existing instance or not being
 aware of an existing instance while adding a new one could break the program in subtle ways.
 
-### How to fix it? 
+### How to fix it?
 
 One way to fix this is to let GHC know that it is alright to choose the
 instance in the presence of other matching instances. We do it by using the
@@ -496,7 +496,7 @@ error instead of an overlapping instance error.
 Here we come across a crucial aspect of instance resolution: the algorithm
 never backtracks. When the algorithm failed during matching the constraints, if it could
 backtrack, it could have picked the instance for `Printable a`, which was
-eliminated at step 3, in favor of the failed instance for `f a`. But instead, the
+eliminated at a later stage, in favor of the failed instance for `f a`. But instead, the
 algorithm just fails.
 
 ### How to fix it?
@@ -520,7 +520,7 @@ which throws our beloved error:
 {-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE PolyKinds              #-}
-{-# LANGUAGE RankNTypes              #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
 module Main (main) where
@@ -623,4 +623,4 @@ that GHC seemingly loves to throw at us now and then. Hopefully, we have learned
 a thing or two about how GHC resolves type class instances, which might help us
 track down and fix the error properly the next time we come across it.
 
-If you would like to read more of our Haskell articles, be sure to check our [Haskell section](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell). 
+If you would like to read more of our Haskell articles, be sure to check our [Haskell section](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell).
