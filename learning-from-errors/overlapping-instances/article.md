@@ -244,7 +244,7 @@ The rules followed by the instance resolution algorithm are described
 [here](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/instances.html#extension-IncoherentInstances)
 and in this specific case, the general instance will get applied because it
 ends up being the single 'prime candidate' which gets selected since the
-remaining instance is marked as 'INCOHERENT'. This means that the program
+remaining instance is marked as `INCOHERENT`. This means that the program
 will print "general instance" if you run it.
 
 But what if you want the `Int` instance to be called instead? One way is to use
