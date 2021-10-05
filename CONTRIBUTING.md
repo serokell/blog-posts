@@ -16,7 +16,7 @@ Here’s our proven process for quickly chugging out amazing articles. It is foc
 
 Of course, this is just a suggestion – if you have your own way that “works”, you can write like that. We just need the articles. 😅 
 
-**Step 1: Imagine your reader & focus your topic. **
+**Step 1: Imagine your reader & focus your topic.**
 
 You are writing to help a person. Imagine a person, and where they encounter your article. What do they want to accomplish? What do they already know about the topic? What do they need to know? 
 
@@ -24,11 +24,11 @@ You can write that info down for yourself or just keep it in mind while writing.
 
 _It’s like making a user story._  
 
-**Step 2: Make a structure beforehand. **
+**Step 2: Make a structure beforehand.**
 
 It’s much easier to make a structure of headings, subheadings, and descriptions before you start writing. This will guide your writing process and help you orient while you are in the middle of text. 
 
-_It’s like writing types before functions.  _
+_It’s like writing types before functions._
 
 **Step 3: Write it out.** 
 
