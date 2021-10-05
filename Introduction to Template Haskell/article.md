@@ -455,6 +455,7 @@ Now change your `Main` to contain `$(generateTupleBoilerplate 62)` and voilá! W
 
 In this post, we've seen the basics of Template Haskell. We used it to declare some instances, inspect the generated AST, and implement instances for tuple types. For more resources on Template Haskell, I suggest checking out the following links:
 
+* [A Short Overview of Typed Template Haskell](https://serokell.io/blog/typed-template-haskell-overview)
 * [Template Haskell tutorial](https://markkarpov.com/tutorial/th.html)
 * [Compile-Time Evaluation](https://serokell.io/blog/compile-time-evaluation-haskell)
 
