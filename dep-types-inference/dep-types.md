@@ -464,7 +464,7 @@ unify _ LetRec {} = error "unifier: right argument is a let-expression"
 ```
 
 And the last case is fired after all other fail, which means that types don't match.
-```
+```haskell
 unify a b = die $ Mismatch a b
 ```
 
