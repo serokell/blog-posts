@@ -6,7 +6,7 @@ a couple of interesting and advanced things about the behavior of GHC.
 
 ## Simple overlapping instances
 
-Let us look at a basic version of this error that is thrown by the following code.
+Let us look at a basic version of this error that is triggered by the following code.
 
 ```hs
 
