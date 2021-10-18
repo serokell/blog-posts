@@ -12,8 +12,6 @@ Let us look at a basic version of this error that is triggered by the following 
 
 {-# LANGUAGE FlexibleInstances #-}
 
-module Main (main) where
-
 class Printable a where
   printMe :: a -> IO ()
 
@@ -41,10 +39,10 @@ This gives us the following error:
 Note that the error happens where there is a call to `printMe` function. If
 there is no call to the function, the error won't be there.
 
-Overlapping instance error is triggered by a function call, and not by an instance
-declaration.  You can put all kinds of overlapping instances in your code, and
-GHC won't bat an eye until you try to call a method in the respective
-typeclass.
+Overlapping instance error is triggered by an instance search, and not by an
+instance declaration.  You can put all kinds of overlapping instances in your
+code, and GHC won't bat an eye until you trigger an instance search, like, but
+not limited to calling a typeclass method.
 
 Let us see what happens in the call site `printMe (5 ::Int)`.  We have two
 matching instances in scope. The general instance, `Printable a`, and a
@@ -81,8 +79,6 @@ instance {-# OVERLAPPING #-} Printable Int where
 ```hs
   {-# LANGUAGE FlexibleInstances #-}
 
-  module Main (main) where
-
   class Printable a where
     printMe :: a -> IO ()
 
@@ -117,8 +113,6 @@ instance Printable Int where
 ```hs
   {-# LANGUAGE FlexibleInstances #-}
 
-  module Main (main) where
-
   class Printable a where
     printMe :: a -> IO ()
 
@@ -138,7 +132,7 @@ to safely override other instances, you can use the `OVERLAPS` pragme. So in
 our example, you can use the `OVERLAPS` pragma in either of these instances, and
 it will work.
 
-Note that the 'OVERLAPPING' pragma just means that it is alright to use that
+Note that the `OVERLAPPING` pragma just means that it is alright to use that
 instance (even if there are other, more general instances) and not an explicit
 instruction to prefer that instance.
 
@@ -163,8 +157,6 @@ fn x = printMe x
 
 ```hs
 {-# LANGUAGE FlexibleInstances    #-}
-
-module Main (main) where
 
 class Printable a where
   printMe :: a -> IO ()
@@ -221,8 +213,6 @@ instance {-# INCOHERENT #-} Printable Int where
 
 {-# LANGUAGE FlexibleInstances #-}
 
-module Main (main) where
-
 class Printable a where
   printMe :: a -> IO ()
 
@@ -268,8 +258,6 @@ fn x = case cast x of
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Main (main) where
-
 import Data.Typeable (cast)
 
 class Printable a where
@@ -308,8 +296,6 @@ instance Typeable a => Printable a where
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Main (main) where
-
 import Data.Typeable
 
 class Printable a where
@@ -323,7 +309,7 @@ instance Typeable a => Printable a where
 main :: IO ()
 main = fn (5 :: Int)
 
-fn :: forall a. Typeable a => a -> IO ()
+fn :: forall a. Printable a => a -> IO ()
 fn x = printMe x
 ```
 </details>
@@ -335,8 +321,6 @@ attempts are made to fix it. Let us look at a sample.
 
 ```hs
 {-# LANGUAGE FlexibleInstances #-}
-
-module Main (main) where
 
 import Data.Typeable
 
@@ -380,8 +364,6 @@ So we try by removing the instance for `Printable a`.
 ```hs
 {-# LANGUAGE FlexibleInstances #-}
 
-module Main (main) where
-
 import Data.Typeable
 
 class Printable a where
@@ -419,11 +401,9 @@ Let us walk through this algorithm and see why the first error happens.
 
 So the very first step is:
 
-```
-Find all instances I that match the target constraint; that is, the target
-constraint is a substitution instance of I. These instance declarations are the
-candidates.
-```
+    Find all instances I that match the target constraint; that is, the target
+    constraint is a substitution instance of I. These instance declarations are the
+    candidates.
 
 Our target constraint here is `MyType Char`, and both the instances for `Printable a`
 and `Printable (f a)` match.
@@ -437,7 +417,7 @@ If no candidates remain, the search fails.
 Since we have two instances that match, we can continue to the next step, which says,
 
 ```
-Eliminate any candidate `IX` for which there is another candidate `IY` such that
+Eliminate any candidate $IX$ for which there is another candidate `IY` such that
 both of the following hold: `IY` is strictly more specific than `IX`. That is, `IY`
 is a substitution instance of `IX` but not vice versa. Either `IX` is overlappable,
 or `IY` is overlapping. (This “either/or” design, rather than a “both/and”
@@ -522,8 +502,6 @@ which throws our beloved error:
 {-# LANGUAGE PolyKinds              #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE UndecidableInstances   #-}
-
-module Main (main) where
 
 import Data.Proxy
 import GHC.TypeLits
