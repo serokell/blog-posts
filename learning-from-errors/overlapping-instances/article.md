@@ -40,9 +40,9 @@ Note that the error happens where there is a call to `printMe` function. If
 there is no call to the function, the error won't be there.
 
 Overlapping instance error is triggered by an instance search, and not by an
-instance declaration.  You can put all kinds of overlapping instances in your
-code, and GHC won't bat an eye until you trigger an instance search, like, but
-not limited to calling a typeclass method.
+instance declaration. You can put all kinds of overlapping instances in your
+code, and GHC won't bat an eye until you trigger an instance search, like
+calling a typeclass method.
 
 Let us see what happens in the call site `printMe (5 ::Int)`.  We have two
 matching instances in scope. The general instance, `Printable a`, and a
@@ -199,7 +199,9 @@ it cannot pick the most specific instance, causing the error.
 
 ### The Fix
 
-One fix, of course, is to mark the `Int` instance as `INCOHERENT`.
+One fix, of course, is to mark the `Int` instance as `INCOHERENT`.  This will
+pick the instance with the information available at the call site, even if a
+different instance is available and could be picked, if more information is available.
 
 ```hs
 instance {-# INCOHERENT #-} Printable Int where
@@ -228,6 +230,53 @@ main = fn (5 :: Int)
 fn :: a -> IO ()
 fn x = printMe x
 ```
+
+This works, but we see that `fn` is called with an `Int` argument in `main`
+function. So one can wonder why GHC is not able to figure out that `a` is an
+`Int` in this particular call? And they would be right, GHC can, but imagine if
+GHC starts to generate different code for all such polymorphic functions, then
+the there will be a lot of copies for a single function, if it is called with
+different types.
+
+The soloution to this problem is nothing other than the plain old typeclass
+constraints.
+
+So if you add a `Printable a` constraint to `fn`, then the proper instance will
+be passed from the call site, as a hidden argument (a typeclass dictionary),
+and thus the compiler can get away with only generating a single copy of the
+`fn` function.
+
+So that is the proper fix in this situtation. Add a `Printable a` constraint to
+`fn`.
+
+```hs
+fn :: Printable a => a -> IO ()
+fn x = printMe x
+```
+
+<details>
+<summary>Full code</summary>
+
+```hs
+
+{-# LANGUAGE FlexibleInstances #-}
+
+class Printable a where
+  printMe :: a -> IO ()
+
+instance Printable a where
+  printMe a = putStrLn "general instance"
+
+instance {-# OVERLAPPING #-} Printable Int where
+  printMe a = putStrLn "int instance"
+
+main :: IO ()
+main = fn (5 :: Int)
+
+fn :: Printable a => a -> IO ()
+fn x = printMe x
+```
+
 </details>
 
 The rules followed by the instance resolution algorithm are described
@@ -236,83 +285,6 @@ and in this specific case, the general instance will get applied because it
 ends up being the single 'prime candidate' which gets selected since the
 remaining instance is marked as `INCOHERENT`. This means that the program
 will print "general instance" if you run it.
-
-But what if you want the `Int` instance to be called instead? One way is to use
-`Typeable` and prove to the compiler that `a` is, in fact, an `Int`. And once
-you prove that `a` is an `Int`, GHC will happily call the `printMe` in the `Int`
-instance for you. Of course, this will happen at the cost of including a `Typeable` constraint in
-the signature of the `fn` function (and a small runtime cost added to the function because of the Typeable
-constraint).
-
-```hs
-fn :: forall a. Typeable a => a -> IO ()
-fn x = case cast x of
-  (Just a :: Maybe Int) -> printMe a
-  Nothing               -> printMe x
-```
-
-<details>
-  <summary>Full code</summary>
-
-```hs
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
-import Data.Typeable (cast)
-
-class Printable a where
-  printMe :: a -> IO ()
-
-instance Printable a where
-  printMe a = putStrLn "general instance"
-
-instance {-# INCOHERENT #-} Printable Int where
-  printMe a = putStrLn "int instance"
-
-main :: IO ()
-main = fn (5 :: Int)
-
-fn :: forall a. Typeable a => a -> IO ()
-fn x = case cast x of
-  (Just a :: Maybe Int) -> printMe a
-  Nothing               -> printMe x
-```
-</details>
-
-Similarly, we could change/hack the general instance to use `Typeable` and implement
-specialized behavior for `Int` in the general instance itself.
-
-```hs
-instance Typeable a => Printable a where
-  printMe a = case cast a of
-    (Just x :: Maybe Int) -> putStrLn "general instance for int"
-    Nothing               -> putStrLn "general instance"
-```
-
-<details>
-  <summary>Full code</summary>
-
-```hs
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
-import Data.Typeable
-
-class Printable a where
-  printMe :: a -> IO ()
-
-instance Typeable a => Printable a where
-  printMe a = case cast a of
-    (Just x :: Maybe Int) -> putStrLn "general instance for int"
-    Nothing               -> putStrLn "general instance"
-
-main :: IO ()
-main = fn (5 :: Int)
-
-fn :: forall a. Printable a => a -> IO ()
-fn x = printMe x
-```
-</details>
 
 ## Flip-Flopping overlapping instances
 
@@ -354,7 +326,8 @@ As expected, we get the overlapping instances error.
 Since we saw a similar error in the last example and fixed it by
 removing one of the instances, it might appear that same could work here as well.
 
-And it also kind of makes sense. Since GHC is confused by two eligible instances, in all probability, removing one of them should fix it, right?
+And it also kind of makes sense. Since GHC is confused by two eligible
+instances, in all probability, removing one of them should fix it, right?
 
 So we try by removing the instance for `Printable a`.
 
@@ -388,9 +361,13 @@ And when we re-compile, we get...
 ```
 
 To our great surprise, we find that removing one instance from the two eligible
-instances made GHC reject the remaining instance as well!
+instances seem to have made GHC reject the remaining instance as well!
 
-So we end up in the situation where GHC flip-flops between these two errors.
+But actually, if you actually bothered to look at the error, removing one
+instance made GHC proceed with the remaining instance, but only a bit further.
+Also the error that is thrown is not an overlapping instance error.
+
+So anyway, we end up in the situation where GHC flip-flops between these two errors.
 
 It shows that it might not be a good idea to blindly remove instances when you
 come across overlapping instance errors. It is better to carefully examine the
@@ -401,8 +378,8 @@ Let us walk through this algorithm and see why the first error happens.
 
 So the very first step is:
 
-    Find all instances I that match the target constraint; that is, the target
-    constraint is a substitution instance of I. These instance declarations are the
+    Find all instances $ I $ that match the target constraint; that is, the target
+    constraint is a substitution instance of $ I $. These instance declarations are the
     candidates.
 
 Our target constraint here is `MyType Char`, and both the instances for `Printable a`
@@ -416,18 +393,16 @@ If no candidates remain, the search fails.
 
 Since we have two instances that match, we can continue to the next step, which says,
 
-```
-Eliminate any candidate $IX$ for which there is another candidate `IY` such that
-both of the following hold: `IY` is strictly more specific than `IX`. That is, `IY`
-is a substitution instance of `IX` but not vice versa. Either `IX` is overlappable,
-or `IY` is overlapping. (This “either/or” design, rather than a “both/and”
-design, allow a client to deliberately override an instance from a library
-without requiring a change to the library.)
-```
+    Eliminate any candidate $ IX $ for which there is another candidate $ IY $ such that
+    both of the following hold: $ IY $ is strictly more specific than $ IX $. That is, $ IY $
+    is a substitution instance of $ IX $ but not vice versa. Either $ IX $ is overlappable,
+    or $ IY $ is overlapping. (This “either/or” design, rather than a “both/and”
+    design, allow a client to deliberately override an instance from a library
+    without requiring a change to the library.)
 
 We have two candidates, `Printable a` and `Printable (f a)`. Let us process
-`Printable a` first. The rule says to check if there is another candidate `IY`
-such that `IY` is a substitution instance of `IX`. Here `f a` is a
+`Printable a` first. The rule says to check if there is another candidate $ IY $
+such that $ IY $ is a substitution instance of $ IX $. Here `f a` is a
 substituation instance for `a`, because if something can accept `a`, it can accept
 `f a` as well, but not the other way around. So it fits, and the next part of the rule
 says that either `Printable a` is overlappable, or `Printable (f a)` should
@@ -474,10 +449,32 @@ after GHC has picked an instance. This is why we get a `No instance for Functor 
 error instead of an overlapping instance error.
 
 Here we come across a crucial aspect of instance resolution: the algorithm
-never backtracks. When the algorithm failed during matching the constraints, if it could
-backtrack, it could have picked the instance for `Printable a`, which was
-eliminated at a later stage, in favor of the failed instance for `f a`. But instead, the
-algorithm just fails.
+works in two distinct steps and it never backtracks.
+
+In the first step, it does not look at constraints at all, only instance heads.
+
+So instead of:
+
+
+```
+instance Printable a
+instance Functor f => Printable (f a)
+```
+
+It sees:
+
+```
+instance Printable a
+instance ... => Printable (f a)
+```
+
+And it has to pick an instance for the next step, on this information alone.
+In the next step, constraints are matched.
+
+In this example, when the algorithm failed during matching the constraints, if
+it could backtrack, it could have picked the instance for `Printable a`, which
+was eliminated at a later stage, in favor of the failed instance for `f a`. But
+instead, the algorithm just fails.
 
 ### How to fix it?
 
@@ -485,7 +482,7 @@ We can either remove the instance for `f a`, which makes the algorithm pick the
 instance for `Printable a`. Or else we can add a Functor instance for `MyType a`
 if it makes sense.
 
-## Higher-kinded overlapping instances
+## Poly-kinded overlapping instances
 
 Don't worry if you have never heard of that name. That's because I just made it up.
 
