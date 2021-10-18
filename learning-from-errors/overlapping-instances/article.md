@@ -451,7 +451,7 @@ such that `IY` is a substitution instance of `IX`. Here `f a` is a
 substituation instance for `a`, because if something can accept `a`, it can accept
 `f a` as well, but not the other way around. So it fits, and the next part of the rule
 says that either `Printable a` is overlappable, or `Printable (f a)` should
-be overlapping. And since this does not match, we cannot eliminate `Printable a`.
+be overlapping. And since this is not the case, we cannot eliminate `Printable a`.
 
 The next one is `Printable (f a)`, and we cannot eliminate it since the other
 instance `a` is not a substitution instance of `f a`. If something is expecting `f a`
@@ -464,7 +464,7 @@ So after this rule, both instances remain, and the next rule says:
 If all the remaining candidates are incoherent, the search succeeds, returning an arbitrary surviving candidate.
 ```
 
-None of our instances are marked `Incoherent`, so we proceed to the next rule.
+None of our instances are marked with the `{-# INCOHERENT #-}` pragma, so we proceed to the next rule.
 
 ```
 If more than one non-incoherent candidate remains, the search fails.
