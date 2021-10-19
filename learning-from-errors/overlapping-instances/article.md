@@ -238,7 +238,7 @@ GHC starts to generate different code for all such polymorphic functions, then
 there will be a lot of copies for a single function if it is called with
 different types.
 
-The soloution to this problem is nothing other than the plain old typeclass
+The solution to this problem is nothing other than the plain old typeclass
 constraints.
 
 So if you add a `Printable a` constraint to `fn`, then the proper instance will
