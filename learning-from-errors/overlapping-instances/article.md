@@ -201,7 +201,7 @@ it cannot pick the most specific instance, causing the error.
 
 One fix, of course, is to mark the `Int` instance as `INCOHERENT`.  This will
 pick the instance with the information available at the call site, even if a
-different instance is available and could be picked, if more information is available.
+different instance is available and could be picked if more information were available.
 
 ```hs
 instance {-# INCOHERENT #-} Printable Int where
