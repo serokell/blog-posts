@@ -42,7 +42,7 @@ there is no call to the function, the error won't be there.
 Overlapping instance error is triggered by an instance search, and not by an
 instance declaration. You can put all kinds of overlapping instances in your
 code, and GHC won't bat an eye until you trigger an instance search, like
-calling a typeclass method.
+when calling a typeclass method.
 
 Let us see what happens in the call site `printMe (5 ::Int)`.  We have two
 matching instances in scope. The general instance, `Printable a`, and a
