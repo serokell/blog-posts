@@ -286,10 +286,10 @@ ends up being the single 'prime candidate' which gets selected since the
 remaining instance is marked as `INCOHERENT`. This means that the program
 will print "general instance" if you run it.
 
-## Flip-Flopping overlapping instances
+## The 'Shortsighted GHC' overlapping instances
 
-Here we look at a variant of this error that seemingly flip-flops when
-attempts are made to fix it. Let us look at a sample.
+Here we look at a variant of this error where one feel that GHC is sometimes
+very short sighted.
 
 ```hs
 {-# LANGUAGE FlexibleInstances #-}
@@ -361,18 +361,9 @@ And when we re-compile, we get...
 ```
 
 To our great surprise, we find that removing one instance from the two eligible
-instances seem to have made GHC reject the remaining instance as well!
-
-But actually, if you actually bothered to look at the error, removing one
-instance made GHC proceed with the remaining instance, but only a bit further.
-Also the error that results is not an overlapping instance error.
-
-So anyway, we end up in the situation where GHC flip-flops between these two errors.
-
-It shows that it might not be a good idea to blindly remove instances when you
-come across overlapping instance errors. It is better to carefully examine the
-actual cause of the issue, keeping in mind the algorithm GHC follows to resolve
-instances.
+instances seem to have made GHC look closer into the remaining instance, and ended
+up rejecting it after that. It seems that GHC did not look at the instances well
+enough the first time, before declaring them as redundant.
 
 Let us walk through this algorithm and see why the first error happens.
 
