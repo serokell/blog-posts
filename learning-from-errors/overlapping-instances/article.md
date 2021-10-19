@@ -233,7 +233,7 @@ fn x = printMe x
 
 This works, but we see that `fn` is called with an `Int` argument in the `main`
 function. So one can wonder why GHC is not able to figure out that `a` is an
-`Int` in this particular call? And they would be right, GHC can, but imagine: if
+`Int` in this particular call? And they would be right, GHC can, but imagine, if
 GHC starts to generate different code for all such polymorphic functions, then
 there will be a lot of copies for a single function if it is called with
 different types.
