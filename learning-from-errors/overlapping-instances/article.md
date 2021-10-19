@@ -49,7 +49,7 @@ matching instances in scope. The general instance, `Printable a`, and a
 specific instance for `Int`. We call it the 'general instance' because it can
 match any type, while the instance for `Int` can only match the `Int` type.
 
-Here GHC chooses to throw an error rather than go with the more specific `Int`
+Here GHC chooses to present an error rather than go with the more specific `Int`
 instance. This behavior can help the programmer to not accidentally override a
 general instance by mistake. It is easy to spot when both instances are in the same
 module, but what if the general instance is in another module, or in a
@@ -365,7 +365,7 @@ instances seem to have made GHC reject the remaining instance as well!
 
 But actually, if you actually bothered to look at the error, removing one
 instance made GHC proceed with the remaining instance, but only a bit further.
-Also the error that is thrown is not an overlapping instance error.
+Also the error that results is not an overlapping instance error.
 
 So anyway, we end up in the situation where GHC flip-flops between these two errors.
 
@@ -484,11 +484,12 @@ if it makes sense.
 
 ## Poly-kinded overlapping instances
 
-Don't worry if you have never heard of that name. That's because I just made it up.
+This is a verison of overlapping instances error that only happens with
+`PolyKinds` language extension and automatic kind inference that comes with it.
 
 To demonstrate this, we unfortunately need a bit more elaborate setup, and
 frankly, this example is a bit contrived. Anyway, so we have this code below
-which throws our beloved error:
+which triggers our beloved error:
 
 ```hs
 {-# LANGUAGE DataKinds              #-}
@@ -570,7 +571,7 @@ extension and constraint `SomeNameClass n (Maybe a)` causes the kind inference
 system to infer that type `n` must be of kind `Symbol`. And at the call site,
 in the `fn` function, we don't know the kind of `n`. If it is of kind `Symbol` then
 the second instance should be called, but if it something else, then the first
-instance should be called. And this dilemma makes GHC give up and throw the
+instance should be called. And this dilemma makes GHC give up and produce the
 error.
 
 ### How to fix it?
@@ -594,7 +595,7 @@ fn p a = printMe p a
 ## Conclusion
 
 Here we saw some commonly occurring instances of the Overlapping Instances error
-that GHC seemingly loves to throw at us now and then. Hopefully, we have learned
+that GHC seemingly loves to present us now and then. Hopefully, we have learned
 a thing or two about how GHC resolves type class instances, which might help us
 track down and fix the error properly the next time we come across it.
 
