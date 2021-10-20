@@ -377,9 +377,7 @@ and `Printable (f a)` match.
 
 The next step says:
 
-```
-If no candidates remain, the search fails.
-```
+>If no candidates remain, the search fails.
 
 Since we have two instances that match, we can continue to the next step, which says,
 
@@ -400,15 +398,11 @@ instead, it is more general.
 
 So after this rule, both instances remain, and the next rule says:
 
-```
-If all the remaining candidates are incoherent, the search succeeds, returning an arbitrary surviving candidate.
-```
+>If all the remaining candidates are incoherent, the search succeeds, returning an arbitrary surviving candidate.
 
 None of our instances are marked with the `{-# INCOHERENT #-}` pragma, so we proceed to the next rule.
 
-```
-If more than one non-incoherent candidate remains, the search fails.
-```
+>If more than one non-incoherent candidate remains, the search fails.
 
 Considering that we have two such instances now, the lookup fails here.
 
