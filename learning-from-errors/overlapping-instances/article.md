@@ -422,10 +422,13 @@ And now we get the error:
 ```
 
 We can see that adding `OVERLAPPING` pragma enabled the elimination of the
-instance for `Printable a` at step 3. But the remaining instance `Functor f => Printable (f a)`
-failed to work, but this failure happens at a later phase: when constraints are matched and
-after GHC has picked an instance. This is why we get a `No instance for Functor MyType`
+instance for `Printable a` at step 3. But the remaining instance `Functor f =>
+Printable (f a)` failed to work, because `MyType` is not a `Functor`. But this
+failure happens at a later phase: when constraints are matched and after GHC
+has picked an instance. This is why we get a `No instance for Functor MyType`
 error instead of an overlapping instance error.
+
+This is also what happens if we remove the general instance `instance Printable a`.
 
 Here we come across a crucial aspect of instance resolution: the algorithm
 works in two distinct steps and it never backtracks.
@@ -450,10 +453,15 @@ instance ... => Printable (f a)
 And it has to pick an instance for the next step on this information alone.
 In the next step, constraints are matched.
 
-In this example, when the algorithm failed during matching the constraints, if
-it could backtrack, it could have picked the instance for `Printable a`, which
-was eliminated at a later stage, in favor of the failed instance for `f a`. But
-instead, the algorithm just fails.
+So in this example, when we add an `OVERLAPPING` pragma, it made the first step
+to complete successfully with the instance `Functor f => Printable (f a)` as
+result. But in the context matching step, this instance failed, because
+`MyType` is not a `Functor`.
+
+And since GHC does not backtrack, if will not go back to first step with the memory
+of this failure, and pick the general instance. Understanding this two step process
+with the no-backtracking behavior is crucial in untangling most occurances
+of this error.
 
 ### How to fix it?
 
