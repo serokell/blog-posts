@@ -199,45 +199,11 @@ it cannot pick the most specific instance, causing the error.
 
 ### The Fix
 
-One fix, of course, is to mark the `Int` instance as `INCOHERENT`.  This will
-pick the instance with the information available at the call site, even if a
-different instance is available and could be picked if more information were available.
-
-```hs
-instance {-# INCOHERENT #-} Printable Int where
-  printMe a = putStrLn "int instance"
-```
-
-<details>
-<summary>Full code</summary>
-
-```hs
-
-{-# LANGUAGE FlexibleInstances #-}
-
-class Printable a where
-  printMe :: a -> IO ()
-
-instance Printable a where
-  printMe a = putStrLn "general instance"
-
-instance {-# INCOHERENT #-} Printable Int where
-  printMe a = putStrLn "int instance"
-
-main :: IO ()
-main = fn (5 :: Int)
-
-fn :: a -> IO ()
-fn x = printMe x
-```
-</details>
-
-This works, but we see that `fn` is called with an `Int` argument in the `main`
-function. So one can wonder why GHC is not able to figure out that `a` is an
-`Int` in this particular call? And they would be right, GHC can, but imagine, if
-GHC starts to generate different code for all such polymorphic functions, then
-there will be a lot of copies for a single function if it is called with
-different types.
+We see that `fn` is called with an `Int` argument in the `main` function. So
+one can wonder why GHC is not able to figure out that `a` is an `Int` in this
+particular call? And they would be right, GHC can, but imagine, if GHC starts
+to generate different code for all such polymorphic functions, then there will
+be a lot of copies for a single function if it is called with different types.
 
 The solution to this problem is nothing other than the plain old typeclass
 constraints.
@@ -278,6 +244,39 @@ fn :: Printable a => a -> IO ()
 fn x = printMe x
 ```
 
+</details>
+
+Another fix, of course, is to mark the `Int` instance as `INCOHERENT`.  This will
+pick the instance with the information available at the call site, even if a
+different instance is available and could be picked if more information were available.
+
+```hs
+instance {-# INCOHERENT #-} Printable Int where
+  printMe a = putStrLn "int instance"
+```
+
+<details>
+<summary>Full code</summary>
+
+```hs
+
+{-# LANGUAGE FlexibleInstances #-}
+
+class Printable a where
+  printMe :: a -> IO ()
+
+instance Printable a where
+  printMe a = putStrLn "general instance"
+
+instance {-# INCOHERENT #-} Printable Int where
+  printMe a = putStrLn "int instance"
+
+main :: IO ()
+main = fn (5 :: Int)
+
+fn :: a -> IO ()
+fn x = printMe x
+```
 </details>
 
 The rules followed by the instance resolution algorithm are described
