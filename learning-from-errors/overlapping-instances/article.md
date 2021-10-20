@@ -370,9 +370,7 @@ Let us walk through this algorithm and see why the first error happens.
 
 So the very first step is:
 
-    Find all instances $ I $ that match the target constraint; that is, the target
-    constraint is a substitution instance of $ I $. These instance declarations are the
-    candidates.
+>Find all instances $I$ that match the target constraint; that is, the target constraint is a substitution instance of $I$. These instance declarations are the candidates.
 
 Our target constraint here is `MyType Char`, and both the instances for `Printable a`
 and `Printable (f a)` match.
@@ -385,16 +383,11 @@ If no candidates remain, the search fails.
 
 Since we have two instances that match, we can continue to the next step, which says,
 
-    Eliminate any candidate $ IX $ for which there is another candidate $ IY $ such that
-    both of the following hold: $ IY $ is strictly more specific than $ IX $. That is, $ IY $
-    is a substitution instance of $ IX $ but not vice versa. Either $ IX $ is overlappable,
-    or $ IY $ is overlapping. (This “either/or” design, rather than a “both/and”
-    design, allow a client to deliberately override an instance from a library
-    without requiring a change to the library.)
+>Eliminate any candidate $IX$ for which there is another candidate $IY$ such that both of the following hold: $IY$ is strictly more specific than $IX$. That is, $IY$ is a substitution instance of $IX$ but not vice versa. Either $IX$ is overlappable, or $IY$ is overlapping. (This “either/or” design, rather than a “both/and” design, allow a client to deliberately override an instance from a library without requiring a change to the library.)
 
 We have two candidates, `Printable a` and `Printable (f a)`. Let us process
-`Printable a` first. The rule says to check if there is another candidate $ IY $
-such that $ IY $ is a substitution instance of $ IX $. Here `f a` is a
+`Printable a` first. The rule says to check if there is another candidate $IY$
+such that $IY$ is a substitution instance of $IX$. Here `f a` is a
 substituation instance for `a`, because if something can accept `a`, it can accept
 `f a` as well, but not the other way around. So it fits, and the next part of the rule
 says that either `Printable a` is overlappable, or `Printable (f a)` should
