@@ -288,7 +288,7 @@ will print "general instance" if you run it.
 
 ## The 'Shortsighted GHC' overlapping instances
 
-Here we look at a variant of this error where one feel that GHC is sometimes
+Here we look at a variant of this error where one feels that GHC is sometimes
 very short sighted.
 
 ```hs
