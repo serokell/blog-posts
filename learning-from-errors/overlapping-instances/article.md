@@ -230,6 +230,7 @@ main = fn (5 :: Int)
 fn :: a -> IO ()
 fn x = printMe x
 ```
+</details>
 
 This works, but we see that `fn` is called with an `Int` argument in the `main`
 function. So one can wonder why GHC is not able to figure out that `a` is an
