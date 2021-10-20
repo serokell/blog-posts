@@ -361,7 +361,7 @@ And when we re-compile, we get...
 ```
 
 To our great surprise, we find that removing one instance from the two eligible
-instances seem to have made GHC look closer into the remaining instance, and ended
+instances seems to have made GHC look closer into the remaining instance, and it ended
 up rejecting the instance after that. It seems that GHC did not look at the instances well
 enough the first time, before declaring them as redundant.
 
