@@ -546,7 +546,7 @@ But nevertheless, here is the error:
 ||       In an equation for ‘fn’: fn p a = printMe p a
 ```
 
-Let us look closer at the second instance – just at the instance heads.
+Let us look closer at the second instance.
 
 ```
 instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) where
