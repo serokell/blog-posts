@@ -493,14 +493,14 @@ import GHC.TypeLits
 class Printable n a where
   printMe :: Proxy n -> a -> IO ()
 
-class SomeNameClass (n :: Symbol) a where
+class SomeClass (n :: Symbol) a where
 
-instance SomeNameClass n (Maybe Char) where
+instance SomeClass n (Maybe Char) where
 
 instance Printable n a where
   printMe p a = putStrLn "General instance"
 
-instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) where
+instance {-# OVERLAPPING #-} SomeClass n (Maybe a) => Printable n (Maybe a) where
   printMe p a = putStrLn "Specific instance"
 
 fn :: Proxy n -> Maybe Char -> IO ()
@@ -520,7 +520,7 @@ Here we have these two instances,
 instance Printable n a where
   printMe p a = putStrLn "General instance"
 
-instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) where
+instance {-# OVERLAPPING #-} SomeClass n (Maybe a) => Printable n (Maybe a) where
   printMe p a = putStrLn "Specific instance"
 ```
 
@@ -536,7 +536,7 @@ But nevertheless, here is the error:
 ||       Matching instances:
 ||         instance forall k (n :: k) a. Printable n a
 ||           -- Defined at app/Main.hs:22:10
-||         instance [overlapping] SomeNameClass n (Maybe a) =>
+||         instance [overlapping] SomeClass n (Maybe a) =>
 ||                                Printable n (Maybe a)
 ||           -- Defined at app/Main.hs:25:30
 ||       (The choice depends on the instantiation of ‘k, n’
@@ -549,11 +549,11 @@ But nevertheless, here is the error:
 Let us look closer at the second instance.
 
 ```
-instance {-# OVERLAPPING #-} SomeNameClass n (Maybe a) => Printable n (Maybe a) where
+instance {-# OVERLAPPING #-} SomeClass n (Maybe a) => Printable n (Maybe a) where
 ```
 
 Here it appears that the kind of `n` can by any kind, but the `PolyKinds`
-extension and constraint `SomeNameClass n (Maybe a)` causes the kind inference
+extension and constraint `SomeClass n (Maybe a)` causes the kind inference
 system to infer that type `n` must be of kind `Symbol`. And at the call site,
 in the `fn` function, we don't know the kind of `n`. If it is of kind `Symbol` then
 the second instance should be called, but if it something else, then the first
@@ -562,7 +562,7 @@ error.
 
 ### How to fix it?
 
-We can see the error disappear once we remove the `SomeNameClass n (Maybe a)`
+We can see the error disappear once we remove the `SomeClass n (Maybe a)`
 constraint from the second instance. Alternatively, we can keep the constraint
 and kind annotate the proxy from the call site. For example, the following
 change to the call site will fix the error and call the first (general) instance.
