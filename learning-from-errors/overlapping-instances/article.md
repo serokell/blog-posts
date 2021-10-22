@@ -9,7 +9,6 @@ a couple of interesting and advanced things about the behavior of GHC.
 Let us look at a basic version of this error that is triggered by the following code.
 
 ```hs
-
 {-# LANGUAGE FlexibleInstances #-}
 
 class Printable a where
@@ -27,7 +26,7 @@ main = printMe (5 :: Int)
 
 This gives us the following error:
 
-```
+```none
 • Overlapping instances for Printable Int
     arising from a use of ‘printMe’
   Matching instances:
@@ -60,7 +59,7 @@ aware of an existing instance while adding a new one could break the program in 
 
 One way to fix this is to let GHC know that it is alright to choose the
 instance in the presence of other matching instances. We do it by using the
-`OVERLAPPING` pragma. For example,
+`OVERLAPPING` pragma. For example:
 
 
 ```hs
@@ -144,7 +143,6 @@ Here we slightly change one of the above fixes to call the `printMe` function
 via another function `fn` that accepts a polymorphic argument.
 
 ```hs
-
 fn :: a -> IO ()
 fn x = printMe x
 ```
@@ -178,7 +176,7 @@ main = fn (5 :: Int)
 
 Lo and behold, the dreaded error appears again.
 
-```
+```none
    • Overlapping instances for Printable a
        arising from a use of ‘printMe’
      Matching instances:
@@ -197,7 +195,7 @@ So this happens because at the call site of `printMe x`, GHC only knows that `x`
 be of any type, including `Int`. Without knowing if `a` is an `Int` or not,
 it cannot pick the most specific instance, causing the error.
 
-### The Fix
+### How to fix it?
 
 The proper solution to this problem is nothing other than the plain old typeclass
 constraints.
@@ -217,7 +215,6 @@ fn x = printMe x
 <summary>Full code</summary>
 
 ```hs
-
 {-# LANGUAGE FlexibleInstances #-}
 
 class Printable a where
@@ -251,7 +248,6 @@ instance {-# INCOHERENT #-} Printable Int where
 <summary>Full code</summary>
 
 ```hs
-
 {-# LANGUAGE FlexibleInstances #-}
 
 class Printable a where
@@ -306,7 +302,7 @@ main = printMe (MyType 5)
 
 As expected, we get the overlapping instances error.
 
-```
+```none
 • Overlapping instances for Printable (MyType Char)
     arising from a use of ‘printMe’
   Matching instances:
@@ -346,7 +342,7 @@ main = printMe (MyType 'c')
 
 And when we re-compile, we get...
 
-```
+```none
 • No instance for (Functor MyType) arising from a use of ‘printMe’
 • In the expression: printMe (MyType 'c')
   In an equation for ‘main’: main = printMe (MyType 'c')
@@ -399,14 +395,14 @@ Considering that we have two such instances now, the lookup fails here.
 
 Let us try adding an `OVERLAPPING` pragma to the instance for `f a`.
 
-```
+```hs
 instance {-# OVERLAPPING #-} Functor f => Printable (f a) where
   printMe _ = putStrLn "Instance for a Functor"
 ```
 
 And now we get the error:
 
-```
+```none
 • No instance for (Functor MyType) arising from a use of ‘printMe’
 • In the expression: printMe (MyType 'c')
   In an equation for ‘main’: main = printMe (MyType 'c')
@@ -414,8 +410,8 @@ And now we get the error:
 
 We can see that adding `OVERLAPPING` pragma enabled the elimination of the
 instance for `Printable a` at step 3. But the remaining instance `Functor f =>
-Printable (f a)` failed to work, because `MyType` is not a `Functor`. But this
-failure happens at a later phase: when constraints are matched and after GHC
+Printable (f a)` failed to work because `MyType` is not a `Functor`. But this
+failure happens at a later phase: when constraints are matched, and after GHC
 has picked an instance. This is why we get a `No instance for Functor MyType`
 error instead of an overlapping instance error.
 
@@ -430,14 +426,14 @@ In the first step, it does not look at constraints at all, only instance heads.
 So instead of:
 
 
-```
+```hs
 instance Printable a
 instance Functor f => Printable (f a)
 ```
 
 It sees:
 
-```
+```hs
 instance Printable a
 instance ... => Printable (f a)
 ```
@@ -450,8 +446,8 @@ to complete successfully with the instance `Functor f => Printable (f a)` as
 result. But in the context matching step, this instance failed, because
 `MyType` is not a `Functor`.
 
-And since GHC does not backtrack, if will not go back to first step with the memory
-of this failure, and pick the general instance. Understanding this two step process
+And since GHC does not backtrack, it will not go back to first step with the memory
+of this failure and pick the general instance. Understanding this two step process
 with the no-backtracking behavior is crucial in untangling most occurances
 of this error.
 
@@ -507,7 +503,7 @@ As you can see, apart from enabling a bunch of language extensions, we have
 added a `Proxy` argument to the `printMe` method. It serves no other purpose
 other than to trigger and demonstrate the error.
 
-Here we have these two instances,
+Here we have these two instances:
 
 ```hs
 instance Printable n a where
@@ -523,7 +519,7 @@ pragma and it appears to be the more specific instance.
 
 But nevertheless, here is the error:
 
-```
+```none
 ||     • Overlapping instances for Printable n (Maybe Char)
 ||         arising from a use of ‘printMe’
 ||       Matching instances:
@@ -541,7 +537,7 @@ But nevertheless, here is the error:
 
 Let us look closer at the second instance.
 
-```
+```hs
 instance {-# OVERLAPPING #-} SomeClass n (Maybe a) => Printable n (Maybe a) where
 ```
 
