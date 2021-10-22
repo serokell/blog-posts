@@ -128,7 +128,7 @@ instance Printable Int where
 </details>
 
 If you want to mark an instance as being overridable, as well as it being able
-to safely override other instances, you can use the `OVERLAPS` pragme. So in
+to safely override other instances, you can use the `OVERLAPS` pragma. So in
 our example, you can use the `OVERLAPS` pragma in either of these instances, and
 it will work.
 
