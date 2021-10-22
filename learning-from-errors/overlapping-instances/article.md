@@ -199,19 +199,11 @@ it cannot pick the most specific instance, causing the error.
 
 ### The Fix
 
-We see that `fn` is called with an `Int` argument in the `main` function. So
-one can wonder why GHC is not able to figure out that `a` is an `Int` in this
-particular call? And they would be right, GHC can, but imagine, if GHC starts
-to generate different code for all such polymorphic functions, then there will
-be a lot of copies for a single function if it is called with different types.
-
-The solution to this problem is nothing other than the plain old typeclass
+The proper solution to this problem is nothing other than the plain old typeclass
 constraints.
 
 So if you add a `Printable a` constraint to `fn`, then the proper instance will
-be passed from the call site, as a hidden argument (a typeclass dictionary),
-and thus the compiler can get away with only generating a single copy of the
-`fn` function.
+be passed from the call site, and the call in `fn` can use this instance.
 
 So that is the proper fix in this situtation. Add a `Printable a` constraint to
 `fn`.
