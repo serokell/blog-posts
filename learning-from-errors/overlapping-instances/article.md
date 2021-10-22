@@ -419,7 +419,8 @@ failure happens at a later phase: when constraints are matched and after GHC
 has picked an instance. This is why we get a `No instance for Functor MyType`
 error instead of an overlapping instance error.
 
-This is also what happens if we remove the general instance `instance Printable a`.
+Something similar happens if we remove the general instance `instance Printable a`.
+The remaining instance will be rejected during the context matching step.
 
 Here we come across a crucial aspect of instance resolution: the algorithm
 works in two distinct steps and it never backtracks.
