@@ -144,7 +144,7 @@ ghci> :kind (,) Char
 (,) Char :: * -> *
 ```
 
-Therefore, for those data types which could have `Foldable` instance, generalized versions of `foldr` and `foldl` have the following type signatures:
+For those data types which could have `Foldable` instance, generalized versions of `foldr` and `foldl` have the following type signatures:
 
 ```haskell
 foldr :: Foldable t => (a -> b -> b) -> b -> t a -> b
@@ -179,7 +179,7 @@ A more interesting and useable `Foldable` instance could be defined for a `Binar
 
 ![Binary Search Tree for the integer numbers](./bst.png)
 
-This conception matches the following Haskell definition:
+This structure matches the following Haskell definition:
 
 ```haskell
 data BinarySearchTree a
@@ -262,7 +262,7 @@ ghci> foldl' (+) 0 [1..10000000000]
 
 ### Others
 
-There are other methods of `Foldable` type class that can be helpful sometimes. For example, there is a `fold` that reduces a container of `Monoid`s using `(<>)` function. `foldl1` and `foldr1`, which should be used with non-empty containers only. The `length` function, which you might know, is also a member of the `Foldable`, along with `maximum`, `minimum`, and `null`. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
+There are other methods of `Foldable` type class that can be helpful sometimes. For example, there is a `fold` that reduces a container of `Monoid`s using the `(<>)` function. `foldl1` and `foldr1`, which should be used with non-empty containers only. The `length` function, which you might know, is also a member of the `Foldable`, along with `maximum`, `minimum`, and `null`. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
 
 
 ## Exercises
