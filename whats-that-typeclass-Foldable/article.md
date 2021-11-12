@@ -317,7 +317,7 @@ ghci> foldl (-) 0 binarySearchTree
 instance Foldable BinarySearchTree where
   foldr :: (a -> b -> b) -> b -> BinarySearchTree a -> b
   foldr _ z Leaf                     = z
-  foldr f z (Branch left node right) = foldr f (foldr f (foldr f z right) [node]) left
+  foldr f z (Branch left node right) = foldr f (node `f` foldr f z right) left
 ```
 </details>
 
