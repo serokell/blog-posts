@@ -127,7 +127,7 @@ ghci> :type "ab"
 "ab" :: [Char]
 ```
 
-`Either a b` data type has two type arguments corresponding to `Left` and `Right` values, so there is also no reasonable way to fold an `Either a b`. But we could define `instance Foldable (Either a)` since `Either a` has an appropriate `* -> *` kind. The same for the 2-tuple data type — `instance Foldable ((,) a)` is possible. However, such instances are not intuitive since they operate on only one type argument.
+`Either a b` data type has two type arguments corresponding to `Left` and `Right` values, so there is also no reasonable way to fold an `Either a b`. But we could define `instance Foldable (Either a)` since `Either a` has an appropriate `* -> *` kind. The same for the pair data type — `instance Foldable ((,) a)` is possible. However, such instances are not intuitive since they operate on only one of type arguments.
 
 ```haskell
 ghci> :kind Either
@@ -187,19 +187,21 @@ data BinarySearchTree a
   | Leaf
 ```
 
-Imagine that we want to reduce the whole tree to just one value. We could sum values of nodes, multiply them, or perform any other binary operation. So that, it's reasonable to define any folding function. We suggest you try to implement `Foldable` instance on your own; it's one of the exercises below. Take into account that to define `foldr`, we need to go through the tree's elements from right to left — from right subtree to left subtree through the non-leaf node connecting them.
+Imagine that we want to reduce the whole tree to just one value. We could sum values of nodes, multiply them, or perform any other binary operation. So,it's reasonable to define a folding function that matches your goals. We suggest you try to implement `Foldable` instance on your own; it's one of the exercises below. Take into account that to define `foldr`, we need to go through the tree's elements from right to left — from right subtree to left subtree through the non-leaf node connecting them.
 
 ## Minimal Complete Definition of `Foldable` typeclass
 
 ### `foldMap`
 
-The next valuable method of `Foldable` is `foldMap`, having the following declaration:
+The next important method of `Foldable` is `foldMap`. It has the following declaration:
 
 ```haskell
 foldMap :: (Monoid m, Foldable t) => (a -> m) -> t a -> m
 ```
 
-It's important to note that `foldMap` has a [`Monoid`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Prelude.html#t:Monoid) constraint. Its first argument is a function that maps each element of a container into a monoid, the second argument is a container itself. After mapping elements, the results are combined using `(<>)` operator. The order of folding is from right to left, so `foldMap` could be implemented via `foldr`. Let's look how exactly:
+It's important to note that `foldMap` has a [`Monoid`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Prelude.html#t:Monoid) constraint. Its first argument is a function that maps each element of a container into a monoid, the second argument is a container itself. After mapping elements, the results are combined using `(<>)` operator. The order of folding is from right to left, so `foldMap` could be implemented via `foldr`. 
+
+Let's look at how exactly that could be done:
 
 ```haskell
 foldMap :: (Monoid m, Foldable t) => (a -> m) -> t a -> m
@@ -260,102 +262,103 @@ ghci> foldl' (+) 0 [1..10000000000]
 
 ### Others
 
-There are other methods of `Foldable` type class that can be helpful sometimes. For example, there is a `fold` having `Monoid` constraint, combining elements of a container with `(<>)`. `foldl1` and `foldr1`, which should be used with non-empty containers only. The `length` function, which you might know, is also a member of the `Foldable`, along with `maximum`, `minimum`, and `null`. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
+There are other methods of `Foldable` type class that can be helpful sometimes. For example, there is a `fold` that reduces a container of `Monoid`s using `(<>)` function. `foldl1` and `foldr1`, which should be used with non-empty containers only. The `length` function, which you might know, is also a member of the `Foldable`, along with `maximum`, `minimum`, and `null`. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
 
-## Exercises to check yourself
 
-The theoretical part of our article is over. Hope you know what's that typeclass `Foldable` now! We suggest you to check yourself with our mini exercises.
+## Exercises
 
-### Which definition is correct? 
+The theoretical part of our article is over. We hope you know what `Foldable` is now! We suggest you to try out your new knowledge with our mini exercises.
 
-```haskell
-foldr (\s rest -> rest + length s) 0 ["aaa", "bbb", "s"]
-foldr (\rest s -> rest + length s) 0 ["aaa", "bbb", "s"]
-```
+1. Which definition is correct? 
 
-<details>
-  <summary>Answer</summary>
+    ```haskell
+    foldr (\s rest -> rest + length s) 0 ["aaa", "bbb", "s"]
+    foldr (\rest s -> rest + length s) 0 ["aaa", "bbb", "s"]
+    ```
 
-The first definition is correct. Recall the type signature of the `foldr`'s first argument — `a -> b -> b`. `a` type here corresponds to the type of container, `b` type, in turn, is the type of an accumulator. In this example, the length of a current string is added to the accumulator in each step, so `s` matches the current element which has the type of a container — `a`.
-</details>
+    <details>
+      <summary>Answer</summary>
 
-### Implement `foldl` recursively
+    The first definition is correct. Recall the type signature of the `foldr`'s first argument — `a -> b -> b`. `a` type here corresponds to the type of container, `b` type, in turn, is the type of an accumulator. In this example, the length of a current string is added to the accumulator in each step, so `s` matches the current element which has the type of a container — `a`.
+    </details>
 
-Hint: look at the [`foldr` definition](#haskell-definition) above.
+2. Implement `foldl` recursively
 
-<details>
-  <summary>Solution</summary>
+    Hint: look at the [`foldr` definition](#haskell-definition) above.
 
-```haskell
-foldl :: (b -> a -> b) -> b -> [a] -> b
-foldl _ z []     =  z
-foldl f z (x:xs) =  foldl f (z `f` x) xs
-```
-</details>
+    <details>
+      <summary>Solution</summary>
 
-### Implement `foldr` for the `BinarySearchTree a`
+    ```haskell
+    foldl :: (b -> a -> b) -> b -> [a] -> b
+    foldl _ z []     =  z
+    foldl f z (x:xs) =  foldl f (z `f` x) xs
+    ```
+    </details>
 
-Bear in mind that to allow type signature in instance definition, you need to use the [`InstanceSigs` extension](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/instances.html#extension-InstanceSigs).
+3. Implement `foldr` for the `BinarySearchTree a`
 
-Expected behaviour:
-```haskell
--- Binary Search Tree from the example picture above
-ghci> binarySearchTree = Branch (Branch Leaf 1 (Branch Leaf 3 Leaf)) 4 (Branch Leaf 6 (Branch Leaf 7 Leaf))
+    Bear in mind that to allow type signature in instance definition, you need to use the [`InstanceSigs` extension](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/instances.html#extension-InstanceSigs).
 
-ghci> foldr (+) 0 binarySearchTree
-21
-ghci> foldr (-) 0 binarySearchTree
-3
-ghci> foldl (-) 0 binarySearchTree
--21
-```
+    Expected behaviour:
+    ```haskell
+    -- Binary Search Tree from the example picture above
+    ghci> binarySearchTree = Branch (Branch Leaf 1 (Branch Leaf 3 Leaf)) 4 (Branch Leaf 6 (Branch Leaf 7 Leaf))
 
-<details>
-  <summary>Solution</summary>
+    ghci> foldr (+) 0 binarySearchTree
+    21
+    ghci> foldr (-) 0 binarySearchTree
+    3
+    ghci> foldl (-) 0 binarySearchTree
+    -21
+    ```
+    
+    <details>
+      <summary>Solution</summary>
+    
+    ```haskell
+    instance Foldable BinarySearchTree where
+      foldr :: (a -> b -> b) -> b -> BinarySearchTree a     -> b
+      foldr _ z Leaf                     = z
+      foldr f z (Branch left node right) = foldr f     (node `f` foldr f z right) left
+    ```
+    </details>
 
-```haskell
-instance Foldable BinarySearchTree where
-  foldr :: (a -> b -> b) -> b -> BinarySearchTree a -> b
-  foldr _ z Leaf                     = z
-  foldr f z (Branch left node right) = foldr f (node `f` foldr f z right) left
-```
-</details>
+4. Implement a `reverse` function for lists via `foldl`
 
-### Implement a `reverse` function for lists via `foldl`
+    Expected behaviour:
+    ```haskell
+    ghci> reverse [1, 2, 3]
+    [3, 2, 1]
+    ```
+    
+    <details>
+      <summary>Solution</summary>
+    
+    ```haskell
+    reverse :: [a] -> [a]
+    reverse = foldl (\acc x -> x:acc) []
+    ```
+    </details>
+    
+5. Implement a `prefixes` function for lists via `foldr`
 
-Expected behaviour:
-```haskell
-ghci> reverse [1, 2, 3]
-[3, 2, 1]
-```
-
-<details>
-  <summary>Solution</summary>
-
-```haskell
-reverse :: [a] -> [a]
-reverse = foldl (\acc x -> x:acc) []
-```
-</details>
-
-### Implement a `prefixes` function for lists via `foldr`
-
-Expected behaviour:
-```haskell
-ghci> prefixes [1, 2, 3]
-[[1], [1, 2], [1, 2, 3]]
-
-ghci> prefixes []
-[]
-```
-
-<details>
-  <summary>Solution</summary>
-
-```haskell
-prefixes :: [a] -> [[a]]
-prefixes = foldr (\x acc -> [x] : (map (x :) acc)) []
-```
-</details>
+    Expected behaviour:
+    ```haskell
+    ghci> prefixes [1, 2, 3]
+    [[1], [1, 2], [1, 2, 3]]
+    
+    ghci> prefixes []
+    []
+    ```
+    
+    <details>
+      <summary>Solution</summary>
+    
+    ```haskell
+    prefixes :: [a] -> [[a]]
+    prefixes = foldr (\x acc -> [x] : (map (x :) acc)) []
+    ```
+    </details>
 
 Thank you for reading! If you would like to read more Haskell articles like these, be sure to follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell). You can also subscribe to our newsletter below to receive new Haskell articles straight in your email inbox. 
