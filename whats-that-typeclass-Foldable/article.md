@@ -175,9 +175,9 @@ ghci> foldr (+) 1 Nothing
 
 #### `BinarySearchTree a`
 
-A more interesting and useable `Foldable` instance could be defined for a `BinarySearchTree a` data type. Consider [a Binary Search Tree](https://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=1053783914), each node of which either stores a value of type `a` and has left and right subtrees, or is just a leaf without a value. Moreover, for each non-leaf node `n`, all values in its left subtree should be less or equal than the `n`'s value, and all values in its right subtree should be greater than the `n`'s value. 
+A more interesting and useable `Foldable` instance could be defined for a `BinarySearchTree a` data type. Consider [a binary search tree](https://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=1053783914), each node of which either stores a value of type `a` and has left and right subtrees, or is just a leaf without a value. Moreover, for each non-leaf node `n`, all values in its left subtree should be less or equal than the `n`'s value, and all values in its right subtree should be greater than the `n`'s value. 
 
-![Binary Search Tree for the integer numbers](./bst.png)
+![Binary search tree for the integer numbers](./bst.png)
 
 This structure matches the following Haskell definition:
 
@@ -302,7 +302,7 @@ The theoretical part of our article is over. We hope you know what `Foldable` is
 
     Expected behaviour:
     ```haskell
-    -- Binary Search Tree from the example picture above
+    -- Binary search tree from the example picture above
     ghci> binarySearchTree = Branch (Branch Leaf 1 (Branch Leaf 3 Leaf)) 4 (Branch Leaf 6 (Branch Leaf 7 Leaf))
 
     ghci> foldr (+) 0 binarySearchTree
