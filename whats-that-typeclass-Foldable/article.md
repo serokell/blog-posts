@@ -1,28 +1,28 @@
 # What's That Typeclass: `Foldable`?
 
-# What's `Foldable`?
+There is a function `reduce` in programming languages, which is appliable to some containers. It goes element by element, applying a given binary function and keeping the current result as an accumulator, finally returning the value of the accumulator as a summary value of the container. 
 
-There is a function `reduce` in programming languages, which is appliable to some containers. Its concept is going element by element, applying a given binary function, and keeping the current result as an accumulator, finally returning the value of the accumulator as a summary value of the container. For example, in Python:
+For example, in Python:
 
 ```python
 > reduce(lambda acc, elem: acc + elem, [1, 2, 3, 4, 5]) # addition of elements in a list
 15
 ```
 
-Haskell, in turn, has two fundamental functions representing reducing, or folding in other words — `foldl` and `foldr`, that differ in the order of the folding. `foldl` reduces elements of a container from left to right (as `reduce` in other languages usually does), and `foldr` goes from right to left.
+Haskell, in turn, has two fundamental functions representing reducing, or, as we call it, folding — `foldl` and `foldr` — that differ in the order of the folding. `foldl` reduces elements of a container from left to right (as `reduce` in other languages usually does), while `foldr` reduces from right to left.
 
-These two functions are core methods of the `Foldable` type class, which we are going to learn in this article.
+These two functions are core methods of the `Foldable` type class, about which we are going to learn in this article.
 
 ## `foldr` and `foldl` for a list
 
-To start, let's figure out what are `foldr` and `foldl` for a list. Consider the following type signatures:
+To start, let's figure out what `foldr` and `foldl` are for a list. Consider the following type signatures:
 
 ```haskell
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldl :: (b -> a -> b) -> b -> [a] -> b
 ```
 
-The `foldr` signature corresponds to the function folding the list from right to left. It takes a function `f` of type `a -> b -> b` as the first argument, the initial (or base) value `z` of type `b` as the second argument and a list `xs = [x₁, x₂, ..., xₙ]` of type `[a]` as the third one. Let's introduce the accumulator `acc` which equals to `z` initially. Firstly, `f` is applied to the last element of a list and a base element `z`, the result is being written in an accumulator — ``xₙ `f` z``. Then, `f` is applied to the second-to-last element of a list and a current value of an accumulator — ``xₙ₋₁ `f` (xₙ `f` z)``. After going through all the elements of a  list, `foldr` returns an  accumulator as a summary value, which finally equals to ``x₁ `f` (x₂ `f` ... (xₙ₋₁ `f` (xₙ `f` z)) ... )``. 
+The `foldr` signature corresponds to the function folding the list from right to left. It takes a function `f` of type `a -> b -> b` as the first argument, an initial (or base) value `z` of type `b` as the second argument, and a list `xs = [x₁, x₂, ..., xₙ]` of type `[a]` as the third one. Let's introduce an accumulator `acc` which is equal to `z` initially. First, `f` is applied to the last element of the list and a base element `z`, the result of which is written in an accumulator — ``xₙ `f` z``. Then `f` is applied to the second-to-last element of the list and the current value of the accumulator — ``xₙ₋₁ `f` (xₙ `f` z)``. After going through all the elements of the list, `foldr` returns the  accumulator as a summary value, which finally equals to ``x₁ `f` (x₂ `f` ... (xₙ₋₁ `f` (xₙ `f` z)) ... )``. 
 
 ```haskell
 acc = z
@@ -36,7 +36,7 @@ This process could be presented as a picture:
 
 ![`foldr` visualisation](./foldr.png)
 
-Unlike `foldr`, `foldl` performs left-to-right folding of a list. Therefore, `f` is applied to `z` and `x₁` firstly — ``acc = z `f` x1``, then `f` is applied to a current value of an accumulator and `x₂` — ``acc = (z `f` x₁) `f` x₂``, and so on. Finally, `foldl` returns ``acc = ( ... ((z `f` x₁) `f` x₂) `f` ... xₙ₋₁) `f` xₙ``. 
+Unlike `foldr`, `foldl` performs left-to-right folding of a list. Therefore, `f` is applied to `z` and `x₁` first — ``acc = z `f` x1`` — then `f` is applied to a current value of an accumulator and `x₂` — ``acc = (z `f` x₁) `f` x₂`` — and so on. Finally, `foldl` returns ``acc = ( ... ((z `f` x₁) `f` x₂) `f` ... xₙ₋₁) `f` xₙ``. 
 
 ```markdown
 acc = z
@@ -79,11 +79,11 @@ ghci> foldl (^) 2 [2, 3] -- (2 ^ 2) ^ 3
 64
 ```
 
-It doesn't matter to the addition if the folding is right-to-left or left-to-right as it's an associative operator. However, when it's folding with exponentiation operator, the order is significant.
+It doesn't matter to the addition if the folding is right-to-left or left-to-right as it's an associative operator. However, when folding with exponentiation operator, the order is significant.
 
 ## Generalization of `foldr` and `foldl`
 
-Fortunately, it's possible to fold not the lists only! We can implement the instance of `Foldable` whenever a data type has one type argument, in other words, when its [kind](https://wiki.haskell.org/index.php?title=Kind&oldid=62154) is `* -> *`. To figure out the kind of Haskell data type, you could write `:kind` (or `:k` simply) in GHCi. To display the type of Haskell expression, use `:type` (or `:t` simply).
+Fortunately, it's possible to fold not only lists! We can implement the instance of `Foldable` whenever a data type has one type argument, in other words, when its [kind](https://wiki.haskell.org/index.php?title=Kind&oldid=62154) is `* -> *`. To figure out the kind of Haskell data type, you can write `:kind` (or simply `:k`) in GHCi. To display the type of Haskell expression, use `:type` (or `:t`).
 
 For instance, a list has one type argument — the type of the list's elements:
 
@@ -111,7 +111,7 @@ ghci> :type Nothing
 Nothing :: Maybe a -- can't decide what type `a` is
 ```
 
-`Int` and `String` have no type arguments, and you can't obviously fold them:
+`Int` and `String` have no type arguments, and you obviously can't fold them:
 
 ```haskell
 ghci> :kind Int
@@ -127,7 +127,7 @@ ghci> :type "ab"
 "ab" :: [Char]
 ```
 
-`Either a b` data type has two type arguments corresponding to `Left` and `Right` values, so there is also no reasonable way to fold an `Either a b`. But we could define `instance Foldable (Either a)` since `Either a` has an appropriate `* -> *` kind. The same for 2-tuple data type — `instance Foldable ((,) a)` is possible. However, such instances are not intuitive since they operate on only one type argument.
+`Either a b` data type has two type arguments corresponding to `Left` and `Right` values, so there is also no reasonable way to fold an `Either a b`. But we could define `instance Foldable (Either a)` since `Either a` has an appropriate `* -> *` kind. The same for the 2-tuple data type — `instance Foldable ((,) a)` is possible. However, such instances are not intuitive since they operate on only one type argument.
 
 ```haskell
 ghci> :kind Either
@@ -144,7 +144,7 @@ ghci> :kind (,) Char
 (,) Char :: * -> *
 ```
 
-Therefore, for that data types which could have `Foldable` instance, generalized versions of `foldr` and `foldl` have the following type signatures:
+Therefore, for those data types which could have `Foldable` instance, generalized versions of `foldr` and `foldl` have the following type signatures:
 
 ```haskell
 foldr :: Foldable t => (a -> b -> b) -> b -> t a -> b
@@ -155,7 +155,7 @@ foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b
 
 #### `Maybe a`
 
-Let's take a look at other instances of `Foldable`. One easy-to-understand, but not really useful example is `Maybe a`'s instance. Folding `Nothing` returns a base element, and reducing `Just x` with `foldr f z` (or `foldl f z`) is applying `f` to `x` and `z`:
+Let's take a look at other instances of `Foldable`. One easy-to-understand but not really useful example is `Maybe a`'s instance. Folding `Nothing` returns a base element, and reducing `Just x` with `foldr f z` (or `foldl f z`) is applying `f` to `x` and `z`:
 
 ```haskell
 instance Foldable Maybe where
@@ -187,7 +187,7 @@ data BinarySearchTree a
   | Leaf
 ```
 
-Imagine that we want to reduce the whole tree to just one value. We could sum values of nodes, multiply them or perform any other binary operation. So that, it's reasonable to define any folding function. We suggest you to implement `Foldable` instance on your own, so it's one of the exercises below. Take into account that to define `foldr`, we need to go through the tree's elements from right to left — from right subtree to left subtree through the non-leaf node connecting them.
+Imagine that we want to reduce the whole tree to just one value. We could sum values of nodes, multiply them, or perform any other binary operation. So that, it's reasonable to define any folding function. We suggest you try to implement `Foldable` instance on your own; it's one of the exercises below. Take into account that to define `foldr`, we need to go through the tree's elements from right to left — from right subtree to left subtree through the non-leaf node connecting them.
 
 ## Minimal Complete Definition of `Foldable` typeclass
 
@@ -206,11 +206,11 @@ foldMap :: (Monoid m, Foldable t) => (a -> m) -> t a -> m
 foldMap f = foldr (\x acc -> f x <> acc) mempty
 ```
 
-`foldMap` doesn't have a base element, as only the elements of a container are reduced. However, `foldr` does, so it perfectly makes sense to use an identity of monoid — `mempty`. We can also see  that folding function `f` is composed with `(<>)`, thus, current result is appended to a monoid accumulator on each step.
+`foldMap` doesn't have a base element, as only the elements of a container are reduced. However, `foldr` does, so it perfectly makes sense to use the identity of monoid — `mempty`. We can also see that the folding function `f` is composed with `(<>)`, thus, the current result is appended to a monoid accumulator on each step.
 
 ### Minimal Complete Definition
 
-We have already shown how `foldMap` is implemented using `foldr`. It's not obvious, but `foldr` could also be implemented via `foldMap`! It's off the topic for this article, therefore, please proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/src/Data.Foldable.html#foldr) for the details. Consequently, to create the `Foldable` instance, you could provide a definition of either `foldr` or `foldMap`, which is exactly the Minimal Complete Definition — `foldMap | foldr`. Note that you shouldn't implement `foldMap` in terms of `foldr` and simultaneously `foldr` in terms of `foldMap` as this will just loop forever. Thus, you implement one of them, and Haskell provides the definitions of all `Foldable`'s methods automatically.
+We have already shown how `foldMap` is implemented using `foldr`. It's not obvious, but `foldr` could also be implemented via `foldMap`! It's off-topic for this article, therefore, please proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/src/Data.Foldable.html#foldr) for the details. Consequently, to create the `Foldable` instance, you cab provide a definition of either `foldr` or `foldMap`, which is exactly the Minimal Complete Definition — `foldMap | foldr`. Note that you shouldn't implement `foldMap` in terms of `foldr` and simultaneously `foldr` in terms of `foldMap` as this will just loop forever. Thus, you implement one of them, and Haskell provides the definitions of all `Foldable`'s methods automatically.
 
 ## Other methods of `Foldable` and things to be careful about when using the type class
 
@@ -218,11 +218,11 @@ We have already shown how `foldMap` is implemented using `foldr`. It's not obvio
 
 ### Strict `foldl'`
 
-Haskell uses lazy evaluations by default, that have a positive effect on performance in a lot of cases. Although, the laziness might impact negatively sometimes, and folding is this case exactly. Imagine that you want to sum up the elements in the really huge list. When using `foldl` or `foldr`, a value of an accumulator isn't evaluated on each step, so [thunk](https://wiki.haskell.org/Thunk) is being accumulated. Considering `foldl`, in the first step thunk is just ``z `f` x₁``, in the second — ``(z `f` x₁) `f` x₂``, that's not a big deal. But in the final step, an accumulator stores ``( ... (z `f` x₁) `f` x₂) `f` ...) `f` xₙ₋₁) `f` xₙ``. If the list's length is above ~10^8, thunk becomes too large to store it in a memory, and we get `** Exception: stack overflow`. However, that's not the reason to drop Haskell, as we have a rescue `foldl'`!
+Haskell uses lazy evaluations by default, and it can have a positive effect on performance in a lot of cases. Although, the laziness might also impact it negatively sometimes, and folding is exactly this case. Imagine that you want to sum up the elements in a really huge list. When using `foldl` or `foldr`, a value of an accumulator isn't evaluated on each step, so a [thunk](https://wiki.haskell.org/Thunk) is accumulated. Considering `foldl`, in the first step the thunk is just ``z `f` x₁``, in the second — ``(z `f` x₁) `f` x₂``, that's not a big deal. But in the final step, an accumulator stores ``( ... (z `f` x₁) `f` x₂) `f` ...) `f` xₙ₋₁) `f` xₙ``. If the list's length is above ~10^8, the thunk becomes too large to store it in a memory, and we get `** Exception: stack overflow`. However, that's not the reason to drop Haskell since we have `foldl'`!
 
-`foldl'` provides forcing to [Weak Head Normal Form](https://wiki.haskell.org/Weak_head_normal_form) in each step, that prevents thunk from being accumulated. So `foldl'` is often a desirable way to reduce a container, especially when it's large, and you want a final strict result.
+`foldl'` enforces [weak head normal form](https://wiki.haskell.org/Weak_head_normal_form) in each step, thus preventing a thunk from being accumulated. So `foldl'` is often a desirable way to reduce a container, especially when it's large, and you want a final strict result.
 
-Here are some "benchmarks", that may vary depending on a computer's characteristics. But they are illustrative enough to grasp the difference between the performance of strict and lazy fold.
+Here are some "benchmarks" that may vary depending on a computer's characteristics. But they are illustrative enough to grasp the difference between the performance of strict and lazy fold.
 
 ```haskell
 -- set GHCi option to show time and memory consuming
@@ -260,13 +260,13 @@ ghci> foldl' (+) 0 [1..10000000000]
 
 ### Others
 
-There are other methods of `Foldable` type class that could be helpful sometimes. For example, there is a `fold` having `Monoid` constraint, combining elements of a container with `(<>)`. `foldl1` and `foldr1`, that should be used with non-empty containers only. The `length` function, which you might know, is also a member of the `Foldable`, along with `maximum`, `minimum`, and `null`. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
+There are other methods of `Foldable` type class that can be helpful sometimes. For example, there is a `fold` having `Monoid` constraint, combining elements of a container with `(<>)`. `foldl1` and `foldr1`, which should be used with non-empty containers only. The `length` function, which you might know, is also a member of the `Foldable`, along with `maximum`, `minimum`, and `null`. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
 
 ## Exercises to check yourself
 
 The theoretical part of our article is over. Hope you know what's that typeclass `Foldable` now! We suggest you to check yourself with our mini exercises.
 
-### Which one definition is correct? 
+### Which definition is correct? 
 
 ```haskell
 foldr (\s rest -> rest + length s) 0 ["aaa", "bbb", "s"]
@@ -295,7 +295,7 @@ foldl f z (x:xs) =  foldl f (z `f` x) xs
 
 ### Implement `foldr` for the `BinarySearchTree a`
 
-Bear in mind that to allow type signature in instance definition, you need to use [`InstanceSigs` extension](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/instances.html#extension-InstanceSigs).
+Bear in mind that to allow type signature in instance definition, you need to use the [`InstanceSigs` extension](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/instances.html#extension-InstanceSigs).
 
 Expected behaviour:
 ```haskell
@@ -317,11 +317,11 @@ ghci> foldl (-) 0 binarySearchTree
 instance Foldable BinarySearchTree where
   foldr :: (a -> b -> b) -> b -> BinarySearchTree a -> b
   foldr _ z Leaf                     = z
-  foldr f z (Branch left node right) = foldr f (node `f` foldr f z right) left
+  foldr f z (Branch left node right) = foldr f (foldr f (foldr f z right) [node]) left
 ```
 </details>
 
-### Implement `reverse` function for the list via `foldl`
+### Implement a `reverse` function for lists via `foldl`
 
 Expected behaviour:
 ```haskell
@@ -338,7 +338,7 @@ reverse = foldl (\acc x -> x:acc) []
 ```
 </details>
 
-### Implement `prefixes` function for the list via `foldr`
+### Implement a `prefixes` function for lists via `foldr`
 
 Expected behaviour:
 ```haskell
@@ -357,3 +357,5 @@ prefixes :: [a] -> [[a]]
 prefixes = foldr (\x acc -> [x] : (map (x :) acc)) []
 ```
 </details>
+
+Thank you for reading! If you would like to read more Haskell articles like these, be sure to follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell). You can also subscribe to our newsletter below to receive new Haskell articles straight in your email inbox. 
