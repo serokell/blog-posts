@@ -155,7 +155,7 @@ foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b
 
 #### `Maybe a`
 
-Let's take a look at other instances of `Foldable`. One easy-to-understand but not really useful example is `Maybe a`'s instance. Folding `Nothing` returns a base element, and reducing `Just x` with `foldr f z` (or `foldl f z`) is applying `f` to `x` and `z`:
+Let's take a look at other instances of `Foldable`. One easy-to-understand example is `Maybe a`'s instance. Folding `Nothing` returns a base element, and reducing `Just x` with `foldr f z` (or `foldl f z`) is applying `f` to `x` and `z`:
 
 ```haskell
 instance Foldable Maybe where
@@ -187,9 +187,9 @@ data BinarySearchTree a
   | Leaf
 ```
 
-Imagine that we want to reduce the whole tree to just one value. We could sum values of nodes, multiply them, or perform any other binary operation. So,it's reasonable to define a folding function that matches your goals. We suggest you try to implement `Foldable` instance on your own; it's one of the exercises below. Take into account that to define `foldr`, we need to go through the tree's elements from right to left — from right subtree to left subtree through the non-leaf node connecting them.
+Imagine that we want to reduce the whole tree to just one value. We could sum values of nodes, multiply them, or perform any other binary operation. So, it's reasonable to define a folding function that matches your goals. We suggest you try to implement `Foldable` instance on your own; it's one of the exercises below. Take into account that to define `foldr`, we need to go through the tree's elements from right to left — from right subtree to left subtree through the non-leaf node connecting them.
 
-## Minimal Complete Definition of `Foldable` typeclass
+## Minimal complete definition of `Foldable` typeclass
 
 ### `foldMap`
 
@@ -210,9 +210,28 @@ foldMap f = foldr (\x acc -> f x <> acc) mempty
 
 `foldMap` doesn't have a base element, as only the elements of a container are reduced. However, `foldr` does, so it perfectly makes sense to use the identity of monoid — `mempty`. We can also see that the folding function `f` is composed with `(<>)`, thus, the current result is appended to a monoid accumulator on each step.
 
-### Minimal Complete Definition
+Consider monoid under addition — [the `Sum`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Monoid.html#t:Sum). Imagine that we calculate sum of the squares using this monoid. The most obvious solution is to apply `foldMap (^2)` to a list of the `Sum` monoids:
 
-We have already shown how `foldMap` is implemented using `foldr`. It's not obvious, but `foldr` could also be implemented via `foldMap`! It's off-topic for this article, therefore, please proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/src/Data.Foldable.html#foldr) for the details. Consequently, to create the `Foldable` instance, you cab provide a definition of either `foldr` or `foldMap`, which is exactly the Minimal Complete Definition — `foldMap | foldr`. Note that you shouldn't implement `foldMap` in terms of `foldr` and simultaneously `foldr` in terms of `foldMap` as this will just loop forever. Thus, you implement one of them, and Haskell provides the definitions of all `Foldable`'s methods automatically.
+```hs
+-- import `Data.Monoid` firstly
+ghci> import Data.Monoid
+
+-- as list element is already wrapped in monoid,
+-- squaring it produces monoid too
+ghci> foldMap (^2) [Sum 1, Sum 2, mempty, Sum 3]
+Sum {getSum = 14}
+```
+
+However, we could do the same using `foldr` function, which is less elegant, but helpful for understanding the connection between `foldr` and `foldMap`. While reducing, we square the current element with the `(^)` function and then append it to the current accumulator `acc`:
+
+```hs
+ghci> foldr (\x acc -> x^2 <> acc) mempty [Sum 1, Sum 2, mempty, Sum 3]
+Sum {getSum = 14}
+```
+
+### Minimal complete definition
+
+We have already shown how `foldMap` is implemented using `foldr`. It's not obvious, but `foldr` could also be implemented via `foldMap`! It's off-topic for this article, therefore, please proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/src/Data.Foldable.html#foldr) for the details. Consequently, to create the `Foldable` instance, you can provide a definition of either `foldr` or `foldMap`, which is exactly the minimal complete definition — `foldMap | foldr`. Note that you shouldn't implement `foldMap` in terms of `foldr` and simultaneously `foldr` in terms of `foldMap` as this will just loop forever. Thus, you implement one of them, and Haskell provides the definitions of all `Foldable`'s methods automatically.
 
 ## Other methods of `Foldable` and things to be careful about when using the type class
 
@@ -230,39 +249,39 @@ Here are some "benchmarks" that may vary depending on a computer's characteristi
 -- set GHCi option to show time and memory consuming
 ghci> :set +s
 
--- lazy `foldl` and `foldr`, length = 10^7
-ghci> foldl (+) 0 [1..10000000] 
+-- lazy `foldl` and `foldr`
+ghci> foldl (+) 0 [1..10^7]
 50000005000000
 (1.97 secs, 1,612,359,432 bytes)
 
-ghci> foldr (+) 0 [1..10000000] 
+ghci> foldr (+) 0 [1..10^7] 
 50000005000000
 (1.50 secs, 1,615,360,800 bytes)
 
--- lazy `foldl` and `foldr`, length = 10^8
-ghci> foldl (+) 0 [1..100000000]
+-- lazy `foldl` and `foldr`
+ghci> foldl (+) 0 [1..10^8]
 *** Exception: stack overflow
 
-ghci> foldr (+) 0 [1..100000000]
+ghci> foldr (+) 0 [1..10^8]
 *** Exception: stack overflow
 
--- strict `foldl'`, length = 10^8..10^10
-ghci> foldl' (+) 0 [1..100000000]
+-- strict `foldl'`
+ghci> foldl' (+) 0 [1..10^8]
 5000000050000000
 (1.43 secs, 8,800,060,520 bytes)
 
-ghci> foldl' (+) 0 [1..1000000000]
+ghci> foldl' (+) 0 [1..10^9]
 500000000500000000
 (15.28 secs, 88,000,061,896 bytes)
 
-ghci> foldl' (+) 0 [1..10000000000]
+ghci> foldl' (+) 0 [1..10^10]
 50000000005000000000
 (263.51 secs, 1,139,609,364,240 bytes)
 ```
 
 ### Others
 
-There are other methods of `Foldable` type class that can be helpful sometimes. For example, there is a `fold` that reduces a container of `Monoid`s using the `(<>)` function. `foldl1` and `foldr1`, which should be used with non-empty containers only. The `length` function, which you might know, is also a member of the `Foldable`, along with `maximum`, `minimum`, and `null`. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
+There are other methods of `Foldable` type class that you get with defining only `foldr` or `foldMap`. The `length` function, which you might know, is implemented via `foldl'`. The `maximum` and the `minimum` use strict `foldMap'` in their definitions. The `null` function, which is given to check if a container is empty, is also implemented by reducing the latter with `foldr`. All in all, even if you use `foldr` and `foldl` themselves very seldom, you will find other primitives of `Foldable` quite useful. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
 
 
 ## Exercises
@@ -318,9 +337,9 @@ The theoretical part of our article is over. We hope you know what `Foldable` is
     
     ```haskell
     instance Foldable BinarySearchTree where
-      foldr :: (a -> b -> b) -> b -> BinarySearchTree a     -> b
+      foldr :: (a -> b -> b) -> b -> BinarySearchTree a -> b
       foldr _ z Leaf                     = z
-      foldr f z (Branch left node right) = foldr f     (node `f` foldr f z right) left
+      foldr f z (Branch left node right) = foldr f (node `f` foldr f z right) left
     ```
     </details>
 
