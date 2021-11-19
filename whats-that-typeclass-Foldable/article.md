@@ -199,7 +199,7 @@ The next important method of `Foldable` is `foldMap`. It has the following decla
 foldMap :: (Monoid m, Foldable t) => (a -> m) -> t a -> m
 ```
 
-It's important to note that `foldMap` has a [`Monoid`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Prelude.html#t:Monoid) constraint. Its first argument is a function that maps each element of a container into a monoid, the second argument is a container itself. After mapping elements, the results are combined using `(<>)` operator. The order of folding is from right to left, so `foldMap` could be implemented via `foldr`. 
+It's important to note that `foldMap` has a [`Monoid`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Prelude.html#t:Monoid) constraint. Its first argument is a function that maps each element of a container into a monoid, the second argument is a container itself. After mapping elements, the results are combined using `(<>)` operator. The order of folding is from right to left, so `foldMap` could be implemented via `foldr`.
 
 Let's look at how exactly that could be done:
 
@@ -210,24 +210,26 @@ foldMap f = foldr (\x acc -> f x <> acc) mempty
 
 `foldMap` doesn't have a base element, as only the elements of a container are reduced. However, `foldr` does, so it perfectly makes sense to use the identity of monoid — `mempty`. We can also see that the folding function `f` is composed with `(<>)`, thus, the current result is appended to a monoid accumulator on each step.
 
-Consider monoid under addition — [the `Sum`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Monoid.html#t:Sum). Imagine that we calculate sum of the squares using this monoid. The most obvious solution is to apply `foldMap (^2)` to a list of the `Sum` monoids:
+Recall how the addition of list elements is implemented with `foldr`:
 
-```hs
--- import `Data.Monoid` firstly
+```haskell
+ghci> foldr (+) 0 [1, 2, 3]
+6
+```
+
+To do the same in terms of monoid, consider monoid under addition — [`Sum`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Monoid.html#t:Sum). We could use `foldMap` and `Sum` to perform the addition of list elements:
+
+```haskell
+-- import `Data.Monoid` to get `Sum`
 ghci> import Data.Monoid
 
--- as list element is already wrapped in monoid,
--- squaring it produces monoid too
-ghci> foldMap (^2) [Sum 1, Sum 2, mempty, Sum 3]
-Sum {getSum = 14}
+ghci> foldMap Sum [1, 2, 3]
+Sum {getSum = 6}
 ```
 
-However, we could do the same using `foldr` function, which is less elegant, but helpful for understanding the connection between `foldr` and `foldMap`. While reducing, we square the current element with the `(^)` function and then append it to the current accumulator `acc`:
+Note that here constructor `Sum` is a function, that turns list element into monoid. As expected, we get the same result, which is just wrapped in the `Sum` and could be easily accessed via `getSum`.
 
-```hs
-ghci> foldr (\x acc -> x^2 <> acc) mempty [Sum 1, Sum 2, mempty, Sum 3]
-Sum {getSum = 14}
-```
+So that, `foldMap` and `foldr` are interchangeable, the thing is the former receives combiner and base element from `Monoid` instance, and the latter accepts them explicitly.
 
 ### Minimal complete definition
 
@@ -281,8 +283,7 @@ ghci> foldl' (+) 0 [1..10^10]
 
 ### Others
 
-There are other methods of `Foldable` type class that you get with defining only `foldr` or `foldMap`. The `length` function, which you might know, is implemented via `foldl'`. The `maximum` and the `minimum` use strict `foldMap'` in their definitions. The `null` function, which is given to check if a container is empty, is also implemented by reducing the latter with `foldr`. All in all, even if you use `foldr` and `foldl` themselves very seldom, you will find other primitives of `Foldable` quite useful. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
-
+There are other methods of `Foldable` type class that you get with defining only `foldr` or `foldMap`. The `length` function, which you might know, is implemented via `foldl'`. `maximum` and `minimum` use strict `foldMap'` in their definitions. The `null` function, which is given to check if a container is empty, is also implemented by reducing the latter with `foldr`. You may wonder, where is a good old [`for`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Traversable.html#v:for) loop? Fortunately, Haskell also provides it, which would have been impossible without `Foldable` too. All in all, even if you use `foldr` and `foldl` themselves very seldom, you will find other primitives of `Foldable` quite useful. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
 
 ## Exercises
 
@@ -377,6 +378,44 @@ The theoretical part of our article is over. We hope you know what `Foldable` is
     ```haskell
     prefixes :: [a] -> [[a]]
     prefixes = foldr (\x acc -> [x] : (map (x :) acc)) []
+    ```
+    </details>
+
+6. Implement the sum of the squares via both `foldr` and `foldMap`
+
+    Expected behaviour:
+    ```haskell
+    ghci> sumSquares [1, 2, 3]
+    14
+    
+    ghci> sumSquares []
+    0
+    ```
+
+    <details>
+      <summary>Solution with plain `foldr`</summary>
+    
+    ```haskell
+    sumSquares :: [Int] -> Int
+    sumSquares = foldr (\x acc -> x^2 + acc) 0
+    ```
+    </details>
+
+    <details>
+      <summary>Solution with `foldr` and `map`</summary>
+    
+    ```haskell
+    sumSquares :: [Int] -> Int
+    sumSquares xs = foldr (+) 0 (map (^2) xs)
+    ```
+    </details>
+
+    <details>
+      <summary>Solution with `foldMap` and `getSum`</summary>
+    
+    ```haskell
+    sumSquares :: [Int] -> Int
+    sumSquares xs = getSum (foldMap (^2) xs)
     ```
     </details>
 
