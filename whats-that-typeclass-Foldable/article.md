@@ -36,7 +36,7 @@ This process could be presented as a picture:
 
 ![`foldr` visualisation](./foldr.png)
 
-Unlike `foldr`, `foldl` performs left-to-right folding of a list. Therefore, `f` is applied to `z` and `x₁` first — ``acc = z `f` x1`` — then `f` is applied to a current value of an accumulator and `x₂` — ``acc = (z `f` x₁) `f` x₂`` — and so on. Finally, `foldl` returns ``acc = ( ... ((z `f` x₁) `f` x₂) `f` ... xₙ₋₁) `f` xₙ``. 
+Unlike `foldr`, `foldl` performs left-to-right folding of a list. Therefore, `f` is applied to `z` and `x₁` first — ``acc = z `f` x1`` — then `f` is applied to the current value of the accumulator and `x₂` — ``acc = (z `f` x₁) `f` x₂`` — and so on. Finally, `foldl` returns ``acc = ( ... ((z `f` x₁) `f` x₂) `f` ... xₙ₋₁) `f` xₙ``. 
 
 ```markdown
 acc = z
@@ -79,7 +79,7 @@ ghci> foldl (^) 2 [2, 3] -- (2 ^ 2) ^ 3
 64
 ```
 
-It doesn't matter to the addition if the folding is right-to-left or left-to-right as it's an associative operator. However, when folding with exponentiation operator, the order is significant.
+It doesn't matter to the addition if the folding is right-to-left or left-to-right since it's an associative operator. However, when folding with exponentiation operator, the order is significant.
 
 ## Generalization of `foldr` and `foldl`
 
@@ -111,7 +111,7 @@ ghci> :type Nothing
 Nothing :: Maybe a -- can't decide what type `a` is
 ```
 
-`Int` and `String` have no type arguments, and you obviously can't fold them:
+`Int` and `String` have no type arguments, and you can't fold them:
 
 ```haskell
 ghci> :kind Int
@@ -144,7 +144,7 @@ ghci> :kind (,) Char
 (,) Char :: * -> *
 ```
 
-For those data types which could have `Foldable` instance, generalized versions of `foldr` and `foldl` have the following type signatures:
+For those data types which could have a `Foldable` instance, generalized versions of `foldr` and `foldl` have the following type signatures:
 
 ```haskell
 foldr :: Foldable t => (a -> b -> b) -> b -> t a -> b
@@ -187,7 +187,7 @@ data BinarySearchTree a
   | Leaf
 ```
 
-Imagine that we want to reduce the whole tree to just one value. We could sum values of nodes, multiply them, or perform any other binary operation. So, it's reasonable to define a folding function that matches your goals. We suggest you try to implement `Foldable` instance on your own; it's one of the exercises below. Take into account that to define `foldr`, we need to go through the tree's elements from right to left — from right subtree to left subtree through the non-leaf node connecting them.
+Imagine that we want to reduce the whole tree to just one value. We could sum values of nodes, multiply them, or perform any other binary operation. So, it's reasonable to define a folding function that matches your goals. We suggest you try to implement a `Foldable` instance on your own; it's one of the exercises below. Take into account that to define `foldr`, we need to go through the tree's elements from right to left — from right subtree to left subtree through the non-leaf node connecting them.
 
 ## Minimal complete definition of `Foldable` typeclass
 
@@ -208,7 +208,7 @@ foldMap :: (Monoid m, Foldable t) => (a -> m) -> t a -> m
 foldMap f = foldr (\x acc -> f x <> acc) mempty
 ```
 
-`foldMap` doesn't have a base element, as only the elements of a container are reduced. However, `foldr` does, so it perfectly makes sense to use the identity of monoid — `mempty`. We can also see that the folding function `f` is composed with `(<>)`, thus, the current result is appended to a monoid accumulator on each step.
+`foldMap` doesn't have a base element since only the elements of the container are reduced. However, `foldr` does, so it perfectly makes sense to use the identity of monoid — `mempty`. We can also see that the folding function `f` is composed with `(<>)`, thus, the current result is appended to a monoid accumulator on each step.
 
 Recall how the addition of list elements is implemented with `foldr`:
 
@@ -217,7 +217,7 @@ ghci> foldr (+) 0 [1, 2, 3]
 6
 ```
 
-To do the same in terms of monoid, consider monoid under addition — [`Sum`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Monoid.html#t:Sum). We could use `foldMap` and `Sum` to perform the addition of list elements:
+To do the same in terms of monoid, consider a monoid under addition — [`Sum`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Monoid.html#t:Sum). We could use `foldMap` and `Sum` to perform the addition of list elements:
 
 ```haskell
 -- import `Data.Monoid` to get `Sum`
@@ -227,9 +227,9 @@ ghci> foldMap Sum [1, 2, 3]
 Sum {getSum = 6}
 ```
 
-Note that here constructor `Sum` is a function, that turns list element into monoid. As expected, we get the same result, which is just wrapped in the `Sum` and could be easily accessed via `getSum`.
+Note that here constructor `Sum` is a function that turns a list element into monoid. As expected, we get the same result wrapped in `Sum` that can easily be accessed via `getSum`.
 
-So that, `foldMap` and `foldr` are interchangeable, the thing is the former receives combiner and base element from `Monoid` instance, and the latter accepts them explicitly.
+To conclude, `foldMap` and `foldr` are interchangeable, the difference is that the former receives the combiner and the base element from the `Monoid` instance, and the latter accepts them explicitly.
 
 ### Minimal complete definition
 
@@ -241,11 +241,11 @@ We have already shown how `foldMap` is implemented using `foldr`. It's not obvio
 
 ### Strict `foldl'`
 
-Haskell uses lazy evaluations by default, and it can have a positive effect on performance in a lot of cases. Although, the laziness might also impact it negatively sometimes, and folding is exactly this case. Imagine that you want to sum up the elements in a really huge list. When using `foldl` or `foldr`, a value of an accumulator isn't evaluated on each step, so a [thunk](https://wiki.haskell.org/Thunk) is accumulated. Considering `foldl`, in the first step the thunk is just ``z `f` x₁``, in the second — ``(z `f` x₁) `f` x₂``, that's not a big deal. But in the final step, an accumulator stores ``( ... (z `f` x₁) `f` x₂) `f` ...) `f` xₙ₋₁) `f` xₙ``. If the list's length is above ~10^8, the thunk becomes too large to store it in a memory, and we get `** Exception: stack overflow`. However, that's not the reason to drop Haskell since we have `foldl'`!
+Haskell uses lazy evaluation by default, and it can have a positive effect on performance in a lot of cases. But laziness might also impact it negatively sometimes, and folding is exactly this case. Imagine that you want to sum up the elements of a really huge list. When using `foldl` or `foldr`, the value of the accumulator isn't evaluated on each step, so a [thunk](https://wiki.haskell.org/Thunk) is accumulated. Considering `foldl`, in the first step the thunk is just ``z `f` x₁``, in the second — ``(z `f` x₁) `f` x₂``, that's not a big deal. But in the final step, the accumulator stores ``( ... (z `f` x₁) `f` x₂) `f` ...) `f` xₙ₋₁) `f` xₙ``. If the list's length is above ~10^8, the thunk becomes too large to store it in a memory, and we get `** Exception: stack overflow`. However, that's not the reason to drop Haskell since we have `foldl'`!
 
 `foldl'` enforces [weak head normal form](https://wiki.haskell.org/Weak_head_normal_form) in each step, thus preventing a thunk from being accumulated. So `foldl'` is often a desirable way to reduce a container, especially when it's large, and you want a final strict result.
 
-Here are some "benchmarks" that may vary depending on a computer's characteristics. But they are illustrative enough to grasp the difference between the performance of strict and lazy fold.
+Here are some "benchmarks" that may vary depending on a computer's characteristics. But they are illustrative enough to grasp the difference between the performance of a strict and a lazy fold.
 
 ```haskell
 -- set GHCi option to show time and memory consuming
@@ -283,11 +283,11 @@ ghci> foldl' (+) 0 [1..10^10]
 
 ### Others
 
-There are other methods of `Foldable` type class that you get with defining only `foldr` or `foldMap`. The `length` function, which you might know, is implemented via `foldl'`. `maximum` and `minimum` use strict `foldMap'` in their definitions. The `null` function, which is given to check if a container is empty, is also implemented by reducing the latter with `foldr`. You may wonder, where is a good old [`for`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Traversable.html#v:for) loop? Fortunately, Haskell also provides it, which would have been impossible without `Foldable` too. All in all, even if you use `foldr` and `foldl` themselves very seldom, you will find other primitives of `Foldable` quite useful. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
+There are other methods of `Foldable` type class that you get with defining only `foldr` or `foldMap`. The `length` function, which you might know, is implemented via `foldl'`. `maximum` and `minimum` use strict `foldMap'` in their definitions. The `null` function, which checks if a container is empty, is also implemented by reducing the latter with `foldr`. You may wonder, where is the good old `for` loop? Fortunately, Haskell [also provides it]((https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Traversable.html#v:for)), which would have been impossible without `Foldable`. All in all, even if you use `foldr` and `foldl` themselves very seldom, you will find other primitives of `Foldable` quite useful. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
 
 ## Exercises
 
-The theoretical part of our article is over. We hope you know what `Foldable` is now! We suggest you to try out your new knowledge with our mini exercises.
+The theoretical part of our article is over. We hope that you know what `Foldable` is now! We suggest you to try out your new knowledge with our mini exercises.
 
 1. Which definition is correct? 
 
@@ -297,7 +297,7 @@ The theoretical part of our article is over. We hope you know what `Foldable` is
     ```
 
     <details>
-      <summary>Answer</summary>
+      <summary>Solution</summary>
 
     The first definition is correct. Recall the type signature of the `foldr`'s first argument — `a -> b -> b`. `a` type here corresponds to the type of container, `b` type, in turn, is the type of an accumulator. In this example, the length of a current string is added to the accumulator in each step, so `s` matches the current element which has the type of a container — `a`.
     </details>
