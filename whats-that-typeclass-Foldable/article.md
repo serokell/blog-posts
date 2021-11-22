@@ -415,7 +415,7 @@ The theoretical part of our article is over. We hope that you know what `Foldabl
     
     ```haskell
     sumSquares :: [Int] -> Int
-    sumSquares xs = getSum (foldMap (^2) xs)
+    sumSquares xs = getSum (foldMap (\x -> Sum x^2) xs)
     ```
     </details>
 
