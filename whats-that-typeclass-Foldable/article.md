@@ -265,16 +265,6 @@ We have already shown how `foldMap` is implemented using `foldr`. It's not obvio
 
 Consequently, to create the `Foldable` instance, you can provide a definition of either `foldr` or `foldMap`, which is exactly the minimal complete definition – `foldMap | foldr`. Note that you shouldn't implement `foldMap` in terms of `foldr` and simultaneously `foldr` in terms of `foldMap` since this will just loop forever. Thus, you implement one of them, and Haskell provides the definitions of all `Foldable`'s methods automatically.
 
-## Other methods of `Foldable` 
-
-`foldl`, `foldr`, and `foldMap` could be considered the core for understanding the nature of `Foldable`. Nonetheless, there are others which are worth mentioning. You get these automatically by defining `foldr` or `foldMap`. 
-
-* `length`, which you might know, is implemented via `foldl'`. 
-* `maximum` and `minimum` use strict `foldMap'` in their definitions. 
-* `null`, which checks if a container is empty, is also implemented by reducing the latter with `foldr`. 
-* You may wonder, where is the good old `for` loop? Fortunately, Haskell [also provides it]((https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Traversable.html#v:for)), which would have been impossible without `Foldable`. 
-
-All in all, even if you use `foldr` and `foldl` themselves very seldom, you will find other primitives of `Foldable` quite useful. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
 
 ## Strict `foldl'`
 
@@ -321,6 +311,17 @@ ghci> foldl' (+) 0 [1..10^10]
 ```
 
 
+## Other methods of `Foldable` 
+
+`foldl`, `foldr`, and `foldMap` could be considered the core for understanding the nature of `Foldable`. Nonetheless, there are others which are worth mentioning. You get these automatically by defining `foldr` or `foldMap`. 
+
+* `length`, which you might know, is implemented via `foldl'`. 
+* `maximum` and `minimum` use strict `foldMap'` in their definitions. 
+* `null`, which checks if a container is empty, is also implemented by reducing the latter with `foldr`. 
+* You may wonder, where is the good old `for` loop? Fortunately, Haskell [also provides it]((https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Traversable.html#v:for)), which would have been impossible without `Foldable`. 
+
+All in all, even if you use `foldr` and `foldl` themselves very seldom, you will find other primitives of `Foldable` quite useful. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
+
 ## Exercises
 
 The theoretical part of our article is over. We hope that you know what `Foldable` is now! We suggest you to try out your new knowledge with our mini exercises.
@@ -353,6 +354,7 @@ The theoretical part of our article is over. We hope that you know what `Foldabl
     foldl _ z []     =  z
     foldl f z (x:xs) =  foldl f (z `f` x) xs
     ```
+	<hr>
     </details>
 
 3. **Implement `foldr` for the `BinarySearchTree a`.**
@@ -381,6 +383,7 @@ The theoretical part of our article is over. We hope that you know what `Foldabl
       foldr _ z Leaf                     = z
       foldr f z (Branch left node right) = foldr f (node `f` foldr f z right) left
     ```
+	<hr>
     </details>
 
 4. **Implement a `reverse` function for lists via `foldl`.**
@@ -398,9 +401,10 @@ The theoretical part of our article is over. We hope that you know what `Foldabl
     reverse :: [a] -> [a]
     reverse = foldl (\acc x -> x:acc) []
     ```
+	<hr>
     </details>
     
-5. **Implement a `prefixes` function for lists via `foldr`**
+5. **Implement a `prefixes` function for lists via `foldr`.**
 
     Expected behaviour:
     ```haskell
@@ -418,6 +422,7 @@ The theoretical part of our article is over. We hope that you know what `Foldabl
     prefixes :: [a] -> [[a]]
     prefixes = foldr (\x acc -> [x] : (map (x :) acc)) []
     ```
+	<hr>
     </details>
 
 6. **Implement the sum of the squares via both `foldr` and `foldMap`.**
@@ -432,30 +437,33 @@ The theoretical part of our article is over. We hope that you know what `Foldabl
     ```
 
     <details>
-      <summary>Solution with plain `foldr`</summary>
+	<summary>Solution with plain <code>foldr</code></summary>
     
     ```haskell
     sumSquares :: [Int] -> Int
     sumSquares = foldr (\x acc -> x^2 + acc) 0
     ```
+	<hr>
     </details>
 
     <details>
-      <summary>Solution with `foldr` and `map`</summary>
+	<summary>Solution with <code>foldr</code> and <code>map</code></summary>
     
     ```haskell
     sumSquares :: [Int] -> Int
     sumSquares xs = foldr (+) 0 (map (^2) xs)
     ```
+	<hr>
     </details>
 
     <details>
-      <summary>Solution with `foldMap` and `getSum`</summary>
+	<summary>Solution with <code>foldMap</code> and <code>getSum</code></summary>
     
     ```haskell
     sumSquares :: [Int] -> Int
     sumSquares xs = getSum (foldMap (\x -> Sum x^2) xs)
     ```
+	<hr>
     </details>
 
 Thank you for reading! If you would like to read more Haskell articles like these, be sure to follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell). You can also subscribe to our newsletter below to receive new Haskell articles straight in your email inbox.
