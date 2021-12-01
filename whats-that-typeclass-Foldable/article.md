@@ -1,4 +1,4 @@
-There is a function `reduce` in programming languages, which is appliable to some containers. It goes element by element, applying a given binary function and keeping the current result as an accumulator, finally returning the value of the accumulator as a summary value of the container. 
+There is a function called  `reduce` in programming languages, which can be applied to some containers. It goes element by element, applying a given binary function and keeping the current result as an accumulator, finally returning the value of the accumulator as a summary value of the container. 
 
 For example, in Python:
 
@@ -10,6 +10,8 @@ For example, in Python:
 Haskell, in turn, has two fundamental functions representing reducing, or, as we call it, folding – `foldl` and `foldr` – that differ in the order of the folding. `foldl` reduces elements of a container from left to right (as `reduce` in other languages usually does), while `foldr` reduces from right to left.
 
 These two functions are core methods of the `Foldable` type class, about which we are going to learn in this article.
+
+![picture with text foldable and "typeclass?"](/files/mz/mzmbzla0.1_(6)_(1).png)
 
 ## `foldr` and `foldl` for a list
 
@@ -318,7 +320,7 @@ ghci> foldl' (+) 0 [1..10^10]
 * `length`, which you might know, is implemented via `foldl'`. 
 * `maximum` and `minimum` use strict `foldMap'` in their definitions. 
 * `null`, which checks if a container is empty, is also implemented by reducing the latter with `foldr`. 
-* You may wonder, where is the good old `for` loop? Fortunately, Haskell [also provides it]((https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Traversable.html#v:for)), which would have been impossible without `Foldable`. 
+* You may wonder, where is the good old `for` loop? Fortunately, Haskell [also provides it](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Traversable.html#v:for), which would have been impossible without `Foldable`. 
 
 All in all, even if you use `foldr` and `foldl` themselves very seldom, you will find other primitives of `Foldable` quite useful. You might proceed to [the documentation](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Foldable.html) to get to know them better.
 
