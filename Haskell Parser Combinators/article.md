@@ -8,7 +8,7 @@
   3. qq
 -->
 
-Welcome! If you are reading this, you likely decided to take on the journey of learning parser combinators. We hope this article will make your adventure smoother, and hopefully give you a strong foundation for writing your grammars.
+Welcome! If you are reading this, you likely decided to take on the journey of learning parser combinators. We hope this article will make your adventure smoother and hopefully give you a strong foundation for writing your grammars.
 
 This article is composed of three major parts. In the first part, we will implement a small parser combinator library from scratch, which should hopefully help to give a feeling of how industrial-strength parsing combinators work. In the second part, we will learn how to use the Megaparsec library to implement a parser for S-expressions. Finally, as a bonus, we will use the power of Template Haskell to implement a quasi-quoter for our parser.
 
@@ -21,13 +21,13 @@ This article is composed of three major parts. In the first part, we will implem
   * maybe explain pros and cons
 -->
 
-In 2001, Daan Leijen and Erik Meijer published a paper titled [Parsec: Direct Style Monadic Parser Combinators For The Real World](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/parsec-paper-letter.pdf), describing the [`parsec`](https://hackage.haskell.org/package/parsec) library, whose design consequently influenced various others, such as [`megaparsec`](https://hackage.haskell.org/package/megaparsec), [`attoparsec`](https://hackage.haskell.org/package/attoparsec), [`trifecta`](https://hackage.haskell.org/package/trifecta), and even outside the Haskell ecosystem, such as [`NimbleParsec`](https://hexdocs.pm/nimble_parsec/NimbleParsec.html) for Elixir, [`parsec`](https://pythonhosted.org/parsec/) for Python, [`FParsec`](https://www.quanttec.com/fparsec/) for F#, among others.
+In 2001, Daan Leijen and Erik Meijer published a paper titled [Parsec: Direct Style Monadic Parser Combinators For The Real World](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/parsec-paper-letter.pdf), describing the [`parsec`](https://hackage.haskell.org/package/parsec) library, whose design consequently influenced various others, such as [`megaparsec`](https://hackage.haskell.org/package/megaparsec), [`attoparsec`](https://hackage.haskell.org/package/attoparsec), [`trifecta`](https://hackage.haskell.org/package/trifecta), and even libraries outside the Haskell ecosystem, such as [`NimbleParsec`](https://hexdocs.pm/nimble_parsec/NimbleParsec.html) for Elixir, [`parsec`](https://pythonhosted.org/parsec/) for Python, [`FParsec`](https://www.quanttec.com/fparsec/) for F#, among others.
 
-Parser combinators are known to be simple to use, without requiring external tools or too many concepts to learn. That is, they are ordinary Haskell functions, that can be combined and returned with other parsers. This in turn also makes them idiomatic to use, being a popular choice among Haskellers, having a great ecosystem, and being easy to find examples and documentation.
+Parser combinators are known to be simple to use without requiring external tools or too many concepts to learn. That is, they are ordinary Haskell functions that can be combined and returned with other parsers. This in turn also makes them idiomatic to use, being a popular choice among Haskellers, having a great ecosystem, and being easy to find examples and documentation.
 
 It's important to notice that parser combinators also have their flaws. Parser combinators are categorized as LL(∞) parsers, which, elaborating on the points described in Kirill Andreev's [How to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser):
 1. Don't support left recursion. That is to say, if there is a rule `foo = foo *> bar`, you might need to refactor your grammar otherwise it will loop forever.
-2. Doesn't resolve conflicts, which we will see as an example later in this article. This means the ordering of rules can influence the output, and you need to be careful when defining rules that can consume the same input.
+2. Don't resolve conflicts, which we will see as an example later in this article. This means the ordering of rules can influence the output, and you need to be careful when defining rules that can consume the same input.
 3. Many parser combinator libraries will backtrack, which will also be exemplified later, meaning that you might need to be careful to avoid performance penalties.
 4. The backtracking mechanism may, in turn, lead to exponential time complexities.
 
@@ -45,7 +45,7 @@ This shouldn't, however, discourage you from their use, as their benefits outwei
 
 Before we delve into `megaparsec`, it may be interesting to implement our parser combinator from scratch. We will make a simple one that should hopefully help you understand how parser combinators work.
 
-If you instead prefer to jump right into the action, then skip to [Megaparsec tutorial](#megaparsec-tutorial).
+If you instead prefer to jump right into the action, then skip to the [Megaparsec tutorial](#megaparsec-tutorial).
 
 ### Implementation
 
@@ -62,7 +62,7 @@ We will create two data structures that represent our parser.
 
 The first of them represents some error that may happen while parsing. For now, let's have three errors for now: one that is raised when we are expecting input but there is nothing to consume (`EndOfInput`), one when we find an unexpected character (`Unexpected`), and one for any error messages that the user might want to raise (`CustomError`).
 
-Our second structure is the actual parser. It's represented as a function that takes some input, and either returns a list of errors, if `Left`, or the result of parsing the input together with the rest of the input (that was not parsed), if `Right`.
+Our second structure is the actual parser. It's represented as a function that takes some input and either returns a list of errors, if `Left`, or the result of parsing the input together with the rest of the input (that was not parsed), if `Right`.
 
 ```hs
 data Error i e
@@ -137,7 +137,9 @@ instance Functor (Parser i e) where
 
 It's interesting to notice that `Either` is a monad, so we can also write the definition of most things more concisely, as shown in the commented part.
 
-Next up is `Applicative`. A good intuition behind `Applicative`s is that `pure` represents an identity element, while `<*>` distributes one argument over the other. Think of this like a multiplication, where `0 * a = a * 0 = 0`, while `1 * a = a * 1 = a`. To illustrate this, observe this table:
+Next up is `Applicative`. A good intuition behind `Applicative`s is that `pure` represents an identity element, while `<*>` distributes one argument over the other. Think of this like a multiplication, where `0 * a = a * 0 = 0`, while `1 * a = a * 1 = a`. 
+
+To illustrate this, observe this table:
 
 | |Left parser failed|Left parser succeeded|
 |-|-|-|
@@ -168,7 +170,7 @@ instance Applicative (Parser i e) where
   --   pure (f' output, rest')
 ```
 
-In our `Monad` instance, as usual, we set `return = pure`. Our bind is more interesting: we try to run the given parser with the input, and if it succeeds, we give the produced output (of type `a`) to our continuation `k`, which produces a parser that is executed with the remainder of the output.
+In our `Monad` instance, we set `return = pure` as usual. Our bind is more interesting: we try to run the given parser with the input, and if it succeeds, we give the produced output (of type `a`) to our continuation `k`, which produces a parser that is executed with the remainder of the output.
 
 ```hs
 instance Monad (Parser i e) where
@@ -273,7 +275,7 @@ We can see our errors composing with a more complicated expression:
 Left [Unexpected 'w',Unexpected 'h']
 ```
 
-Hopefully, this should give you an intuition of how parser combinators work. Popular parser combinator libraries are more complex than this, as they tend to keep track of extra state for better error messages, optimization, information about line and column, etc, but the overall operations between them it similar.
+Hopefully, this should give you an intuition of how parser combinators work. Popular parser combinator libraries are more complex than this, as they tend to keep track of extra state for better error messages, optimization, information about line and column, etc., but the overall operations between them it similar.
 
 The complete code for the parser with exercises solutions can be found [here](https://gist.github.com/heitor-lassarote/3e7314956e86b8227f6f6040e69aca9d).
 
@@ -413,7 +415,7 @@ Keep in mind it's also possible to operate with line and column when you know yo
 Left [Error {erOffset = 1, erError = Expected 'e' 'i'}]
 ```
 
-The reader may also choose to instead refactor the parser type to use a custom-defined `State` type that contains the input stream and offset. Many improvements are possible, but we choose to keep simple for didactic purposes.
+The reader may also choose to instead refactor the parser type to use a custom-defined `State` type that contains the input stream and offset. Many improvements are possible, but we choose to keep it simple for didactic purposes.
   <hr>
 </details>
 
@@ -547,7 +549,7 @@ unexpected "hey"
 expecting "false", "true", or numeric character
 ```
 
-Although the error message is good, wouldn't it better if it said "integer" instead of "numeric character"? For this, we can use **labels**, which allows us to give a name to a parser. To do this, we can simply change our parser as such:
+Although the error message is good, wouldn't it better if it said "integer" instead of "numeric character"? For this, we can use **labels**, which allows us to give a name to a parser. To do this, we can simply change our parser like this:
 
 ```hs
 integer :: Parser Integer
@@ -579,7 +581,7 @@ integer :: Parser Integer
 integer = label "integer" $ read <$> (some numberChar <|> ((:) <$> char '-' <*> some numberChar))
 ```
 
-However, later in the tutorial, we will see an even better way, using Megaparsec's own mechanisms.
+However, later in the tutorial, we will see an even better way that uses Megaparsec's own mechanisms.
   <hr>
 </details>
 
@@ -675,7 +677,7 @@ unexpected space
 expecting ')', '_', S-expression, alphanumeric character, boolean, identifier, integer, or string
 ```
 
-Uh-oh. We can't parse spaces, as the error makes it evident. Either we close parenthesis (stop parsing this S-expression), continue the definition of the identifier (`_` or `alphanumeric character`), put another atom (`boolean, identifier, integer, or string`), or another S-expression (by opening parenthesis).
+Uh-oh. We can't parse spaces, as the error makes evident. Either we close parenthesis (stop parsing this S-expression), continue the definition of the identifier (`_` or `alphanumeric character`), put another atom (`boolean, identifier, integer, or string`), or another S-expression (by opening parenthesis).
 
 One solution that could come to one's mind is to use the function `sepBy`, which takes a parser and a separator, and use it as ``atom `sepBy` space``. In this case, `space` is a parser defined by Megaparsec that skips zero or more spaces.
 
@@ -722,7 +724,7 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme skipSpace
 ```
 
-Now you can use `lexeme` in each of the parsers, and they will automatically skip whitespace after their definitions. Note we also use `lexeme` before our first opening parenthesis, so we can skip space just after the `(`.
+Now you can use `lexeme` in each of the parsers, and they will automatically skip whitespace after their definitions. Note that we also use `lexeme` before our first opening parenthesis, so we can skip space just after the `(`.
 
 ```hs
 sexp :: Parser (SExp, [SExp])
@@ -1089,7 +1091,7 @@ foo _                = Nothing
 
 ### Using Haskell locations
 
-Let's change a bit our parser runner so it starts with the current line and column. We will create a new auxiliary `parseSExpWithPos` which takes a `SourcePos`, and uses it for the initial state. This function was created from our old `parseSExp`.
+Let's change our parser runner a bit so it starts with the current line and column. We will create a new auxiliary `parseSExpWithPos` which takes a `SourcePos`, and uses it for the initial state. This function was created from our old `parseSExp`.
 
 Additionally, we create a new `parseSExp` with the default position.
 
@@ -1279,7 +1281,7 @@ Don't forget to import `dataToExpQ`, which now replaces `liftData` as well as `v
 SInteger 42
 ```
 
-And that's it! You now support quasi quotations.
+And that's it! You now support quasi-quotations.
 
 The complete code for the parser and quasi-quoter may be found [here](https://gist.github.com/heitor-lassarote/f784c16da80bcfc5271558ede51c70d9).
 
@@ -1293,7 +1295,7 @@ The complete code for the parser and quasi-quoter may be found [here](https://gi
 
 In this post, we've introduced the theory and a practical application of parser combinators. We've discussed what are they as well as their pros and cons, implemented a simple parser combinator from scratch, learned how to write an S-expression parser with Megaparsec, and created a simple quasi-quotation to consume input at compile-time.
 
-Some improvements can still be made and they are left as an exercise to the reader. For example, the S-expression parser operates on `String`s, but Megaparsec also supports `Text` and `ByteString` as the input stream which should have better performance. On top of that, if the reader is familiar with type families (otherwise check out our article on [Type Families](https://serokell.io/blog/type-families-haskell), they may try to improve our parser from scratch to also operate on more data types.
+Some improvements can still be made and they are left as an exercise to the reader. For example, the S-expression parser operates on `String`s, but Megaparsec also supports `Text` and `ByteString` as the input stream which should have better performance. On top of that, if the reader is familiar with type families (otherwise check out our article on [Type Families](https://serokell.io/blog/type-families-haskell)), they may try to improve our parser from scratch to also operate on more data types.
 
 ## Appendix
 
