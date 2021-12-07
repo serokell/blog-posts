@@ -49,7 +49,7 @@ If you instead prefer to jump right into the action, then skip to the [Megaparse
 
 ### Implementation
 
-We will begin by importing the appropriate definitions, on a new file called `Parser.hs`:
+We will begin by importing the appropriate definitions in a new file called `Parser.hs`:
 
 ```hs
 module Parser where
@@ -234,7 +234,7 @@ For `(<|>)`, we want to implement it such that **the first parser to succeed is 
 |Right parser failed|Errors from both parsers|Left parser|
 |Right parser succeeded|Right parser|Left parser|
 
-Here is an implementation of `Alternative`. We constrain `i` and `e` with `Eq` so we can use `nub`, to remove duplicated errors. Note this is not the most efficient or best way to merge errors, but for our purposes, it's good enough.
+Here is an implementation of `Alternative`. We constrain `i` and `e` with `Eq` so we can use `nub` to remove duplicated errors. Note that this is not the best or most efficient way to merge errors, but for our purposes, it's good enough.
 
 ```hs
 instance (Eq i, Eq e) => Alternative (Parser i e) where
@@ -609,7 +609,7 @@ SString "hey"
 
 ### Identifiers
 
-An identifier will be like a variable in a programming language. We can choose the naming convention for such a thing, but here I chose the ones that are frequently used for C-like languages: the first letter must be a letter or an underscore, while the remainder may be a letter, digit, or underscore.
+An identifier will be like a variable in a programming language. We can choose the naming convention for such a thing, but here I chose the one that is frequently used for C-like languages: the first letter must be a letter or an underscore, while the remainder may be a letter, digit, or underscore.
 
 Here we use the `many` function, which is very similar to the `some` function discussed before. The difference is that `any` tries to run the given parser **0 or more times**. In Regex, our `identifier` parser is equivalent to `[a-zA-Z][a-zA-Z0-9]*`.
 
@@ -732,7 +732,7 @@ sexp = label "S-expression" $ lexeme $
   between (lexeme (char '(')) (char ')') ((,) <$> atom <*> many atom)
 ```
 
-You may add `lexeme` in other parsers as well, where it's desirable to skip whitespace after that rule. For instance:
+You may add `lexeme` to other parsers where it's desirable to skip whitespace after the rule. For instance:
 
 ```hs
 integer :: Parser Integer
@@ -769,7 +769,7 @@ expecting S-expression, boolean, identifier, integer, or string
 SInteger 42
 ```
 
-We will create a function that takes our input string, and either returns an error message or the actual result. Such function "bootstraps" our parser with `between skipSpace eof atom`, which will solve the two defects. It will also serve as an auxiliary function that can be called by client code, rather than `parseTest` which is useful for working on GHCi.
+We will create a function that takes our input string, and either returns an error message or the actual result. Such function "bootstraps" our parser with `between skipSpace eof atom`, which will solve the two defects. It will also serve as an auxiliary function that can be called by client code, rather than `parseTest` which is more useful for working in GHCi.
 
 ```hs
 parseSExp :: String -> Either String SExp
