@@ -23,7 +23,7 @@ This article is composed of three major parts. In the first part, we will implem
 
 In 2001, Daan Leijen and Erik Meijer published a paper titled [Parsec: Direct Style Monadic Parser Combinators For The Real World](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/parsec-paper-letter.pdf), describing the [`parsec`](https://hackage.haskell.org/package/parsec) library, whose design consequently influenced various others, such as [`megaparsec`](https://hackage.haskell.org/package/megaparsec), [`attoparsec`](https://hackage.haskell.org/package/attoparsec), [`trifecta`](https://hackage.haskell.org/package/trifecta), and even libraries outside the Haskell ecosystem, such as [`NimbleParsec`](https://hexdocs.pm/nimble_parsec/NimbleParsec.html) for Elixir, [`parsec`](https://pythonhosted.org/parsec/) for Python, [`FParsec`](https://www.quanttec.com/fparsec/) for F#, among others.
 
-Parser combinators are known to be simple to use without requiring external tools or too many concepts to learn. That is, they are ordinary Haskell functions that can be combined and returned with other parsers. This in turn also makes them idiomatic to use, being a popular choice among Haskellers, having a great ecosystem, and being easy to find examples and documentation.
+Parser combinators are known to be simple to use without requiring external tools or too many concepts to learn. That is, they are ordinary Haskell functions that can be combined and returned with other parsers. This in turn also makes them idiomatic to use, and being a popular choice among Haskellers, their ecosystem is pretty developed. You should have no trouble finding tutorials and documentation on how to use them.
 
 It's important to notice that parser combinators also have their flaws. Parser combinators are categorized as LL(∞) parsers, which, elaborating on the points described in Kirill Andreev's [How to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser):
 1. Don't support left recursion. That is to say, if there is a rule `foo = foo *> bar`, you might need to refactor your grammar otherwise it will loop forever.
@@ -31,7 +31,7 @@ It's important to notice that parser combinators also have their flaws. Parser c
 3. Many parser combinator libraries will backtrack, which will also be exemplified later, meaning that you might need to be careful to avoid performance penalties.
 4. The backtracking mechanism may, in turn, lead to exponential time complexities.
 
-This shouldn't, however, discourage you from their use, as their benefits outweigh the drawbacks. Ultimately, the parsing library of your choice should be chosen based on your needs, and parsing combinators are a good fit for most use cases.
+This shouldn't, however, discourage you from their use, as their benefits outweigh the drawbacks. Ultimately, the parsing library of your choice should be chosen based on your needs, and parser combinators are a good fit for most use cases.
 
 ## Implementing a simple parser combinator from scratch
 
@@ -137,7 +137,7 @@ instance Functor (Parser i e) where
 
 It's interesting to notice that `Either` is a monad, so we can also write the definition of most things more concisely, as shown in the commented part.
 
-Next up is `Applicative`. A good intuition behind `Applicative`s is that `pure` represents an identity element, while `<*>` distributes one argument over the other. Think of this like a multiplication, where `0 * a = a * 0 = 0`, while `1 * a = a * 1 = a`. 
+Next up is `Applicative`. A good intuition behind `Applicative`s is that `pure` represents an identity element, while `<*>` distributes one argument over the other. Think of this like a multiplication, where `0 * a = a * 0 = 0`, while `1 * a = a * 1 = a`.
 
 To illustrate this, observe this table:
 
@@ -415,11 +415,11 @@ Keep in mind it's also possible to operate with line and column when you know yo
 Left [Error {erOffset = 1, erError = Expected 'e' 'i'}]
 ```
 
-The reader may also choose to instead refactor the parser type to use a custom-defined `State` type that contains the input stream and offset. Many improvements are possible, but we choose to keep it simple for didactic purposes.
+The reader may also choose to instead refactor the parser type to use a custom-defined `State` type that contains the input stream and offset. Many improvements are possible, but we choose to keep it simple for educational purposes.
   <hr>
 </details>
 
-### Foreword
+### Conclusion
 
 In this section, we've learned how to make a simple parsing combinator library. There are still various improvements that can be done. To name a few of them, we can implement more instances, such as `Semigroup` and `Monoid`, `IsString`, `MonadFail`, `MonadPlus`, among others. Error messages can be improved by better keeping track of location (such as line and column), supporting more types such as `Text` and `ByteString`, pretty-printing error messages, etc.
 
@@ -436,9 +436,9 @@ We will conclude this part here, and if you are interested, proceed to the next 
 
 We will now take a look at a practical application with parser combinators: parsing S-expressions. Hopefully, such examples will give you a solid foundation for creating parsers for your grammars.
 
-Megaparsec's [`README.md`](https://github.com/mrkkrp/megaparsec#comparison-with-other-solutions) offers a nice comparison with other popular parser combinator libraries showing its strengths. Being also pretty common in projects, we will also use it for our tutorial.
+Megaparsec is the go-to parser for industrial projects, so we will also use it in our tutorial. If you wish to see how it compares to other parser combinator libraries in Haskell, you can read its [`README.md`](https://github.com/mrkkrp/megaparsec#comparison-with-other-solutions).
 
-Keep in mind you should choose the parser library that better suits your needs. If you plan to parse machine-written data, for example, then Attoparsec may be a better choice.
+Keep in mind you should choose the parser library that better suits your needs. If you plan to parse machine-written data, for example, then Attoparsec may be a better choice. Its interface is similar to Megaparsec's, so the knowledge you will learn here will also be useful.
 
 Without any further ado, we will now present how to use Megaparsec to parse some [`S-expressions`](https://en.wikipedia.org/wiki/S-expressions).
 
@@ -476,9 +476,9 @@ type Parser = Parsec
   String  -- The input stream type. Let's use `String` for now, but for better performance, you might want to use `Text` or `ByteString`.
 ```
 
-Let's start with the simplest of them: `SBool`. We use `<|>` which tries one parser, and failing that, will try the other one.
-
 ### Booleans
+
+Let's start with the simplest of the parsers: `SBool`. We use `<|>` which tries one parser, and failing that, will try the other one.
 
 ```hs
 bool :: Parser Bool
@@ -487,10 +487,6 @@ bool = False <$ string "false" <|> True <$ string "true"
 
 We will also make a parser to represent our `SExp`-specific variants. As we progress, we will add more parsers to this list.
 
-Here we use `choice`, which is the same as running `<|>` between each element of the list. `choice [a, b, c] = a <|> b <|> c`.
-
-It's important to notice that `choice`, as well as many other useful combinators, are part of the [`parser-combinators`](https://hackage.haskell.org/package/parser-combinators-1.3.0) package, which Megaparsec conveniently re-exports for us. Should you fail to find a specific function in Megaparsec's documentation, chances are that it's defined in `parser-combinators` instead.
-
 ```hs
 atom :: Parser SExp
 atom = choice
@@ -498,7 +494,11 @@ atom = choice
   ]
 ```
 
-Now, fire up GHCi and test that we can parse it! `megaparsec` provides the `parseTest` function which allows us to quickly run our parsers.
+Here we use `choice`, which is the same as running `<|>` between each element of the list. `choice [a, b, c] = a <|> b <|> c`.
+
+It's important to notice that `choice`, as well as many other useful combinators, are part of the [`parser-combinators`](https://hackage.haskell.org/package/parser-combinators-1.3.0) package, which Megaparsec conveniently re-exports for us. Should you fail to find a specific function in Megaparsec's documentation, chances are that it's defined in `parser-combinators` instead.
+
+Now, fire up GHCi and test that we can parse it! `megaparsec` provides the `parseTest` function which allows us to conveniently test our parsers.
 
 ```hs
 >>> parseTest atom "false"
@@ -517,7 +517,7 @@ expecting "false" or "true"
 
 To parse integers, one strategy is to parse as many digits (chars whose value is between `'0'` and `'9'`) as possible. This will give us a list of characters, which we can then `read`,
 
-For this parser, we use the `some` function, which tries to run some given parser **1 or more times**. `numberChar` is exported from `Text.Megaparsec.Char` and parses any character that matches a digit. In Regex, this is equivalent to `[0-9]+`. This will return us a `[Char]` (aka `String`), which we can `read` to make it into an `Integer`.
+For this parser, we use the `some` function, which tries to run some given parser **1 or more times**. `numberChar` is exported from `Text.Megaparsec.Char` and parses any character that matches a digit. In regex, this is equivalent to `[0-9]+`. This will return us a `[Char]` (aka `String`), which we can `read` to make it into an `Integer`.
 
 ```hs
 integer :: Parser Integer
@@ -611,7 +611,7 @@ SString "hey"
 
 An identifier will be like a variable in a programming language. We can choose the naming convention for such a thing, but here I chose the one that is frequently used for C-like languages: the first letter must be a letter or an underscore, while the remainder may be a letter, digit, or underscore.
 
-Here we use the `many` function, which is very similar to the `some` function discussed before. The difference is that `any` tries to run the given parser **0 or more times**. In Regex, our `identifier` parser is equivalent to `[a-zA-Z][a-zA-Z0-9]*`.
+Here we use the `many` function, which is very similar to the `some` function discussed before. The difference is that `any` tries to run the given parser **0 or more times**. In regex, our `identifier` parser is equivalent to `[a-zA-Z][a-zA-Z0-9]*`.
 
 ```hs
 identifier :: Parser Identifier
@@ -635,7 +635,7 @@ SBool True
 SId (Identifier {getId = "true"})
 ```
 
-In the first case, we parse a boolean before an identifier, which causes `true` to be matched by `bool`. However, in the second example, using `identifier` before `bool` caused `true` to be recognized as an identifier. You may assume that parsers are greedy, and you should be careful while considering such things. Notice that in the second case, the `bool` parser will never be executed.
+In the first case, we parse a boolean before an identifier, which causes `true` to be matched by `bool`. However, in the second example, using `identifier` before `bool` caused `true` to be recognized as an identifier. You should be careful while considering such things. In most cases, you can assume that parsers are greedy. Notice that in the second case, the `bool` parser will never be executed.
 
 In other words, make sure that you parse a boolean in `atom` before you parse an identifier.
 
@@ -665,9 +665,9 @@ After adding it to `atom` with `uncurry SSExp <$> sexp`, we can test it in GHCi:
 SSExp (SId (Identifier {getId = "foo"})) []
 ```
 
-Ok, looks good so far. What if we have arguments being applied to it?
+Ok, looks good so far. What if we try to apply an argument to `foo`?
 
-```
+```hs
 >>> parseTest atom "(foo bar)"
 1:5:
   |
@@ -688,7 +688,7 @@ SSExp (SId (Identifier {getId = "foo"})) [SId (Identifier {getId = "bar"})]
 
 Of course, this may raise other questions: what if we have a space character before or after the opening and closing parenthesis?
 
-While that works, the [`megaparsec` documentation](https://hackage.haskell.org/package/megaparsec-9.2.0/docs/Text-Megaparsec-Char-Lexer.html) already offers a solution for this kind of problem, namely, a lexer. Indeed, we will see that some of our previous definitions could have been written more elegantly with the help of this module.
+While explicitly skipping spaces works, the [`megaparsec` documentation](https://hackage.haskell.org/package/megaparsec-9.2.0/docs/Text-Megaparsec-Char-Lexer.html) already offers a solution for this kind of problem, namely, a lexer. Indeed, we will see that some of our previous definitions could have been written more elegantly with the help of this module.
 
 The important bit for us now is this:
 
@@ -696,7 +696,7 @@ The important bit for us now is this:
 
 #### S-expressions: The elegant way
 
-The first thing you should do is import the appropriate lexing module.
+The first thing you should do is import the appropriate lexing module. Megaparsec recommends to import this module qualified.
 
 ```hs
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -815,7 +815,7 @@ data SExp
   | SDouble  Double  -- 42f, 3.1415f
 ```
 
-We will parse it as such: first, some digits, optionally followed by a `.` and some more digits, and an `f` at the end. In Regex, this is equivalent to `[0-9](\.[0-9])?f`. We achieve the optional part using the `optional` function, which returns a `Parser (Maybe a)`.
+We will parse it as such: first, some digits, optionally followed by a `.` and some more digits, and an `f` at the end. In regex, this is equivalent to `[0-9](\.[0-9])?f`. We achieve the optional part using the `optional` function, which returns a `Parser (Maybe a)`.
 
 ```hs
 double :: Parser Double
@@ -914,16 +914,9 @@ And in `atom`, we simply use `numeric` instead of the two previous parsers.
 
 ## Rewriting with Megaparsec's lexer
 
-A lot of the things could be written using the lexer module from Megaparsec. We present the simplified versions below for functions that can be improved.
+A lot of the things could be written using the lexer module from Megaparsec. In this section, we will present the simplified versions for functions that can be improved.
 
-The functions for `integer` and `double` are kept for reference, even though `numeric` is used instead.
-
-As a bonus, we got various improvements:
-1. No need to `read` values.
-2. We can use `signed` to parse negative numbers.
-3. We can parse escaped characters in strings.
-
-Because we use [`floatingOrInteger`](https://hackage.haskell.org/package/scientific-0.3.7.0/docs/Data-Scientific.html#v:floatingOrInteger), you should include the [`scientific`](https://hackage.haskell.org/package/scientific-0.3.7.0) package and import it:
+Because we will use [`floatingOrInteger`](https://hackage.haskell.org/package/scientific-0.3.7.0/docs/Data-Scientific.html#v:floatingOrInteger), you should include the [`scientific`](https://hackage.haskell.org/package/scientific-0.3.7.0) package and import it:
 
 ```hs
 import Data.Scientific
@@ -955,6 +948,13 @@ numeric = lexeme $ do
         Nothing -> SInteger i
         Just _ -> SDouble $ fromIntegral i
 ```
+
+As a bonus, we got various improvements:
+1. No need to `read` values.
+2. We can use `signed` to parse negative numbers.
+3. We can parse escaped characters in strings.
+
+The functions for `integer` and `double` were kept for reference, even though `numeric` is used instead.
 
 Now let's check it on GHCi:
 
