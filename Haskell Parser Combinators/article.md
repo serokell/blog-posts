@@ -419,7 +419,7 @@ The reader may also choose to instead refactor the parser type to use a custom-d
   <hr>
 </details>
 
-### Conclusion
+### What's next?
 
 In this section, we've learned how to make a simple parsing combinator library. There are still various improvements that can be done. To name a few of them, we can implement more instances, such as `Semigroup` and `Monoid`, `IsString`, `MonadFail`, `MonadPlus`, among others. Error messages can be improved by better keeping track of location (such as line and column), supporting more types such as `Text` and `ByteString`, pretty-printing error messages, etc.
 
