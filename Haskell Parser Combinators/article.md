@@ -423,7 +423,7 @@ The reader may also choose to instead refactor the parser type to use a custom-d
 
 In this section, we've learned how to make a simple parsing combinator library. There are still various improvements that can be done. To name a few of them, we can implement more instances, such as `Semigroup` and `Monoid`, `IsString`, `MonadFail`, `MonadPlus`, among others. Error messages can be improved by better keeping track of location (such as line and column), supporting more types such as `Text` and `ByteString`, pretty-printing error messages, etc.
 
-We will conclude this part here, and if you are interested, proceed to the next part, where Megaparsec, an industrial-strength parser combinator library will be introduced with a more practical application rather than our simple examples in this section.
+We will conclude this part here, and if you are interested, proceed to the next part where Megaparsec, an industrial-strength parser combinator library, will be introduced with a more practical application than our simple examples in this section.
 
 ## Megaparsec tutorial
 
