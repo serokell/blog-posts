@@ -1,4 +1,4 @@
-Welcome to our second post on Template Haskell! 
+Welcome to our second post on Template Haskell!
 
 Today we will take a quick look at typed Template Haskell. This article assumes some familiarity with Template Haskell (TH) already. If this is your first journey with TH, then check out our [introduction to Template Haskell](https://serokell.io/blog/introduction-to-template-haskell) first.
 
@@ -68,7 +68,9 @@ SigE (LitE (IntegerL 42)) (ConT GHC.Base.String)
 
 ## Typed splices
 
-Just like we had untyped splices such as `$foo`, now we also have typed splices, written as `$$foo`. Note, however, that if your GHC version is below 9.0, you may need to write `$$(foo)` instead.
+Just like we had untyped splices such as `$foo`, now we also have typed splices, written as `$$foo`. In this section, we will see how to define and splice typed Template Haskell code.
+
+We reiterate one point mentioned in our previous article: in GHC 8, the usage of splices may require parentheses or not. For instance, if `foo` came from a qualified import, then you'd need to write `$$(Foo.foo)` instead. In GHC 9, the parser is more relaxed and will not require parentheses in such situations.
 
 ## Example: calculating prime numbers
 
@@ -267,7 +269,7 @@ Typed Template Haskell may have some difficulties resolving overloads. Surprisin
 ... mempty' = [|| mempty ||]
 
 >>> x :: String
-... x = id $$(mempty')
+... x = id $$mempty'
 <interactive>:549:11: error:
     • Ambiguous type variable ‘a0’ arising from a use of ‘mempty'’
       prevents the constraint ‘(Monoid a0)’ from being solved.
@@ -279,8 +281,8 @@ Typed Template Haskell may have some difficulties resolving overloads. Surprisin
         ...plus 7 others
         (use -fprint-potential-instances to see them all)
     • In the expression: mempty'
-      In the Template Haskell splice $$(mempty')
-      In the first argument of ‘id’, namely ‘$$(mempty')’
+      In the Template Haskell splice $$mempty'
+      In the first argument of ‘id’, namely ‘$$mempty'’
 ```
 
 Annotating `mempty'` may resolve it in this case:

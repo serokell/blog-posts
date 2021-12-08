@@ -134,6 +134,8 @@ What is going on with the `$compose`? This is a _splice_, and it allows us to us
 
 Since Template Haskell is evaluated during compile time, if we replace `x` with a variable that was not bound, such as `z`, we get a `Variable not in scope: z` error instead during the splice generation. Any malformed expressions will be reported like any other regular Haskell expression. In other words, we analyze a Template Haskell declaration as if it was any other ordinary Haskell declaration.
 
+Keep in mind that in GHC 8, the usage of splices may require parentheses or not. For instance, if `compose` came from a qualified import, then you'd need to write `$(Foo.compose)` instead. In GHC 9, the parser is more relaxed and will not require parentheses in such situations.
+
 ### Stage restriction
 
 One caveat of splices exists on where they may be defined and used within some source file. To visualize the problem, we will create a new file called `Main.hs` with the following:
