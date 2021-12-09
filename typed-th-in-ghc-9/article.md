@@ -20,7 +20,7 @@ newtype Code m (a :: TYPE (r :: RuntimeRep)) = Code
   }
 ```
 
-Thankfully, the untyped TH interface remains unchanged, and the typed TH interface should only need to use `Code` instead of `TExp` to compile again with some helper functions.
+Thankfully, the untyped TH interface remains mostly unchanged, and the typed TH interface should only need to use `Code` instead of `TExp` to compile again with some helper functions.
 
 <!-- TODO: Write about motivation as well? -->
 

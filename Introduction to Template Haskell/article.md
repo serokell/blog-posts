@@ -329,6 +329,7 @@ generateTupleClass size = do
     r = mkName "r"
 
     -- class TupleX t r | t -> r where
+    -- In GHC 9: cDecl = ClassD [] className [PlainTV t (), PlainTV r ()] [FunDep [t] [r]] [mDecl]
     cDecl = ClassD [] className [PlainTV t, PlainTV r] [FunDep [t] [r]] [mDecl]
     --   _X :: t -> r
     mDecl = SigD methodName (AppT (AppT ArrowT (VarT t)) (VarT r))
@@ -340,7 +341,8 @@ For the declaration of the class, we use the `ClassD` constructor with the follo
 
 * `[] :: Ctx` — An empty array of constraints, since we don't impose further restrictions on our types.
 * `className :: Name` — The name of the class being declared.
-* `[PlainTV t, PlainTV r] :: [TyVarBndr ()]` — The bindings of our typeclass, which are `t` and `r`.
+* `[PlainTV t, PlainTV r] :: [TyVarBndr]` — The bindings of our typeclass, which are `t` and `r`.
+  * Note: In GHC 9, use `[PlainTV t (), PlainTV r ()] :: [TyVarBndr ()]` instead.
 * `[FunDep [t] [r]] :: [FunDep]` — A functional dependency of the format `t -> r`.
 * `[mDecl] :: [Dec]` — Our class declarations, containing `_X`, a method of type `t -> r`.
 
