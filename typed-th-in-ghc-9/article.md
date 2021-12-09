@@ -135,7 +135,7 @@ In the next sections, we will see how to port this code to GHC 9 without and wit
 
 ## Porting old TTH code without backward compatibility
 
-For this section, you need a GHC whose version is at least 9. If you want your code to be compatible with both GHC 8 and GHC 9, please read [the next section](#porting-old-tth-code-with-backwards-compatibility) instead.
+For this section, you need a GHC whose version is at least 9.
 
 Make sure to import the appropriate definitions from `template-haskell`:
 
@@ -236,6 +236,25 @@ logLevelFromFlag :: SpliceQ LogLevel
 This is because `SpliceQ` is defined simply as `Splice Q`.
 
 It's also possible to use `Quote m => Splice m a`, however, `Quote` was also introduced in a recent `template-haskell` version, so chances are it won't work in GHC 8 and it will be pointless from the point of view of backward compatibility. It can still be useful in other situations, however, like in combination with monad transformers (e.g.: `Splice (State Int Q) a`).
+
+## Parentheses in splices
+
+Just one more thing before we conclude this article. You may see surprising behavior regarding the usage of parentheses in splices for both untyped and typed Template Haskell depending on whether you are using GHC 8 or GHC 9.
+
+For example, if we had imported `logLevelFromFlag` qualified, then you'd write `$$(TH.logLevelFromFlag)` in GHC 8, otherwise you'd get a parser error:
+
+```hs
+>>> $$TH.logLevelFromFlag
+
+<interactive>:200:1: error: parse error on input ‘$$’
+```
+
+But it works otherwise in GHC 9:
+
+```hs
+$$TH.logLevelFromFlag
+Production
+```
 
 ## Conclusion
 
