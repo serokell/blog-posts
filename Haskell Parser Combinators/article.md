@@ -60,7 +60,7 @@ import Data.List (nub)
 
 We will create two data structures that represent our parser.
 
-The first of them represents some error that may happen while parsing. For now, let's have three errors for now: one that is raised when we are expecting input but there is nothing to consume (`EndOfInput`), one when we find an unexpected character (`Unexpected`), and one for any error messages that the user might want to raise (`CustomError`).
+The first of them represents some error that may happen while parsing. For now, let's have three errors: one that is raised when we are expecting input but there is nothing to consume (`EndOfInput`), one when we find an unexpected character (`Unexpected`), and one for any error messages that the user might want to raise (`CustomError`).
 
 Our second structure is the actual parser. It's represented as a function that takes some input and either returns a list of errors, if `Left`, or the result of parsing the input together with the rest of the input (that was not parsed), if `Right`.
 
@@ -611,7 +611,7 @@ SString "hey"
 
 An identifier will be like a variable in a programming language. We can choose the naming convention for such a thing, but here I chose the one that is frequently used for C-like languages: the first letter must be a letter or an underscore, while the remainder may be a letter, digit, or underscore.
 
-Here we use the `many` function, which is very similar to the `some` function discussed before. The difference is that `any` tries to run the given parser **0 or more times**. In regex, our `identifier` parser is equivalent to `[a-zA-Z][a-zA-Z0-9]*`.
+Here we use the `many` function, which is very similar to the `some` function discussed before. The difference is that `many` tries to run the given parser **0 or more times**. In regex, our `identifier` parser is equivalent to `[a-zA-Z_][a-zA-Z0-9_]*`.
 
 ```hs
 identifier :: Parser Identifier
@@ -1052,7 +1052,7 @@ The basic contents for the `TH` module are summarized as follows:
   * Creates a `Type`, like `[t||]`.
 * `quoteDec` creates a Haskell declaration.
   * Similarly to `quoteType`, we won't define this one.
-  * Creates a `Pat`, like `[p||]`.
+  * Creates a `Dec`, like `[d||]`.
 
 Now enable the `QuasiQuotes` extension in GHCi and you should be able to test it. Notice how failing to parse instead causes GHCi to fail to interpret the given S-expression (compilation error).
 
