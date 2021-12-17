@@ -23,11 +23,13 @@ This article is composed of three major parts. In the first part, we will implem
 
 In 2001, Daan Leijen and Erik Meijer published a paper titled [Parsec: Direct Style Monadic Parser Combinators For The Real World](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/parsec-paper-letter.pdf), describing the [`parsec`](https://hackage.haskell.org/package/parsec) library, whose design consequently influenced various others, such as [`megaparsec`](https://hackage.haskell.org/package/megaparsec), [`attoparsec`](https://hackage.haskell.org/package/attoparsec), [`trifecta`](https://hackage.haskell.org/package/trifecta), and even libraries outside the Haskell ecosystem, such as [`NimbleParsec`](https://hexdocs.pm/nimble_parsec/NimbleParsec.html) for Elixir, [`parsec`](https://pythonhosted.org/parsec/) for Python, [`FParsec`](https://www.quanttec.com/fparsec/) for F#, among others.
 
-Parser combinators are known to be simple to use without requiring external tools or too many concepts to learn. That is, they are ordinary Haskell functions that can be combined and returned with other parsers. This in turn also makes them idiomatic to use, and being a popular choice among Haskellers, their ecosystem is pretty developed. You should have no trouble finding tutorials and documentation on how to use them.
+Parser combinators are known to be simple to use without requiring external tools or too many concepts to learn. That is, they are ordinary Haskell constructors that can easily be combined and returned with other parsers because of their nature as functions. This in turn also makes them idiomatic to use, and being a popular choice among Haskellers, their ecosystem is pretty developed. You should have no trouble finding tutorials and documentation on how to use them.
 
-It's important to notice that parser combinators also have their flaws. Parser combinators are categorized as LL(∞) parsers, which, elaborating on the points described in Kirill Andreev's [How to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser):
+It's important to notice that parser combinators also have their flaws. Parser combinators may be implemented as either LL(1) or LL(∞) parsers, which, elaborating on the points described in Kirill Andreev's [How to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser):
 1. Don't support left recursion. That is to say, if there is a rule `foo = foo *> bar`, you might need to refactor your grammar otherwise it will loop forever.
 2. Don't resolve conflicts, which we will see as an example later in this article. This means the ordering of rules can influence the output, and you need to be careful when defining rules that can consume the same input.
+    * In a LL(1) implementation, it will pick the first alternative that maches the input.
+    * In a LL(∞) implementation, it will try the longest possible match, which may be very inneficient.
 3. Many parser combinator libraries will backtrack, which will also be exemplified later, meaning that you might need to be careful to avoid performance penalties.
 4. The backtracking mechanism may, in turn, lead to exponential time complexities.
 
@@ -82,8 +84,6 @@ This is the meaning of each of the type variables:
 * `e`: The type of custom error messages. If we don't have those, we may use `Void` instead.
 * `a`: The result of our parsing function. It represents the structure parsed from our consumed input.
 
-Note that we could implement the parser so it also returns the rest of the input even if there were errors, but to keep the implementation a bit simpler, we'll return it only on success.
-
 Let's begin by creating the most primitive function: `satisfy`. It takes some predicate that operates on the current character, and advances the parser, if possible, returning the consumed character.
 
 We must take care that we are not at the end of the input, however, in which case we should fail.
@@ -129,10 +129,15 @@ instance Functor (Parser i e) where
     case p input of
       Left err -> Left err
       Right (output, rest) -> Right (f output, rest)
-  -- Or:
-  -- fmap f (Parser p) = Parser $ \input -> do
-  --   (output, rest) <- p input
-  --   pure (f output, rest)
+```
+
+Here's a little shorter implementation. Since `Either` is a monad, we can use do-notation.
+
+```hs
+instance Functor (Parser i e) where
+  fmap f (Parser p) = Parser $ \input -> do
+    (output, rest) <- p input
+    pure (f output, rest)
 ```
 
 It's interesting to notice that `Either` is a monad, so we can also write the definition of most things more concisely, as shown in the commented part.
@@ -163,11 +168,18 @@ instance Applicative (Parser i e) where
         case p rest of
           Left err -> Left err
           Right (output, rest') -> Right (f' output, rest')
-  -- Or:
-  -- Parser f <*> Parser p = Parser $ \input -> do
-  --   (f', rest) <- f input
-  --   (output, rest') <- p rest
-  --   pure (f' output, rest')
+```
+
+Or with `Either`'s monad instance:
+
+```hs
+instance Applicative (Parser i e) where
+  pure a = Parser $ \input -> Right (a, input)
+
+  Parser f <*> Parser p = Parser $ \input -> do
+    (f', rest) <- f input
+    (output, rest') <- p rest
+    pure (f' output, rest')
 ```
 
 In our `Monad` instance, we set `return = pure` as usual. Our bind is more interesting: we try to run the given parser with the input, and if it succeeds, we give the produced output (of type `a`) to our continuation `k`, which produces a parser that is executed with the remainder of the output.
@@ -184,10 +196,17 @@ instance Monad (Parser i e) where
           Parser p' = k output
         in
         p' rest
-  -- Or:
-  -- Parser p >>= k = Parser $ \input -> do
-  --   (output, rest) <- p input
-  --   runParser (k output) rest
+```
+
+Again, using the fact that `Either` is a monad, we can simplify this implementation:
+
+```hs
+instance Monad (Parser i e) where
+  return = pure
+
+  Parser p >>= k = Parser $ \input -> do
+    (output, rest) <- p input
+    runParser (k output) rest
 ```
 
 With our `Applicative` and `Monad` instances, we are now able to **parse sequentially**. For example, we defined `char` above to let us parse a single character, but what if we wanted to parse many of them?
@@ -195,16 +214,24 @@ With our `Applicative` and `Monad` instances, we are now able to **parse sequent
 ```hs
 string :: Eq i => [i] -> Parser i e [i]
 string = traverse char
--- Written in a more verbose but perhaps clear way:
--- string :: Eq i => [i] -> Parser i e [i]
--- string [] = pure []
--- string (x : xs) = (:) <$> char x <*> string xs
--- Or even in terms of monad:
--- string [] = return []
--- string (x : xs) = do
---   y <- char x
---   ys <- string xs
---   return (y : ys)
+```
+
+If `traverse` is new to you, it's also equivalent to these definitions:
+
+```hs
+string :: Eq i => [i] -> Parser i e [i]
+string [] = pure []
+string (x : xs) = (:) <$> char x <*> string xs
+```
+
+Or even in terms of `Monad`:
+
+```hs
+string [] = return []
+string (x : xs) = do
+  y <- char x
+  ys <- string xs
+  return (y : ys)
 ```
 
 Let's try it in GHCi:
@@ -472,8 +499,11 @@ We also need an alias for the type which `megaparsec` uses.
 
 ```hs
 type Parser = Parsec
-  Void  -- The type for custom error messages. We have none, so use `Void`.
-  String  -- The input stream type. Let's use `String` for now, but for better performance, you might want to use `Text` or `ByteString`.
+  -- The type for custom error messages. We have none, so use `Void`.
+  Void
+  -- The input stream type. Let's use `String` for now, but for
+  -- better performance, you might want to use `Text` or `ByteString`.
+  String
 ```
 
 ### Booleans
@@ -556,6 +586,13 @@ integer :: Parser Integer
 integer = label "integer" $ read <$> some numberChar
 ```
 
+If you prefer, it's also possible to use `<?>`, which does the same as `label`.
+
+```hs
+integer :: Parser Integer
+integer = read <$> some numberChar <?> "integer"
+```
+
 And now the error message should be slightly improved:
 
 ```hs
@@ -587,7 +624,7 @@ However, later in the tutorial, we will see an even better way that uses Megapar
 
 ### Strings
 
-To parse a string, the idea is to find everything that is between double-quotes. This approach has a weakness, though: we won't be able to parse escaped quotes. Later in this tutorial, we will present a solution to escaped characters.
+To parse a string, the idea is to find everything that is between double-quotes. This approach has a weakness, though: we won't be able to parse escaped quotes. Later in this tutorial, we will present a solution to escaped characters using Megaparsec's lexing mechanisms.
 
 To achieve this, we will use two new functions: `between` and `takeWhileP`. Using `between open close x` is equivalent to `open *> x <* close`, while `takeWhileP` will read as many characters as possible that satisfy some predicate.
 
@@ -657,6 +694,8 @@ sexp = label "S-expression" $ between (char '(') (char ')') ((,) <$> atom <*> ma
 -- Or:
 -- sexp = label "S-expression" $ char '(' *> ((,) <$> atom <*> many atom) <* char ')'
 ```
+
+Note `(,) <$> atom <*> many atom` is pretty similar to `some atom`. [`parser-combinators`](https://hackage.haskell.org/package/parser-combinators-1.3.0/docs/Control-Applicative-Combinators-NonEmpty.html#v:some) exports a non-empty `some` that you can use instead, and have the parser return `Parser (NonEmpty SExp)`. Megaparsec exports the ordinary list version instead, so if you want to use this one, you'll need to import it manually and include a dependency on `parser-combinators`.
 
 After adding it to `atom` with `uncurry SSExp <$> sexp`, we can test it in GHCi:
 
@@ -739,7 +778,7 @@ integer :: Parser Integer
 integer = label "integer" $ lexeme $ read <$> some numberChar
 ```
 
-**Note**: The reader should do the same for `str`, `bool`, and `identifier`.
+**Note**: The reader should do the same for `str`, `bool`, and `identifier`. Alternatively, adding `lexeme` to `atom` will also work.
 
 And now, we can parse S-expressions properly:
 
@@ -884,6 +923,8 @@ And it should fix the problem. However, this is not ideal in terms of performanc
 
 In such a situation this is trivial, but care must be taken in more complex examples, for example, what if we wanted to have `(foo bar)` as well as tuples such as `(foo bar, baz quz)`? The S-expression could be very long and lead to exponential complexity in the worst-case scenario. Recently, a very similar problem [was fixed](https://gitlab.com/morley-framework/morley/-/merge_requests/971) in one of our projects.
 
+As we described in the introduction of this tutorial, it's important to notice Megaparsec normally operates as a LL(1) parser, meaning it tries to look at only one character ahead when executing parsers in an alternative. Using `try` allows us to consume an arbitrary number of characters before backtracking, allowing it to be used as a LL(∞) parser.
+
 In this situation, the best thing to do is to _refactor the grammars to share common parts_. The code above could be written without `try` as such:
 
 ```hs
@@ -948,6 +989,8 @@ numeric = lexeme $ do
         Nothing -> SInteger i
         Just _ -> SDouble $ fromIntegral i
 ```
+
+Note the changes to `str` as well. `manyTill` will run `L.charLiteral` taking characters, including escaped characters until the matching `"` is found.
 
 As a bonus, we got various improvements:
 1. No need to `read` values.
