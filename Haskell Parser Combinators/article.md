@@ -1,5 +1,3 @@
-# Parser Combinators in Haskell
-
 <!--
 * generic introduction
 * say there are four parts for the article
@@ -304,7 +302,8 @@ Hopefully, this should give you an intuition of how parser combinators work. Pop
 
 The complete code for this section with solutions to the exercises below can be found [here](https://gist.github.com/heitor-lassarote/3e7314956e86b8227f6f6040e69aca9d).
 
-### Exercises:
+### Exercises
+
 1. Change `char` so that it returns errors such as `Left [Expected 'h' 'g']` ("Expected 'h', but got 'g'").
 
 <details>
@@ -739,7 +738,7 @@ The first thing you should do is import the appropriate lexing module. Megaparse
 import qualified Text.Megaparsec.Char.Lexer as L
 ```
 
-Now we need to define what is whitespace. Until now, with the usage of `space`, we have considered that it may be a space, tab, newline, carriage return, form feed, or vertical tab. Megaparsec can go beyond that and also consider line comments (such as `-- comment`) and block comments (such as `{- comment -}` as whitespace. Since we get those for free, what about using `;;` for line comments and `/* */` for block comments?
+Now we need to define what is whitespace. Until now, with the usage of `space`, we have considered that it may be a space, tab, newline, carriage return, form feed, or vertical tab. Megaparsec can go beyond that and also consider line comments (such as `-- comment`) and block comments (such as `{- comment -}`) as whitespace. Since we get those for free, what about using `;;` for line comments and `/* */` for block comments?
 
 Begin by defining `skipSpace`. We use the `space` helper function from the lexer module, which expects a function to parse 1 or more spaces, a line comment, and a block comment.
 
@@ -842,7 +841,7 @@ unexpected 'f'
 expecting end of input
 ```
 
-## One more case: `Double`
+### One more case: `Double`
 
 There is one more **caveat** that Megaparsec users should know about: backtracking. We show a somewhat contrived but realistic example. To illustrate this, let's add one more case to our `SExp`:
 
@@ -951,7 +950,7 @@ numeric = label "number" $ lexeme $ do
 
 And in `atom`, we simply use `numeric` instead of the two previous parsers.
 
-## Rewriting with Megaparsec's lexer
+### Rewriting with Megaparsec's lexer
 
 A lot of the things could be written using the lexer module from Megaparsec. In this section, we will present the simplified versions for functions that can be improved.
 
@@ -1359,7 +1358,7 @@ Below we present some other useful functions and combinators you may want to use
 |[`string'`](https://hackage.haskell.org/package/megaparsec-9.2.0/docs/Text-Megaparsec-Char.html#v:string-39-)|`(MonadParsec e s m, FoldCase (Tokens s)) => Tokens s -> m (Tokens s)`|Like `string`, but case-invariant.|
 |[`makeExprParser`](https://hackage.haskell.org/package/parser-combinators-1.3.0/docs/Control-Monad-Combinators-Expr.html#v:makeExprParser)|`MonadPlus m => m a -> [[Operator m a]] -> m a`|Allows parsing generic expressions, supporting infix, prefix, and postfix operators with precedences.|
 
-## Further reading
+### Further reading
 
 <!--
 * copy and paste links to blog/twitter etc from previous articles
@@ -1370,4 +1369,4 @@ Below we present some other useful functions and combinators you may want to use
 * [Parsec: "try a <|> b" considered harmful](http://blog.ezyang.com/2014/05/parsec-try-a-or-b-considered-harmful/)
 * [Quasiquotation 101](https://www.schoolofhaskell.com/user/marcin/quasiquotation-101)
 
-For more Haskell tutorials, you can check out our [Haskell articles](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Medium](https://serokell.medium.com/).
+For more Haskell tutorials, you can check out our [Haskell articles](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell).
