@@ -8,7 +8,7 @@
   3. qq
 -->
 
-Welcome! If you are reading this, you likely decided to take on the journey of learning parser combinators. We hope this article will make your adventure smoother and hopefully give you a strong foundation for writing your grammars.
+Welcome! If you are reading this, you likely have decided to take on the journey of learning parser combinators. We hope this article will make your adventure smoother and hopefully give you a strong foundation for writing your grammars.
 
 This article is composed of three major parts. In the first part, we will implement a small parser combinator library from scratch, which should hopefully help to give a feeling of how industrial-strength parsing combinators work. In the second part, we will learn how to use the Megaparsec library to implement a parser for S-expressions. Finally, as a bonus, we will use the power of Template Haskell to implement a quasi-quoter for our parser.
 
@@ -23,13 +23,13 @@ This article is composed of three major parts. In the first part, we will implem
 
 In 2001, Daan Leijen and Erik Meijer published a paper titled [Parsec: Direct Style Monadic Parser Combinators For The Real World](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/parsec-paper-letter.pdf), describing the [`parsec`](https://hackage.haskell.org/package/parsec) library, whose design consequently influenced various others, such as [`megaparsec`](https://hackage.haskell.org/package/megaparsec), [`attoparsec`](https://hackage.haskell.org/package/attoparsec), [`trifecta`](https://hackage.haskell.org/package/trifecta), and even libraries outside the Haskell ecosystem, such as [`NimbleParsec`](https://hexdocs.pm/nimble_parsec/NimbleParsec.html) for Elixir, [`parsec`](https://pythonhosted.org/parsec/) for Python, [`FParsec`](https://www.quanttec.com/fparsec/) for F#, among others.
 
-Parser combinators are known to be simple to use without requiring external tools or too many concepts to learn. That is, they are ordinary Haskell constructors that can easily be combined and returned with other parsers because of their nature as functions. This in turn also makes them idiomatic to use, and being a popular choice among Haskellers, their ecosystem is pretty developed. You should have no trouble finding tutorials and documentation on how to use them.
+Parser combinators are known to be simple to use without requiring external tools or too many concepts to learn. That is, they are ordinary Haskell constructors that can easily be combined and returned with other parsers because of their nature as functions. This, in turn, makes them idiomatic to use, and being a popular choice among Haskellers, their ecosystem is pretty developed. You should have no trouble finding tutorials and documentation on how to use them.
 
 It's important to notice that parser combinators also have their flaws. Parser combinators may be implemented as either LL(1) or LL(∞) parsers, which, elaborating on the points described in Kirill Andreev's [How to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser):
 1. Don't support left recursion. That is to say, if there is a rule `foo = foo *> bar`, you might need to refactor your grammar otherwise it will loop forever.
 2. Don't resolve conflicts, which we will see as an example later in this article. This means the ordering of rules can influence the output, and you need to be careful when defining rules that can consume the same input.
-    * In a LL(1) implementation, it will pick the first alternative that maches the input.
-    * In a LL(∞) implementation, it will try the longest possible match, which may be very inneficient.
+    * In an LL(1) implementation, it will pick the first alternative that maches the input.
+    * In an LL(∞) implementation, it will try the longest possible match, which may be very inneficient.
 3. Many parser combinator libraries will backtrack, which will also be exemplified later, meaning that you might need to be careful to avoid performance penalties.
 4. The backtracking mechanism may, in turn, lead to exponential time complexities.
 
@@ -84,7 +84,7 @@ This is the meaning of each of the type variables:
 * `e`: The type of custom error messages. If we don't have those, we may use `Void` instead.
 * `a`: The result of our parsing function. It represents the structure parsed from our consumed input.
 
-Let's begin by creating the most primitive function: `satisfy`. It takes some predicate that operates on the current character, and advances the parser, if possible, returning the consumed character.
+Let's begin by creating the most primitive function: `satisfy`. It takes some predicate that operates on the current character and advances the parser, if possible, returning the consumed character.
 
 We must take care that we are not at the end of the input, however, in which case we should fail.
 
@@ -121,7 +121,7 @@ Left [EndOfInput]
 
 Let's now create `Monad` and `Alternative` instances for our parser. For educative purposes, we will also explicitly implement `Functor` and `Applicative` instead of `fmap = liftM` and `(<*>) = ap`.
 
-We start with `Functor`. Since we map over the `a` type variable obtained in the case of a successful parse, we can only apply `f` in case if we get `Right`.
+We start with `Functor`. Since we map over the `a` type variable obtained in the case of a successful parse, we can only apply `f` in case of `Right`.
 
 ```hs
 instance Functor (Parser i e) where
@@ -131,7 +131,7 @@ instance Functor (Parser i e) where
       Right (output, rest) -> Right (f output, rest)
 ```
 
-Here's a little shorter implementation. Since `Either` is a monad, we can use do-notation.
+Since `Either` is a monad, we can use do-notation. Here's an implementation that's a little shorter: 
 
 ```hs
 instance Functor (Parser i e) where
@@ -302,7 +302,7 @@ We can see our errors composing with a more complicated expression:
 Left [Unexpected 'w',Unexpected 'h']
 ```
 
-Hopefully, this should give you an intuition of how parser combinators work. Popular parser combinator libraries are more complex than this, as they tend to keep track of extra state for better error messages, optimization, information about line and column, etc., but the overall operations between them it similar.
+Hopefully, this should give you an intuition of how parser combinators work. Popular parser combinator libraries are more complex than this, as they tend to keep track of extra state for better error messages, optimization, information about line and column, etc., but the overall operations between them are similar.
 
 The complete code for the parser with exercises solutions can be found [here](https://gist.github.com/heitor-lassarote/3e7314956e86b8227f6f6040e69aca9d).
 
@@ -461,7 +461,7 @@ We will conclude this part here, and if you are interested, proceed to the next 
   * equivalent to JSON: objects, lists, null, numbers, booleans, strings
 -->
 
-We will now take a look at a practical application with parser combinators: parsing S-expressions. Hopefully, such examples will give you a solid foundation for creating parsers for your grammars.
+We will now take a look at a practical application of parser combinators: parsing S-expressions. Hopefully, this example will give you a solid foundation for creating parsers for your grammars.
 
 Megaparsec is the go-to parser for industrial projects, so we will also use it in our tutorial. If you wish to see how it compares to other parser combinator libraries in Haskell, you can read its [`README.md`](https://github.com/mrkkrp/megaparsec#comparison-with-other-solutions).
 
@@ -547,7 +547,7 @@ expecting "false" or "true"
 
 To parse integers, one strategy is to parse as many digits (chars whose value is between `'0'` and `'9'`) as possible. This will give us a list of characters, which we can then `read`,
 
-For this parser, we use the `some` function, which tries to run some given parser **1 or more times**. `numberChar` is exported from `Text.Megaparsec.Char` and parses any character that matches a digit. In regex, this is equivalent to `[0-9]+`. This will return us a `[Char]` (aka `String`), which we can `read` to make it into an `Integer`.
+For this parser, we use the `some` function, which tries to run a given parser **1 or more times**. `numberChar` is exported from `Text.Megaparsec.Char` and parses any character that matches a digit. In regex, this is equivalent to `[0-9]+`. This will return us a `[Char]` (aka `String`), which we can `read` to make it into an `Integer`.
 
 ```hs
 integer :: Parser Integer
@@ -646,7 +646,7 @@ SString "hey"
 
 ### Identifiers
 
-An identifier will be like a variable in a programming language. We can choose the naming convention for such a thing, but here I chose the one that is frequently used for C-like languages: the first letter must be a letter or an underscore, while the remainder may be a letter, digit, or underscore.
+An identifier will be like a variable in a programming language. We can choose any naming convention for such a thing, but here I chose the one that is frequently used in C-like languages: the first letter must be a letter or an underscore, while the remainder may be a letter, digit, or underscore.
 
 Here we use the `many` function, which is very similar to the `some` function discussed before. The difference is that `many` tries to run the given parser **0 or more times**. In regex, our `identifier` parser is equivalent to `[a-zA-Z_][a-zA-Z0-9_]*`.
 
@@ -682,7 +682,7 @@ Finally, let's move on to our last parser, which parses S-expressions themselves
 
 First, we will do it the naïve way, which may come as the first natural solution to someone just learning Megaparsec, and then we will do it in a better manner using extra tools offered by Megaparsec.
 
-#### S-expressions: The awkward way
+#### S-expressions: the awkward way
 
 The idea here is to parse an atom, followed by 0 or more atoms. Of course, this means that we want to use `many` to parse such atoms. Additionally, an S-expression may be surrounded by parenthesis, so we can use `between` for such a task.
 
@@ -695,7 +695,7 @@ sexp = label "S-expression" $ between (char '(') (char ')') ((,) <$> atom <*> ma
 -- sexp = label "S-expression" $ char '(' *> ((,) <$> atom <*> many atom) <* char ')'
 ```
 
-Note `(,) <$> atom <*> many atom` is pretty similar to `some atom`. [`parser-combinators`](https://hackage.haskell.org/package/parser-combinators-1.3.0/docs/Control-Applicative-Combinators-NonEmpty.html#v:some) exports a non-empty `some` that you can use instead, and have the parser return `Parser (NonEmpty SExp)`. Megaparsec exports the ordinary list version instead, so if you want to use this one, you'll need to import it manually and include a dependency on `parser-combinators`.
+Note that `(,) <$> atom <*> many atom` is pretty similar to `some atom`. [`parser-combinators`](https://hackage.haskell.org/package/parser-combinators-1.3.0/docs/Control-Applicative-Combinators-NonEmpty.html#v:some) exports a non-empty `some` that you can use instead, and have the parser return `Parser (NonEmpty SExp)`. Megaparsec exports the ordinary list version instead, so if you want to use this one, you'll need to import it manually and include a dependency on `parser-combinators`.
 
 After adding it to `atom` with `uncurry SSExp <$> sexp`, we can test it in GHCi:
 
@@ -733,7 +733,7 @@ The important bit for us now is this:
 
 > Parsing of white space is an important part of any parser. We propose a convention where **every lexeme parser assumes no spaces before the lexeme and consumes all spaces after the lexeme**; this is what the [`lexeme`](https://hackage.haskell.org/package/megaparsec-9.2.0/docs/Text-Megaparsec-Char-Lexer.html#v:lexeme) combinator does, and so it's enough to wrap every [`lexeme`](https://hackage.haskell.org/package/megaparsec-9.2.0/docs/Text-Megaparsec-Char-Lexer.html#v:lexeme) parser with lexeme to achieve this. Note that you'll need to call [`space`](https://hackage.haskell.org/package/megaparsec-9.2.0/docs/Text-Megaparsec-Char-Lexer.html#v:space) manually to consume any white space before the first lexeme (i.e. at the beginning of the file).
 
-#### S-expressions: The elegant way
+#### S-expressions: the elegant way
 
 The first thing you should do is import the appropriate lexing module. Megaparsec recommends to import this module qualified.
 
@@ -741,7 +741,7 @@ The first thing you should do is import the appropriate lexing module. Megaparse
 import qualified Text.Megaparsec.Char.Lexer as L
 ```
 
-Now we need to define what is whitespace. Until now, with the usage of `space`, we have considered that it may be a space, tab, newline, carriage return, form feed, or vertical tab. Megaparsec can go beyond, and also consider line comments (such as `-- comment`) and block comments (such as `{- comment -}` as whitespace. Since we get those for free, what about using `;;` for line comments and `/* */` for block comments?
+Now we need to define what is whitespace. Until now, with the usage of `space`, we have considered that it may be a space, tab, newline, carriage return, form feed, or vertical tab. Megaparsec can go beyond that and also consider line comments (such as `-- comment`) and block comments (such as `{- comment -}` as whitespace. Since we get those for free, what about using `;;` for line comments and `/* */` for block comments?
 
 Begin by defining `skipSpace`. We use the `space` helper function from the lexer module, which expects a function to parse 1 or more spaces, a line comment, and a block comment.
 
@@ -780,7 +780,7 @@ integer = label "integer" $ lexeme $ read <$> some numberChar
 
 **Note**: The reader should do the same for `str`, `bool`, and `identifier`. Alternatively, adding `lexeme` to `atom` will also work.
 
-And now, we can parse S-expressions properly:
+And now we can parse S-expressions properly:
 
 ```hs
 >>> parseTest atom "(  foo  /* 8-) */  bar  ;; look mom, comments! \n  )"
@@ -919,7 +919,7 @@ atom = choice
   ]
 ```
 
-And it should fix the problem. However, this is not ideal in terms of performance, as it will cause Megaparsec to consume the entirety of the `double`, to later find that there is no `f`, backtrack, and finally try again with an `integer`.
+And it should fix the problem. However, this is not ideal in terms of performance, as it will cause Megaparsec to consume the entirety of the `double` to later find that there is no `f`, backtrack, and finally try again with an `integer`.
 
 In such a situation this is trivial, but care must be taken in more complex examples, for example, what if we wanted to have `(foo bar)` as well as tuples such as `(foo bar, baz quz)`? The S-expression could be very long and lead to exponential complexity in the worst-case scenario. Recently, a very similar problem [was fixed](https://gitlab.com/morley-framework/morley/-/merge_requests/971) in one of our projects.
 
@@ -999,7 +999,7 @@ As a bonus, we got various improvements:
 
 The functions for `integer` and `double` were kept for reference, even though `numeric` is used instead.
 
-Now let's check it on GHCi:
+Now let's check it in GHCi:
 
 ```hs
 >>> parseTest atom "(foo -42 \"with \\\" now!\")"
@@ -1010,7 +1010,7 @@ And I hope that with this you can better understand how parser combinators work.
 
 The complete code for this part can be found [here](https://gist.github.com/heitor-lassarote/ea54d05aca2956efa29b47ebbf048cbd).
 
-## Bonus: QuasiQuotation
+## Bonus: quasi-quotations
 
 <!--
 * show how to use QQ to parse in compile-time
@@ -1022,9 +1022,9 @@ Note that this section is not necessary for our knowledge of parser combinators,
 
 For this part, you will need the [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package.
 
-Long story short, Template Haskell is a mechanism that allows GHC to evaluate and analyze code during compile-time. One such application is using `QuasiQuoter`s, which allows us to run custom parsers during compile time. Here we will use them for two purposes: to use S-expressions as Haskell expressions, and to use S-expressions as Haskell patterns, both of which can be parsed during compilation.
+Long story short, Template Haskell is a mechanism that allows GHC to evaluate and analyze code during compile-time. One such application is using `QuasiQuoter`s, which allows us to run custom parsers during compile time. Here we will use them for two purposes: to use S-expressions as Haskell expressions and to use S-expressions as Haskell patterns, both of which can be parsed during compilation.
 
-We will create a new file which we'll call `TH.hs`, whose definition is given below.
+We will create a new file called `TH.hs`, whose definition is given below.
 
 ```hs
 module TH where
@@ -1077,7 +1077,7 @@ data SExp
   deriving (Data, Show)
 ```
 
-The basic contents for the `TH` module are summarized as follows:
+The basic contents of the `TH` module are summarized as follows:
 * Each field of `QuasiQuoter` provides a `String` parser for a different Haskell syntax.
 * `quoteExp` creates a Haskell expression.
   * This will allow us to write expressions such as `let mySExp = [sexp|(foo 42)|]`.
@@ -1134,7 +1134,7 @@ foo _                = Nothing
 
 ### Using Haskell locations
 
-Let's change our parser runner a bit so it starts with the current line and column. We will create a new auxiliary `parseSExpWithPos` which takes a `SourcePos`, and uses it for the initial state. This function was created from our old `parseSExp`.
+Let's change our parser runner a bit so it starts with the current line and column. We will create a new auxiliary `parseSExpWithPos`, which takes a `SourcePos` and uses it for the initial state. This function was created from our old `parseSExp`.
 
 Additionally, we create a new `parseSExp` with the default position.
 
