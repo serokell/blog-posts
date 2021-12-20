@@ -84,7 +84,7 @@ This is the meaning of each of the type variables:
 * `e`: The type of custom error messages. If we don't have those, we may use `Void` instead.
 * `a`: The result of our parsing function. It represents the structure parsed from our consumed input.
 
-Let's begin by creating the most primitive function: `satisfy`. It takes some predicate that operates on the current character and advances the parser, if possible, returning the consumed character.
+Let's begin by creating the most primitive function: `satisfy`. It tests the current character with a predicate, and if it succeeds, it will advance the parser and return the consumed character.
 
 We must take care that we are not at the end of the input, however, in which case we should fail.
 
@@ -139,8 +139,6 @@ instance Functor (Parser i e) where
     (output, rest) <- p input
     pure (f output, rest)
 ```
-
-It's interesting to notice that `Either` is a monad, so we can also write the definition of most things more concisely, as shown in the commented part.
 
 Next up is `Applicative`. A good intuition behind `Applicative`s is that `pure` represents an identity element, while `<*>` distributes one argument over the other. Think of this like a multiplication, where `0 * a = a * 0 = 0`, while `1 * a = a * 1 = a`.
 
@@ -304,7 +302,7 @@ Left [Unexpected 'w',Unexpected 'h']
 
 Hopefully, this should give you an intuition of how parser combinators work. Popular parser combinator libraries are more complex than this, as they tend to keep track of extra state for better error messages, optimization, information about line and column, etc., but the overall operations between them are similar.
 
-The complete code for the parser with exercises solutions can be found [here](https://gist.github.com/heitor-lassarote/3e7314956e86b8227f6f6040e69aca9d).
+The complete code for this section with solutions to the exercises below can be found [here](https://gist.github.com/heitor-lassarote/3e7314956e86b8227f6f6040e69aca9d).
 
 ### Exercises:
 1. Change `char` so that it returns errors such as `Left [Expected 'h' 'g']` ("Expected 'h', but got 'g'").
@@ -461,13 +459,13 @@ We will conclude this part here, and if you are interested, proceed to the next 
   * equivalent to JSON: objects, lists, null, numbers, booleans, strings
 -->
 
-We will now take a look at a practical application of parser combinators: parsing S-expressions. Hopefully, this example will give you a solid foundation for creating parsers for your grammars.
+We will now take a look at a practical application of parser combinators: parsing [S-expressions](https://en.wikipedia.org/wiki/S-expressions). Hopefully, this example will give you a solid foundation for creating parsers for your grammars.
 
 Megaparsec is the go-to parser for industrial projects, so we will also use it in our tutorial. If you wish to see how it compares to other parser combinator libraries in Haskell, you can read its [`README.md`](https://github.com/mrkkrp/megaparsec#comparison-with-other-solutions).
 
 Keep in mind you should choose the parser library that better suits your needs. If you plan to parse machine-written data, for example, then Attoparsec may be a better choice. Its interface is similar to Megaparsec's, so the knowledge you will learn here will also be useful.
 
-Without any further ado, we will now present how to use Megaparsec to parse some [`S-expressions`](https://en.wikipedia.org/wiki/S-expressions).
+Without any further ado, we will now present how to use Megaparsec to parse some S-expressions.
 
 ### Representing S-expressions
 
@@ -545,7 +543,7 @@ expecting "false" or "true"
 
 ### Integers
 
-To parse integers, one strategy is to parse as many digits (chars whose value is between `'0'` and `'9'`) as possible. This will give us a list of characters, which we can then `read`,
+To parse integers, one strategy is to parse as many digits (chars whose value is between `'0'` and `'9'`) as possible. This will give us a list of characters, which we can then `read`.
 
 For this parser, we use the `some` function, which tries to run a given parser **1 or more times**. `numberChar` is exported from `Text.Megaparsec.Char` and parses any character that matches a digit. In regex, this is equivalent to `[0-9]+`. This will return us a `[Char]` (aka `String`), which we can `read` to make it into an `Integer`.
 
