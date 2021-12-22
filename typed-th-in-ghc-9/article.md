@@ -62,36 +62,6 @@ logLevelFromFlag = do
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
 ```
 
-You can now query it from GHCi. To test it, `System.Environment` also exports the `setEnv :: String -> String -> IO ()` and `unsetEnv :: String -> IO ()` functions.
-
-```hs
->>> :l TH
-[1 of 1] Compiling TH               ( TH.hs, interpreted )
-Ok, one module loaded.
-
->>> :set -XTemplateHaskell
-
->>> $$logLevelFromFlag
-Production
-
->>> import System.Environment
-
->>> setEnv "LOG_LEVEL" "DEVELOPMENT"
-
->>> $$logLevelFromFlag
-Development
-
->>> setEnv "LOG_LEVEL" "TH"
-
->>> $$logLevelFromFlag
-
-<interactive>:311:1: error:
-    • Unrecognized LOG_LEVEL flag: TH
-    • In the Template Haskell splice $$logLevelFromFlag
-      In the expression: $$logLevelFromFlag
-      In an equation for ‘it’: it = $$logLevelFromFlag
-```
-
 If you try to compile this module with GHC 9, however, this example will fail to compile:
 
 ```hs
