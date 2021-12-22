@@ -33,13 +33,9 @@ Thankfully, the untyped TH interface remains mostly unchanged, and the typed TH 
 
 ## Example GHC 8 code
 
-To make the examples here easier to follow, let us define a small typed Template Haskell module that we wish to work under GHC 8. It will serve as a basis so we can migrate it to work under GHC 9.
+To make the examples here easier to follow, let us define a small typed Template Haskell module that we wish to work under GHC 8, which we will later port to GHC 9. The code will be quite simple, its purpose is to parse an environment flag into a known data type or stop the compilation altogether if it fails.
 
-The code will be quite simple, its purpose is to parse an environment flag into a known data type or stop the compilation altogether if it fails.
-
-We will use the [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so don't forget to load it.
-
-You will also need to activate the `TemplateHaskell` language extension.
+We will use the [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so don't forget to load it. You will also need to activate the `TemplateHaskell` language extension.
 
 ```hs
 {-# LANGUAGE TemplateHaskell #-}
@@ -136,15 +132,11 @@ TH.hs:21:23: error:
 Failed, no modules loaded.
 ```
 
-This is because the quasi-quoter now returns `Quote m => Code m LogLevel`.
-
 In the next sections, we will see how to port this code to GHC 9 without and with backward compatibility with GHC 8.
 
 ## Porting old TTH code without backward compatibility
 
-For this section, you need a GHC whose version is at least 9.
-
-Make sure to import the appropriate definitions from `template-haskell`:
+For this section, you need a GHC whose version is at least 9. Make sure to import the appropriate definitions from `template-haskell` as well:
 
 ```hs
 import Language.Haskell.TH.Syntax (Code, Q, examineCode, liftCode)
@@ -170,44 +162,20 @@ _      "PRODUCTION" -> [|| Production ||]
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
 ```
 
-The biggest problem here is the expectation that the quasi-quoter will return a `Code`. But at the same time, it has no `MonadIO`, `MonadFail` or `Quote` instances, preventing us from using `liftIO`, `fail`, and the quasi-quoter, which are provided by `Q`.
-
-That is what the errors were telling us in the previous section. The solution is to use `examineCode` to turn a `Code m a` into a `m (TExp a)`, and then `liftCode` to do the opposite operation: turning a `m (TExp a)` into a `Code m a`.
+The errors in the previous section happened because the type returned by the quotations is no longer a `Q`, but `Code` instead. The solution is to use `examineCode` to turn a `Code m a` into a `m (TExp a)`, and then `liftCode` to do the opposite operation: turning a `m (TExp a)` into a `Code m a`.
 
 ```hs
 liftCode    :: forall (r :: RuntimeRep) (a :: TYPE r) m. m (TExp a) -> Code m a
 examineCode :: forall (r :: RuntimeRep) (a :: TYPE r) m. Code m a -> m (TExp a)
 ```
 
-With it, our quasi-quoter result becomes in the expected format to run Template Haskell functions and then converted back into the type that the splice expects. The changes we made to the function are the general pattern you will use when exporting functions to be used by splices.
-
-Additionally, you can also make the type signature a bit more generic:
-
-```hs
-logLevelFromFlag :: (MonadIO m, MonadFail m, Quote m) => Code m LogLevel
-```
-
-If you are only interested in using `Q`, however, you can instead use `CodeQ`, which is simply `Code Q`:
-
-```hs
-import Language.Haskell.TH.Lib (CodeQ)
-```
-
-And then use it like so:
-
-```hs
-logLevelFromFlag :: CodeQ LogLevel
-```
-
 And that's it! If you want the code to still work on GHC 8, however, make sure to read the next section.
 
 ## Porting old TTH code with backward compatibility
 
-For this section, you may choose to use either GHC 8 or GHC 9.
+For this section, you may choose to use either GHC 8 or GHC 9. We will use the [`th-compat`](https://hackage.haskell.org/package/th-compat) package, besides the familiar [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so make sure you load them.
 
-We will use the [`th-compat`](https://hackage.haskell.org/package/th-compat) package, besides the familiar [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so make sure you load them.
-
-If you've read the previous section, you will see the pattern is pretty similar to the workflow with `Code`, albeit with `Splice` now.
+The pattern is pretty similar to the workflow with `Code`, albeit with `Splice` now.
 
 Make sure to import the appropriate definitions first:
 
@@ -238,22 +206,6 @@ And now just replace `Code` with `Splice`:
 ```
 
 And that's it! `Splice m a` is defined in `th-compat` as `m (TExp a)` in GHC 8 and `Code m a` in GHC 9, and this is why this code works. In addition, functions like `liftSplice` and `examineSplice` will either be defined `liftCode` and `examineCode` (in GHC 9) or `id` (in GHC 8).
-
-If you wanted, you could drop your direct dependence on `template-haskell` here and simply use `th-compat`. You can use `SpliceQ` and avoid importing `Q` completely, similarly to `CodeQ`:
-
-```hs
-import Language.Haskell.TH.Syntax.Compat (SpliceQ, examineSplice, liftSplice)
-```
-
-And now use `SpliceQ` instead of `Splice`:
-
-```hs
-logLevelFromFlag :: SpliceQ LogLevel
-```
-
-This is because `SpliceQ` is defined simply as `Splice Q`.
-
-It's also possible to use `Quote m => Splice m a`, however, `Quote` was also introduced in a recent `template-haskell` version, so chances are it won't work in GHC 8 and it will be pointless from the point of view of backward compatibility. It can still be useful in other situations, however, like in combination with monad transformers (e.g.: `Splice (State Int Q) a`).
 
 ## Parentheses in splices
 
