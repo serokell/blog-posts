@@ -2,16 +2,21 @@
 
 Welcome to our third post about Template Haskell! Today we will take a look at the changes that were made in GHC 9 regarding Typed Template Haskell (TTH) and how to use the [`th-compat`](https://hackage.haskell.org/package/th-compat) library to make TTH code that will work with both GHC 8 and GHC 9.
 
-<!-- TODO: Actually amend the article! -->
 In our [previous blog post](https://serokell.io/blog/typed-template-haskell-overview), we made an overview of Template Haskell in GHC 8. The article was later amended with the changes required so that the examples compile in GHC 9 in a non-backward compatible way. Make sure to read that post before you continue!
 
 ## Changed Typed Template Haskell specification
 
 The `template-haskell` package was changed in version 2.17.0.0 and GHC version 9.0 according to the [Make Q (TExp a) into a newtype](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0195-code-texp.rst) proposal, in which the typed expression quasi-quoter (`[|| ... ||]`) now returns a different datatype.
 
-Under the new specification, typed expressions now return `Quote m => Code m a` instead of `Q (TExp a)`. This is a breaking change for existing code, and codebases targetting GHC 9.0 either need to adapt their TTH code or use an alternative approach for compatibility.
+Under the new specification, typed quotations now return `Quote m => Code m a` instead of `Q (TExp a)`. This is a breaking change for existing code, and codebases targeting GHC 9.0 either need to adapt their TTH code or use an alternative approach for compatibility.
 
-The `Code` newtype is simply a wrapper around an `m (TExp a)` (plus some levity-polymorphism mechanisms), defined as such:
+The `Code` newtype is simply a wrapper around an `m (TExp a)`, defined similarly to this:
+
+```hs
+newtype Code m a = Code (m (TExp a))
+```
+
+The actual definition is a bit more complicated, as it contains some levity-polymorphism mechanisms. If you go to [its definition](https://hackage.haskell.org/package/template-haskell-2.18.0.0/docs/src/Language.Haskell.TH.Syntax.html#Code), you will actually see this:
 
 ```hs
 type role Code representational nominal
@@ -19,6 +24,8 @@ newtype Code m (a :: TYPE (r :: RuntimeRep)) = Code
   { examineCode :: m (TExp a) -- ^ Underlying monadic value
   }
 ```
+
+The differences between the simplified and real definitions are not important for the understanding of this post, and you may keep the simplified definition in mind while reading through this.
 
 Thankfully, the untyped TH interface remains mostly unchanged, and the typed TH interface should only need to use `Code` instead of `TExp` to compile again with some helper functions.
 
@@ -145,16 +152,21 @@ import Language.Haskell.TH.Syntax (Code, Q, examineCode, liftCode)
 
 Since we now need to return a value of type `Code`, we change our type signature. And now we can fix the code simply by using two new functions, namely `examineCode` and `liftCode`:
 
-```hs
-logLevelFromFlag :: Code Q LogLevel
-logLevelFromFlag = liftCode $ do  -- liftCode will turn 'Q' into 'Code'
+```diff
+-logLevelFromFlag :: Q (TExp LogLevel)
+-logLevelFromFlag = do
++logLevelFromFlag :: Code Q LogLevel
++logLevelFromFlag = liftCode $ do  -- liftCode will turn 'Q' into 'Code'
   flag <- liftIO $ lookupEnv "LOG_LEVEL"
   case flag of
-    -- examineCode will turn 'Code' into 'Q'
-    Nothing -> examineCode [|| Production ||]  -- We default to Production if the flag is unset
++    -- examineCode will turn 'Code' into 'Q'
+-    Nothing -> [|| Production ||]  -- We default to Production if the flag is unset
++    Nothing -> examineCode [|| Production ||]  -- We default to Production if the flag is unset
     Just level -> case level of
-      "DEVELOPMENT" -> examineCode [|| Development ||]
-      "PRODUCTION" -> examineCode [|| Production ||]
+_      "DEVELOPMENT" -> [|| Development ||]
+_      "PRODUCTION" -> [|| Production ||]
++      "DEVELOPMENT" -> examineCode [|| Development ||]
++      "PRODUCTION" -> examineCode [|| Production ||]
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
 ```
 
@@ -206,16 +218,22 @@ import Language.Haskell.TH.Syntax.Compat (Splice, examineSplice, liftSplice)
 
 And now just replace `Code` with `Splice`:
 
-```hs
-logLevelFromFlag :: Splice Q LogLevel
-logLevelFromFlag = liftSplice $ do  -- liftSplice will turn 'Q' into 'Splice'
+```diff
+-logLevelFromFlag :: Code Q LogLevel
+-logLevelFromFlag = liftCode $ do  -- liftSplice will turn 'Q' into 'Code'
++logLevelFromFlag :: Splice Q LogLevel
++logLevelFromFlag = liftSplice $ do  -- liftSplice will turn 'Q' into 'Splice'
   flag <- liftIO $ lookupEnv "LOG_LEVEL"
   case flag of
-    -- examineSplice will turn 'Splice' into 'Q'
-    Nothing -> examineSplice [|| Production ||]  -- We default to Production if the flag is unset
+-    -- examineCode will turn 'Code' into 'Q'
+-    Nothing -> examineCode [|| Production ||]  -- We default to Production if the flag is unset
++    -- examineSplice will turn 'Splice' into 'Q'
++    Nothing -> examineSplice [|| Production ||]  -- We default to Production if the flag is unset
     Just level -> case level of
-      "DEVELOPMENT" -> examineSplice [|| Development ||]
-      "PRODUCTION" -> examineSplice [|| Production ||]
+-      "DEVELOPMENT" -> examineCode [|| Development ||]
+-      "PRODUCTION" -> examineCode [|| Production ||]
++      "DEVELOPMENT" -> examineSplice [|| Development ||]
++      "PRODUCTION" -> examineSplice [|| Production ||]
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
 ```
 
@@ -252,7 +270,7 @@ For example, if we had imported `logLevelFromFlag` qualified, then you'd write `
 But it works otherwise in GHC 9:
 
 ```hs
-$$TH.logLevelFromFlag
+>>> $$TH.logLevelFromFlag
 Production
 ```
 
