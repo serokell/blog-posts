@@ -28,7 +28,7 @@ On the other hand, TypeScript, which has a huge community and modern technologie
 
 Unlike Haskell, TypeScript does not have types as the center part of the language.
 They just help programmers to write stricter and more understandable code, making their life easier.
-You can use types like `any` and nobody pushes you into strict frames.
+You can use types like `any` and nobody pushes you into strict framework.
 
 So, this part will be about simple built-in concepts which are familiar for Haskellers and do not require any overhead when writing code.
 Nevertheless, we will also leave links to some more complex libraries and articles which may help you investigate the case deeper.
@@ -106,7 +106,7 @@ Unfortunately, you can't build an ADT in the same way in TypeScript, but we will
 
 Unit types are a subtype of primitive types that contain exactly one primitive value.
 You can use it like enums, setting unique string values.
-Or even use different values types.
+Or even use values with different types.
 
 ```typescript
 type Result = true | "error" | 5;
@@ -270,7 +270,8 @@ a.y = 1; // Index signature in type 'A' only permits reading.
 
 Also, be careful when passing an object with readonly fields to a function because it may be changed inside the function.
 That happens because of information loss.
-Object with the type which includes `readonly` is a subtype of the type without it, and a function argument with more common type knows nothing about its subtype.
+Object with the type which includes `readonly` is a subtype of the type without it.
+When you pass it to the function with more common, in function scope there is no information about its subtype.
 As a result, you should always write proper types of arguments.
 
 ```typescript
@@ -295,7 +296,7 @@ You will need to construct new objects by hand or use the `Writable` utility typ
 Let's introduce some libraries which may help you deal with this issue.
 The first one and the most powerful is [immer](https://immerjs.github.io/immer/).
 It is used for immutable state flow.
-Immutable data is not copied but shared in memory.
+Immutable data there is not copied but shared in memory.
 `immer` gives you an ability to work with a draft copy of your data and not worry about mutability.
 After all changes, it will produce real immutable state.
 It also has helpers for React.
@@ -687,7 +688,7 @@ type URIS2 = keyof URItoKind2<unknown, unknown>;
 ```
 
 So, now we are ready to present our kinds.
-They take an identifier property as the first type parameter and its type parameter for this identifier.
+They take an identifier property as the first type parameter and its type parameters for this identifier.
 
 ```typescript
 type Kind<F extends URIS, A> = URItoKind<A>[F];
@@ -743,36 +744,58 @@ Lets how it may look in TypeScript.
 type Zero = "zero";
 
 type Nat = Zero | { n: Nat };
+```
 
+And now we are able to define `Succ` which add one to our `Nat`.
+```typescript
 type Succ<N extends Nat> = { n: N };
 ```
 
 With simple `Nat` definition we are able to make smth useful.
 Let's try to create type safe vector which will store its length in type.
 
+Empty vector will be simply be a `"nil"`.
+
 ```typescript
 type Nil = "nil";
+```
 
-type Vec<A, N extends Nat> = N extends Succ<infer R> ? Cons<A, R> : Nil;
+Type `Cons` will add a value to the vector and additionally increase its type level length.
 
+```typescript
 type Cons<A, N extends Nat> = {a: A, v: Vec<A, N>};
+```
 
+And the main type `Vec` combine them with conditional type.
+Using word `infer` we are able to infer new type variable `R` from `N`.
+So, when `N` is a `Succ` we can infer nested `R` from it and return `Cons<A, R>`.
+Otherwise, it is simply `Nil`.
+
+```typescript
+type Vec<A, N extends Nat> = N extends Succ<infer R> ? Cons<A, R> : Nil;
+```
+
+And here are examples of its usage.
+We define two helper function which build `Vec` values.
+And as you can see may use it safely.
+
+```typescript
 const emptyVec: <A>() => Vec<A, Zero> = () => "nil";
 
 const pushVec: <A, N extends Nat>(a: A, v: Vec<A, N>) => Vec<A, Succ<N>> = (a, v) => {
   return {a, v}
 };
 
-let empty: Vec<number, Zero> = emptyVec();
-let oneElem: Vec<number, Succ<Zero>> = pushVec(1, empty);
-let twoElems: Vec<number, Succ<Succ<Zero>>> = pushVec(2, oneElem);
+let empty: Vec<number, Zero> = emptyVec(); // Ok
+let oneElem: Vec<number, Succ<Zero>> = pushVec(1, empty); // Ok
+let twoElems: Vec<number, Succ<Succ<Zero>>> = pushVec(2, oneElem); // Ok
 let twoElemsInvalid: Vec<number, Succ<Zero>> = pushVec(2, oneElem); // error
 oneElem = twoElems; // error
 ```
 
 This was a simple example what we can do with type level programming.
-Using such primitives we can implement different operations of such types and even Fibonacci implementation for example.
-Follow Mathias Jean Johansen [blog post](https://mjj.io/2021/03/29/type-level-programming-in-typescript/) of mentioned above Yuriy Bogomolov [examples](https://github.com/YBogomolov/talk-typelevel-ts/blob/master/src/typelevel.d.ts).
+Using such primitives we can implement different operations on types and even Fibonacci [implementation](https://mjj.io/2021/03/29/type-level-programming-in-typescript/) for example.
+Follow Mathias Jean Johansen [blog post](https://mjj.io/2021/03/29/type-level-programming-in-typescript/) or mentioned above Yuriy Bogomolov [examples](https://github.com/YBogomolov/talk-typelevel-ts/blob/master/src/typelevel.d.ts).
 
 ```typescript
 type Fibonacci<N, F0 = Zero, F1 = One> = {
@@ -783,29 +806,52 @@ type Fibonacci<N, F0 = Zero, F1 = One> = {
 
 ### GADT and eDSL
 
+#### GADT
+
 Generalized algebraic data types in Haskell give us an ability to manually write types of the constructors.
 Having data type `D a` with type value `a` we are able to create constructors like `C :: Int -> D Int`.
 The key feature here is that Haskell may say us about equality of types `a` and `Int` here.
 
-TypeScript on the other hand doesn't have such ability.
-Nevertheless, we can manually say for it about such equality passing the proof to it.
-
 The other great feature of this approach is that we can make nice eDSL using GADT.
 And again TypeScript will not give you such a good eDSL as a result, but it doesn't mean that we can't do it.
 
+TypeScript on the other hand doesn't have equality inference.
+Nevertheless, we can manually provide such equality to it as a value.
+
+We will use `fp-ts` here and later as it has a lot of build in useful types and functions.
+
 ```typescript
 import { identity } from "fp-ts/lib/function";
+```
 
+The next step in `Equality` definition.
+To provide equality as a value we use Leibniz equality.
+Here is a simplified version of it.
+Interface `Equality` is a Hybrid Type which gives an ability for object act as a function.
+Then in `ArithExpr` we simplify `Equality<A, B>` into an identity `(a: A) => A`.
+And finally in `interpret` switching on `type` TypeScript does type narrowing for that case and `proof` gets inferred into a conversion of that specific type into `A`.
+For the fully understandable of this equality you can check [original](http://code.slipthrough.net/2016/08/10/approximating-gadts-in-purescript/) PureScript article and also `Giulio Canti` [example](https://gist.github.com/gcanti/9a0c2a666621f03b80457831ff3ab997), on which this part is based, of its implementation in TypeScript.
+
+```typescript
 interface Equality<A, B> {
   (a: A): B;
 }
+```
 
+Using `Equality` we are ready to write our GADT with additional proof representation as a value.
+
+```typescript
 type ArithExpr<A> =
   | { type: "Num"; v: number; proof: Equality<number, A> }
   | { type: "Plus"; l: ArithExpr<number>; r: ArithExpr<number>; proof: Equality<number, A> }
   | { type: "Gt"; l: ArithExpr<number>; r: ArithExpr<number>; proof: Equality<boolean, A> }
   | { type: "And"; l: ArithExpr<boolean>; r: ArithExpr<boolean>; proof: Equality<boolean, A> };
+```
 
+Now let's define our helper functions which help us to build expressions.
+And use `identity<A>(a: A): A` as a proof.
+
+```typescript
 const num: (v: number) => ArithExpr<number> = (v) => {
   return { type: "Num", v, proof: identity };
 };
@@ -821,7 +867,12 @@ const gt: (l: ArithExpr<number>, r: ArithExpr<number>) => ArithExpr<boolean> = (
 const and: (l: ArithExpr<boolean>, r: ArithExpr<boolean>) => ArithExpr<boolean> = (l, r) => {
   return { type: "And", l, r, proof: identity };
 };
+```
 
+The last step will be just `interpret` implementation.
+Switching on `expr.type` we construct our result running `interpret` on nested expressions and proofing resulted types with the proof from this `expr`.
+
+```typescript
 const interpret: <A>(expr: ArithExpr<A>) => A = (expr) => {
   switch (expr.type) {
     case "Num":
@@ -840,12 +891,17 @@ const interpret: <A>(expr: ArithExpr<A>) => A = (expr) => {
 const testExpr = and(gt(plus(num(23), num(12)), num(170)), gt(num(35), num(47)));
 interpret(testExpr); // false
 
-const wrongExpr = and(num(23), num(12)); // error
+const wrongExpr = and(num(23), num(12)); // Argument of type 'ArithExpr<number>' is not assignable to parameter of type 'ArithExpr<boolean>'.
 ```
+
+#### Tagless final eDSL
 
 Another way to implement eDSL is tagless final.
 Moving from data type to type class we are able to implement the same logic.
-We will use `fp-ts` to implement it.
+
+Let's start from defining our type class.
+To make this we need already known `URIS` which is a union of all 1-arity defined in `URItoKind`.
+And also already known `Kind`.
 
 ```typescript
 import { Kind, URIS } from "fp-ts/HKT";
@@ -856,7 +912,17 @@ type ArithExpr<Expr extends URIS> = {
   gt: (l: Kind<Expr, number>, r: Kind<Expr, number>) => Kind<Expr, boolean>;
   and: (l: Kind<Expr, boolean>, r: Kind<Expr, boolean>) => Kind<Expr, boolean>;
 };
+```
 
+Now, we will present our types for which we will create `ArithExpr` instances.
+The first one will be just interpreter.
+And the second one will create string representation of expression.
+But now we need somehow add them to the `fp-ts` `URItoKind` interface to be able to use them in `ArithExpr` as it take `Expr extends URIS`.
+And `URIS` is just `keyof URItoKind<unknown>`.
+Here we need TypeScript module augmentation feature which allows us to patch existing objects by importing and then updating them.
+So, we simply add `Interpreter` and `ToS` to `URItoKind`.
+
+```typescript
 type Interpreter<A> = {
   interpret: A;
 };
@@ -871,7 +937,11 @@ declare module "fp-ts/lib/HKT" {
     readonly ToS: ToS<A>;
   }
 }
+```
 
+After all preparations we are ready to create instances.
+
+```typescript
 const arithInterpreter: ArithExpr<"Interpreter"> = {
   num: (v: number) => {
     return { interpret: v };
@@ -901,7 +971,11 @@ const arithToS: ArithExpr<"ToS"> = {
     return { toString: `(${l.toString} && ${r.toString})` };
   },
 };
+```
 
+And finally let's create test expression and run it with different instances.
+
+```typescript
 const testExpr: <Expr extends URIS>(E: ArithExpr<Expr>) => Kind<Expr, boolean> = (E) =>
   E.and(E.gt(E.plus(E.num(23), E.num(12)), E.num(170)), E.gt(E.num(35), E.num(47)));
 
@@ -909,13 +983,20 @@ testExpr(arithInterpreter).interpret; // false
 testExpr(arithToS).toString; // (((23 + 12) > 170) && (35 > 47))
 ```
 
-As in the previous parts you can also see more complex examples in Yuriy Bogomolov [edsl workshop](https://github.com/YBogomolov/workshop-edsl-in-typescript/tree/master) and Giulio Canti [example](https://gist.github.com/gcanti/9a0c2a666621f03b80457831ff3ab997).
+You can also see more complex examples in Yuriy Bogomolov [edsl workshop](https://github.com/YBogomolov/workshop-edsl-in-typescript/tree/master).
 
 ## Conclusion
 
-This article is not a tutorial of learning typescript.
-A lot of things are omitted and other used without any explanation.
-But it may help you to understand what things you can do with types in TypeScript.
+In this article we introduced how your knowledge from Haskell may help you in writing type safe code on TypeScript.
+We started from base concepts such as type aliases and data types moving advancing to more complex and TypeScript specific topics like Mapped and Conditional types.
+In the last part learned how to implement more complex things using TypeScript type system.
 
-The last word of this article is by you.
-Use things you learned here, develop your own solutions based on them and dive into a great world of frontend development with types.
+This article is not a tutorial of learning typescript.
+A lot of things were omitted and other may require from you more detailed research.
+But to help you with it, we provided links on external materials or quickly described them in comments to the code examples.
+TypeScript also contain different concepts not only from Haskell but also from other languages and programming paradigms.
+So, feel free to study them and use with already received knowledge.
+Nevertheless, this article may help you to understand what things you can do with types in TypeScript.
+
+The last word here is by you.
+Use things you learned here, develop your own solutions based on them and dive into a great world of frontend development with TypeScript.
