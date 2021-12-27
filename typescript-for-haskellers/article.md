@@ -389,13 +389,13 @@ But it is still a possible functionality, and you can use it in your code quite 
 
 ### Polymorphism
 
-There are different polymorphisms, but we will say only about thee of them: Parametric, Ad-hoc one and Row one.
-Let's start from the first one.
+There are different kinds of polymorphisms, but we will cover only three of them: parametric, ad-hoc, and row polymorphism.
+Let's start with the first one.
 
 #### Parametric polymorphism
 
-Parametric polymorphism allows us to write abstract function or data which will not depend on its type.
-In TypeScript, it is called generics.
+Parametric polymorphism allows us to write abstract functions or data types which don't depend on their type.
+In TypeScript, we call it generics.
 
 ```typescript
 const arrLength: <T>(_: T[]) => number = (arr) => arr.length;
@@ -412,10 +412,10 @@ type NonEmpty<T> = {
 
 #### Ad-hoc polymorphism
 
-Ad hoc polymorphism allows you to implement abstract functions, which logic will be different with different types.
+Ad hoc polymorphism allows you to implement abstract functions, logic of which will be different with different types.
 
 
-Let's define interface `Eq`
+Let's define an `Eq` interface: 
 
 ```typescript
 
@@ -424,9 +424,8 @@ interface Eq<T> {
 }
 ```
 
-And now two implementations of it: `IntEq` for numbers and `IntArrEq` for arrays of numbers.
-The first one will simply compare two numbers.
-And the second one will return equality if the first array contain all elements from the second array.
+And now we will create two implementations of it: `IntEq` for numbers and `IntArrEq` for arrays of numbers.
+The first one will simply compare two numbers, and the second one will return equality if the first array contains all the elements from the second array.
 
 ```typescript
 class IntEq implements Eq<number> {
@@ -442,8 +441,9 @@ class IntArrEq implements Eq<number[]> {
 }
 ```
 
-Now let's implement `lookup` function which for key value pairs array and specific key will return the value associated with this key or `undefined`.
+Now let's implement a `lookup` function, which for an array of key-value pairs and a specific key will return the value associated with this key or `undefined`.
 We can write it polymorph passing comparator class which implements `Eq` for the key type.
+
 ```typescript
 const lookup = <T, K extends Eq<T>, V>(cmp: K, k: T, mp: [T, V][]): V | undefined => {
   let result: V | undefined;
@@ -462,11 +462,11 @@ lookup(new IntArrEq(), [1, 2, 3], [[[1, 3], "1"], [[3, 2], "2"], [[2, 1, 3], "3"
 
 #### Row polymorphism
 
-One more polymorphism is row.
-It allows you to make sure that the record contains at least given set of fields.
-Unfortunately TypeScript type compatibility is based on structural subtyping, so what we have available it is not _really_ a row polymorphism.
-Despite this we can use intersection types to emulate this.
-But you should be careful with using it because during assignments additional information can be lost.
+The last kind of polymorphism is row polymorphism.
+It allows you to make sure that a record contains at least the given set of fields.
+Unfortunately, TypeScript's type compatibility is based on structural subtyping, so what we have available is not _really_ row polymorphism.
+Despite this, we can use intersection types to emulate this.
+But you should be careful with using it since additional information can be lost during assignments.
 Developer must be cautious to propagate the full type-level information when they need it.
 
 ```typescript
@@ -482,16 +482,16 @@ a = b;
 a.x; // Property 'x' does not exist on type 'A'.
 ```
 
-### Mapped types, Conditional types and Type families
+### Mapped types, conditional types, and type families
 
-One useful type functionality of TypeScript are Mapped and Conditional types.
-They give us really flexible ability to modify existing types or create now one.
+One useful type functionality of TypeScript are mapped and conditional types.
+They give us flexibility to modify existing types or create new ones.
 
 #### Mapped types
 
-Mapped types allows you to create new types based on old types transforming them in some way.
+Mapped types allows you to create new types based on old types by transforming them in some way.
 The syntax looks like `[set of field names]: type;`.
-For example, you can add optional modifier or readonly modifier to each field with `type Partial<T> = { [P in keyof T]?: T[P] }` and `type Readonly<T> = { readonly [P in keyof T]: T[P] }`.
+For example, you can add an optional modifier or a readonly modifier to each field with `type Partial<T> = { [P in keyof T]?: T[P] }` and `type Readonly<T> = { readonly [P in keyof T]: T[P] }`.
 It is also possible to remove such modifiers using `-?` and `-readonly`.
 
 The `keyof` operator in the code below produces a union of properties name.
@@ -526,9 +526,9 @@ const a: NoModifiersA = { x: 1, y: 2 }; // Ok
 a.x = 2; // Ok
 ```
 
-Let's present some complex examples of mapped types usage.
+Let's look at some more complex examples of mapped types.
 
-Defining type which contains string and numerical properties.
+First, define a type that contains string and numerical properties.
 
 ```typescript
 type Point = {
@@ -538,8 +538,8 @@ type Point = {
 }
 ```
 
-Now, using mapped types we will create a type which will pick only some properties.
-Word `extends` here say that generic `K` will contain a subset of union properties keys `T`.
+Now, using mapped types, we will create a type which will pick only some of the properties.
+Word `extends` here says that generic `K` will contain a subset of union properties keys `T`.
 And the resulting type will contain only properties from `K`.
 
 ```typescript
@@ -553,17 +553,17 @@ type PointValues = Pick<Point, "x" | 0> // type PointValues = { x: number; 0: nu
 The next example will be more complex.
 We will try to create the type which produce type with getters for all string properties.
 
-To implement it lets firstly define helper type `Getter`.
-Capitalize is a build in type which may be applied for the string type.
-So, for `T` which extends string we can produce getter specific name.
+To implement it, lets firstly define a `Getter` helper type.
+Capitalize is a built-in type, which may be applied to the string type.
+So, for `T` which extends string, we can produce getter specific name.
 
 ```typescript
 type Getter<T extends string> = `get${Capitalize<T>}`;
 ```
 
-And finally we can implement `Getters` type.
-Type `Extract` extract from type all union members which are assignable to some type.
-So, here for each property name `K` in `T` which is assignable to `string` we create getter property name with type `() => T[K]`.
+And finally we can implement the `Getters` type.
+Type `Extract` extracts from a type all union members that are assignable to some type.
+So, here for each property name `K` in `T` that is assignable to `string`, we create a getter property name with type `() => T[K]`.
 
 ```typescript
 type Getters<T> = {
@@ -577,12 +577,13 @@ type PointGetters = Getters<Point> // type PointValues = { getX: () => number; g
 
 Another great feature is conditional types.
 It allows you to choose the type based on some condition expressed as another type.
-Using `extends` word you are able to make a condition `T extends U ? X : Y`.
-It also allows you to not only choose from two types, but from many types `T extends U ? X : T extends W ? Y : Z`.
-With such functionality you may implement things which may resemble type families although not quite right.
-Anyway in conjunction with mapped types it is a great feature to manage your types.
+With `extends`, you are able to make a condition: `T extends U ? X : Y`.
+It also allows you to not only choose from two types, but from many types: `T extends U ? X : T extends W ? Y : Z`.
+With such functionality, you can implement things that resemble type families although are not quite like them.
+Anyway, in conjunction with mapped types, it is a great feature to manage your types.
+
 One thing to note are union types.
-Conditional types with union types are called Distributive Conditional Types and their work may look a little confused.
+Conditional types together with union types are called distributive conditional types, and how they work might be a little bit confusing.
 But we will explain them on examples.
 
 Here is the base example of conditional types.
@@ -600,7 +601,7 @@ type N = Condition<B, A>; // type N = number
 type E = Condition<C, A>; // type E = string
 ```
 
-Let's move to the Distributive Conditional Types.
+Let's move to distributive conditional types.
 `Exclude` type may looks strange, but what if we will pass union types here?
 It will simply exclude such types in union `T` which exists in union `U` setting `never` in other cases.
 Where `never` type describe the type of values that never present.
@@ -609,8 +610,8 @@ Where `never` type describe the type of values that never present.
 type Exclude<T, U> = T extends U ? never : T;
 ```
 
-We may think about it as about two nested cycles.
-For each type in `T` and for each type in `U` if `T extends U` return `never` otherwise return `T`.
+You may think about it as about two nested cycles.
+For each type in `T` and for each type in `U`, if `T extends U`, return `never`, and otherwise return `T`.
 
 ```typescript
 type A = "a" | "b" | "c";
@@ -619,8 +620,8 @@ type C = Exclude<A, "a" | "b" | "c">; // type C = never
 type D = Exclude<A, "z">; // type D = "a" | "b" | "c"
 ```
 
-And using it we can write `Omit` type which will remove properties from type.
-Taking properties of `T` using `keyof T` we exclude from them properties which names are written in `K` and then simply pick remaining ones using `Pick` from the example above.
+With distributed conditional types, we can write an `Omit` type which will remove properties from type.
+When taking properties of `T` via `keyof T`, we exclude from them properties whose names are written in `K`, and then simply pick remaining ones using `Pick` from the example above.
 
 ```typescript
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
@@ -634,25 +635,24 @@ type Point = {
 type PointX = Omit<Point, "y" | "z">; // type PointX = { x: number }
 ```
 
-TypeScript [contains](https://www.typescriptlang.org/docs/handbook/utility-types.html) a lot of predefined conditional and mapped types, so you can use them from the box.
+TypeScript [contains](https://www.typescriptlang.org/docs/handbook/utility-types.html) a lot of predefined conditional and mapped types, so you can use them out of the box.
 
 ## Going deeper
 
-Build-in concepts are good.
-But as you can see, TypeScript type system is not really a weak one.
-Adding our knowledge from Haskell and type theory we can think about how to get more from this system and what we can build using it.
-This part will show very brief descriptions of different approaches.
-But links, mentioned below, on references and other articles must help you to deeply understand them.
+Built-in concepts are good.
+But as you can see, TypeScript's type system is not really a weak one.
+By adding our knowledge from Haskell and type theory, we can get more from this system.
+This part will show very brief descriptions of different approaches, but we have also added links to references and other articles that will help you understand them more deeply, if necessary.
 
 ### HKT
 
-You may see that TypeScript type system is not so bad as one may think.
-But it has one important limitation -- absence of kinds.
-Higher-Kinded Types allow us to write types which have their own type constructors as parameters.
+As we said before, TypeScript's type system is not so bad as one may think.
+But it has one important limitation – absence of kinds.
+Higher-kinded types allow us to write types which have their own type constructors as parameters.
 So, using generics instead of abstracting only over types we are able to abstract over types which already abstract over types.
 
+Unfortunately, we can't write such code, and TypeScript's type system doesn't allow it.
 
-Unfortunately we can't write such code and TypeScript type system doesn't allow it.
 ```typescript
 interface Collection<F> {
   create: <A>() => F<A>; // Type 'F' is not generic.
@@ -665,13 +665,12 @@ const collectionArray: Collection<Array> = {
 };
 ```
 
-Fortunately we are able to simulate kinds using defunctionalization which allows us to translate higher-order programs into a first-order language.
-The main idea is to map type constructors names to their implementations.
-Using it we will be able to write type Kind which work with `* -> *` constructors, Kind2 for `* -> * -> *`, and so on.
+Fortunately, we are able to simulate kinds by using defunctionalization, which allows us to translate higher-order programs into a first-order language.
+The main idea is to map type constructor names to their implementations.
+Using it, we are able to write a type Kind which works with `* -> *` constructors, Kind2 for `* -> * -> *`, and so on.
 
 Let's define two types: `URItoKind` and `URItoKind2`. They will be our identifiers for 1-arity and 2-arity types.
-And `URIS` with `URIS2` will be a present of all such types.
-Type `unknown` is a more type-safe representation of `any` which force us to do some checks before doing actions with values of this type.
+And `URIS` with `URIS2` will be a present for all such types.
 
 ```typescript
 type URItoKind<A> = {
@@ -687,6 +686,8 @@ type URIS = keyof URItoKind<unknown>;
 type URIS2 = keyof URItoKind2<unknown, unknown>;
 ```
 
+Type `unknown` is a more type-safe representation of `any`, which forces us to do some checks before doing actions with values of this type.
+
 So, now we are ready to present our kinds.
 They take an identifier property as the first type parameter and its type parameters for this identifier.
 
@@ -695,7 +696,7 @@ type Kind<F extends URIS, A> = URItoKind<A>[F];
 type Kind2<F extends URIS2, A, B> = URItoKind2<A, B>[F];
 ```
 
-And now we can return to `Collection` above and implement it using kinds.
+And now we can return to the `Collection` above and implement it using kinds.
 
 ```typescript
 interface Collection<F extends URIS> {
@@ -710,9 +711,9 @@ const collectionArray: Collection<"Array"> = {
 ```
 
 Let's now show how it works on practice.
-We implement new `Collection` instance with `Set`.
-And then write generic function `f` over `Collection`.
-The last thing you need to do is to pass implementation as a function argument.
+We implement a new `Collection` instance with `Set`.
+And then write a generic function `f` over `Collection`.
+The last thing you need to do is to pass the implementation as a function argument.
 
 ```typescript
 const collectionSet: Collection<"Set"> = {
@@ -729,16 +730,16 @@ f(collectionArray, 1, 2); // [ 1, 2 ]
 f(collectionSet, 2, 2); // Set(1) { 2 }
 ```
 
-Of course this is a tiny set of what you can do with kinds.
-Most of all this part is inspired by [fp-ts](https://gcanti.github.io/fp-ts/) library and [Yuriy Bogomolov](https://ybogomolov.me/) blog.
-Fp-ts contains tone of things which you may know from Haskell and in blog you can find great explanations of it.
+Of course, this is a tiny set of what you can do with kinds.
+Most of this part is inspired by [`fp-ts`](https://gcanti.github.io/fp-ts/) library and [Yuriy Bogomolov's](https://ybogomolov.me/) blog.
+`fp-ts` contains ton of things which you may know from Haskell, and in the blog you can find great explanations of the library.
 Also, there are a lot of libraries based on fp-ts: [io-ts](https://github.com/gcanti/io-ts), [parser-ts](https://github.com/gcanti/parser-ts), [monocle-ts](https://github.com/gcanti/monocle-ts), [remote-data-ts](https://github.com/devex-web-frontend/remote-data-ts), etc.
 
 ### Peano numbers
 
-Moving deeper we can think about type level programming and more concretely about computational on types.
+Moving deeper, we can think about type-level programming and, more concretely, about computational on types.
 The basic primitive which may help us in this problem is Peano numbers.
-Lets how it may look in TypeScript.
+Lets see how it may look in TypeScript.
 
 ```typescript
 type Zero = "zero";
@@ -746,38 +747,40 @@ type Zero = "zero";
 type Nat = Zero | { n: Nat };
 ```
 
-And now we are able to define `Succ` which add one to our `Nat`.
+And now we are able to define `Succ`, which adds one to our `Nat`.
+
 ```typescript
 type Succ<N extends Nat> = { n: N };
 ```
 
-With simple `Nat` definition we are able to make smth useful.
-Let's try to create type safe vector which will store its length in type.
+With a simple `Nat` definition, we are able to make something useful.
+
+Let's try to create a type-safe vector that will store its length in type.
 
 Empty vector will be simply be a `"nil"`.
 
 ```typescript
 type Nil = "nil";
 ```
-
-Type `Cons` will add a value to the vector and additionally increase its type level length.
+Type `Cons` will add a value to the vector and increase its type-level length.
 
 ```typescript
 type Cons<A, N extends Nat> = {a: A, v: Vec<A, N>};
 ```
 
-And the main type `Vec` combine them with conditional type.
-Using word `infer` we are able to infer new type variable `R` from `N`.
-So, when `N` is a `Succ` we can infer nested `R` from it and return `Cons<A, R>`.
+And the main type `Vec` combines them with conditional type.
+
+Using `infer`, we are able to infer new type variable `R` from `N`.
+So, when `N` is a `Succ`, we can infer nested `R` from it and return `Cons<A, R>`.
 Otherwise, it is simply `Nil`.
 
 ```typescript
 type Vec<A, N extends Nat> = N extends Succ<infer R> ? Cons<A, R> : Nil;
 ```
 
-And here are examples of its usage.
+And here are examples of `Vec`'s usage.
 We define two helper function which build `Vec` values.
-And as you can see may use it safely.
+And, as you can see, we can use it safely.
 
 ```typescript
 const emptyVec: <A>() => Vec<A, Zero> = () => "nil";
@@ -794,8 +797,8 @@ oneElem = twoElems; // error
 ```
 
 This was a simple example what we can do with type level programming.
-Using such primitives we can implement different operations on types and even Fibonacci [implementation](https://mjj.io/2021/03/29/type-level-programming-in-typescript/) for example.
-Follow Mathias Jean Johansen [blog post](https://mjj.io/2021/03/29/type-level-programming-in-typescript/) or mentioned above Yuriy Bogomolov [examples](https://github.com/YBogomolov/talk-typelevel-ts/blob/master/src/typelevel.d.ts).
+Using such primitives, we can implement different operations on types and even a Fibonacci [implementation](https://mjj.io/2021/03/29/type-level-programming-in-typescript/), for example.
+Follow Mathias Jean Johansen's [blog post](https://mjj.io/2021/03/29/type-level-programming-in-typescript/) or above-mentioned Yuriy Bogomolov's [examples](https://github.com/YBogomolov/talk-typelevel-ts/blob/master/src/typelevel.d.ts).
 
 ```typescript
 type Fibonacci<N, F0 = Zero, F1 = One> = {
