@@ -579,7 +579,7 @@ Another great feature is conditional types.
 It allows you to choose the type based on some condition expressed as another type.
 With `extends`, you are able to make a condition: `T extends U ? X : Y`.
 It also allows you to not only choose from two types, but from many types: `T extends U ? X : T extends W ? Y : Z`.
-With such functionality, you can implement things that resemble type families although are not quite like them.
+With such functionality, you can implement things that resemble [type families](https://serokell.io/blog/type-families-haskell) although are not quite like them.
 Anyway, in conjunction with mapped types, it is a great feature to manage your types.
 
 One thing to note are union types.
@@ -807,33 +807,33 @@ type Fibonacci<N, F0 = Zero, F1 = One> = {
 }[IfElse<Equals<Zero, N>, "acc", "n">]
 ```
 
-### GADT and eDSL
+### GADTs and eDSLs
 
-#### GADT
+#### Generalized algebraic data types
 
-Generalized algebraic data types in Haskell give us an ability to manually write types of the constructors.
-Having data type `D a` with type value `a` we are able to create constructors like `C :: Int -> D Int`.
-The key feature here is that Haskell may say us about equality of types `a` and `Int` here.
+Generalized algebraic data types (GADTs) in Haskell give us an ability to manually write types of the constructors.
+Having a data type `D a` with a type value `a`, we are able to create constructors like `C :: Int -> D Int`.
+The key feature is that Haskell can say us about equality of types `a` and `Int` here.
 
-The other great feature of this approach is that we can make nice eDSL using GADT.
-And again TypeScript will not give you such a good eDSL as a result, but it doesn't mean that we can't do it.
+The other great feature of this approach is that we can make a nice eDSL by using GADTs.
+And again, TypeScript will not give you such a good eDSL as a result, but it doesn't mean that we can't do it.
 
 TypeScript on the other hand doesn't have equality inference.
 Nevertheless, we can manually provide such equality to it as a value.
 
-We will use `fp-ts` here and later as it has a lot of build in useful types and functions.
+We will use `fp-ts` here and below since it has a lot of useful built-in types and functions.
 
 ```typescript
 import { identity } from "fp-ts/lib/function";
 ```
 
 The next step in `Equality` definition.
-To provide equality as a value we use Leibniz equality.
+To provide equality as a value, we use Leibniz equality.
 Here is a simplified version of it.
-Interface `Equality` is a Hybrid Type which gives an ability for object act as a function.
-Then in `ArithExpr` we simplify `Equality<A, B>` into an identity `(a: A) => A`.
-And finally in `interpret` switching on `type` TypeScript does type narrowing for that case and `proof` gets inferred into a conversion of that specific type into `A`.
-For the fully understandable of this equality you can check [original](http://code.slipthrough.net/2016/08/10/approximating-gadts-in-purescript/) PureScript article and also `Giulio Canti` [example](https://gist.github.com/gcanti/9a0c2a666621f03b80457831ff3ab997), on which this part is based, of its implementation in TypeScript.
+Interface `Equality` is a hybrid type, which gives an object the ability to act as a function.
+Then in `ArithExpr`, we simplify `Equality<A, B>` into an identity `(a: A) => A`.
+And, finally, in `interpret`, switching on `type` TypeScript does type narrowing for that case, and `proof` gets inferred into a conversion of that specific type into `A`.
+To fully understand this equality, you can check the [original](http://code.slipthrough.net/2016/08/10/approximating-gadts-in-purescript/) PureScript article and also Giulio Canti's [example](https://gist.github.com/gcanti/9a0c2a666621f03b80457831ff3ab997) (on which this part is based) of its implementation in TypeScript.
 
 ```typescript
 interface Equality<A, B> {
@@ -841,7 +841,7 @@ interface Equality<A, B> {
 }
 ```
 
-Using `Equality` we are ready to write our GADT with additional proof representation as a value.
+Using `Equality`, we are ready to write our GADT with additional proof representation as a value.
 
 ```typescript
 type ArithExpr<A> =
@@ -851,8 +851,7 @@ type ArithExpr<A> =
   | { type: "And"; l: ArithExpr<boolean>; r: ArithExpr<boolean>; proof: Equality<boolean, A> };
 ```
 
-Now let's define our helper functions which help us to build expressions.
-And use `identity<A>(a: A): A` as a proof.
+Now let's define our helper functions which will help us to build expressions and use `identity<A>(a: A): A` as a proof.
 
 ```typescript
 const num: (v: number) => ArithExpr<number> = (v) => {
@@ -872,8 +871,8 @@ const and: (l: ArithExpr<boolean>, r: ArithExpr<boolean>) => ArithExpr<boolean> 
 };
 ```
 
-The last step will be just `interpret` implementation.
-Switching on `expr.type` we construct our result running `interpret` on nested expressions and proofing resulted types with the proof from this `expr`.
+The last step will be just the implementation of `interpret`.
+Switching on `expr.type`, we construct our result by running `interpret` on nested expressions and proving resulting types with the proof from this `expr`.
 
 ```typescript
 const interpret: <A>(expr: ArithExpr<A>) => A = (expr) => {
@@ -899,12 +898,11 @@ const wrongExpr = and(num(23), num(12)); // Argument of type 'ArithExpr<number>'
 
 #### Tagless final eDSL
 
-Another way to implement eDSL is tagless final.
+Another way to implement an eDSL is [tagless final](https://serokell.io/blog/introduction-tagless-final).
 Moving from data type to type class we are able to implement the same logic.
 
-Let's start from defining our type class.
-To make this we need already known `URIS` which is a union of all 1-arity defined in `URItoKind`.
-And also already known `Kind`.
+Let's start with defining our type class.
+To do this, we need the already-mentioned `URIS`, which is a union of all 1-arity defined in `URItoKind`, and also already-mentioned `Kind`.
 
 ```typescript
 import { Kind, URIS } from "fp-ts/HKT";
@@ -918,8 +916,8 @@ type ArithExpr<Expr extends URIS> = {
 ```
 
 Now, we will present our types for which we will create `ArithExpr` instances.
-The first one will be just interpreter.
-And the second one will create string representation of expression.
+The first one will be just an interpreter.
+And the second one will create a string representation of expression.
 But now we need somehow add them to the `fp-ts` `URItoKind` interface to be able to use them in `ArithExpr` as it take `Expr extends URIS`.
 And `URIS` is just `keyof URItoKind<unknown>`.
 Here we need TypeScript module augmentation feature which allows us to patch existing objects by importing and then updating them.
@@ -942,7 +940,7 @@ declare module "fp-ts/lib/HKT" {
 }
 ```
 
-After all preparations we are ready to create instances.
+After all the preparations, we are ready to create instances.
 
 ```typescript
 const arithInterpreter: ArithExpr<"Interpreter"> = {
@@ -976,7 +974,7 @@ const arithToS: ArithExpr<"ToS"> = {
 };
 ```
 
-And finally let's create test expression and run it with different instances.
+And finally, let's create a test expression and run it with different instances.
 
 ```typescript
 const testExpr: <Expr extends URIS>(E: ArithExpr<Expr>) => Kind<Expr, boolean> = (E) =>
@@ -986,20 +984,21 @@ testExpr(arithInterpreter).interpret; // false
 testExpr(arithToS).toString; // (((23 + 12) > 170) && (35 > 47))
 ```
 
-You can also see more complex examples in Yuriy Bogomolov [edsl workshop](https://github.com/YBogomolov/workshop-edsl-in-typescript/tree/master).
+You can also see more complex examples in Yuriy Bogomolov's [eDSL workshop](https://github.com/YBogomolov/workshop-edsl-in-typescript/tree/master).
 
 ## Conclusion
 
-In this article we introduced how your knowledge from Haskell may help you in writing type safe code on TypeScript.
-We started from base concepts such as type aliases and data types moving advancing to more complex and TypeScript specific topics like Mapped and Conditional types.
-In the last part learned how to implement more complex things using TypeScript type system.
+In this article, we have shown how your knowledge from Haskell may help you in writing type safe code on TypeScript.
+We started from basic concepts such as type aliases and data types and moved towards more complex and TypeScript-specific topics like mapped and conditional types.
+In the last part, we learned how to implement more complex things using TypeScript type system.
 
-This article is not a tutorial of learning typescript.
-A lot of things were omitted and other may require from you more detailed research.
-But to help you with it, we provided links on external materials or quickly described them in comments to the code examples.
+This article is not a tutorial for learning TypeScript.
+A lot of things were omitted, and others may require more detailed research from you.
+To help you with that, we have tried to provide links to external materials.
 TypeScript also contain different concepts not only from Haskell but also from other languages and programming paradigms.
-So, feel free to study them and use with already received knowledge.
-Nevertheless, this article may help you to understand what things you can do with types in TypeScript.
+So, feel free to study those as well and use them with the already received knowledge.
+Nevertheless, this article may help you to understand what kind of things you can do with types in TypeScript.
 
-The last word here is by you.
-Use things you learned here, develop your own solutions based on them and dive into a great world of frontend development with TypeScript.
+Hopefully, you can use things you learned here, develop your own solutions based on them, and dive into a great world of frontend development with TypeScript.
+
+If you would like to read more TypeScript articles, follow us on [Twitter](https://twitter.com/serokell) and [DEV](https://dev.to/serokell), or subscribe to our newsletter below.
