@@ -189,7 +189,7 @@ For example, if we had imported `logLevelFromFlag` qualified, then you'd write `
 <interactive>:200:1: error: parse error on input ‘$$’
 ```
 
-But it works otherwise in GHC 9:
+But it works in GHC 9:
 
 ```hs
 >>> $$TH.logLevelFromFlag
@@ -198,8 +198,8 @@ Production
 
 ## Conclusion
 
-In this post, we've seen the changes introduced in GHC 9 regarding Typed Template Haskell. We learned about two different ways to migrate typed Template Haskell code from GHC 8 to GHC 9 and analyzed their differences.
+In this post, we've seen the changes introduced in GHC 9 regarding Typed Template Haskell. We've learned about two different ways to migrate typed Template Haskell code from GHC 8 to GHC 9 and analyzed their differences.
 
-Using `th-compat` has a big advantage in being compatible with two compilers, besides having an interface similar to the one in GHC 9. On the other hand, if supporting GHC 8 is not necessary, it becomes an extra dependency in your project, being potentially unfamiliar to many users. The choice of which strategy to use will ultimately depend on your specific needs, but we hope to have shed a light on their pros and cons.
+Using `th-compat` has a big advantage in being compatible with two compilers, besides having an interface similar to the one in GHC 9. On the other hand, if supporting GHC 8 is not necessary, it becomes an extra dependency in your project that's potentially unfamiliar to many users. The choice of which strategy to use will ultimately depend on your specific needs, but we hope to have shed light on their pros and cons.
 
-For more Haskell tutorials, you can check out our [Haskell articles](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Medium](https://serokell.medium.com/).
+For more Haskell tutorials, you can check out our [Haskell articles](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell/).

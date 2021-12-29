@@ -70,7 +70,7 @@ SigE (LitE (IntegerL 42)) (ConT GHC.Base.String)
 
 Just like we had untyped splices such as `$foo`, now we also have typed splices, written as `$$foo`. In this section, we will see how to define and splice typed Template Haskell code.
 
-We reiterate one point mentioned in our previous article: in GHC 8, the usage of splices may require parentheses or not. For instance, if `foo` came from a qualified import, then you'd need to write `$$(Foo.foo)` instead. In GHC 9, the parser is more relaxed and will not require parentheses in such situations.
+We reiterate one point mentioned in our previous article: before GHC 9, the usage of splices may require parentheses or not. For instance, if `foo` came from a qualified import, then you'd need to write `$$(Foo.foo)` instead. In GHC 9, the parser is more relaxed and will not require parentheses in such situations.
 
 ## Example: calculating prime numbers
 
@@ -330,7 +330,7 @@ Furthermore, as discussed, the [caveat](#caveat) in the previous section doesn't
 ""
 ```
 
-Should you need to explicitly convert between the old and new types, you may pattern match directly on `Code` or use the following functions:
+Should you need to explicitly convert between the old and new types, you may pattern match directly on `Code` or use the following functions from [Language.Haskell.TH](https://hackage.haskell.org/package/template-haskell-2.18.0.0/docs/Language-Haskell-TH.html#t:Code):
 
 ```hs
 liftCode :: m (TExp a) -> Code m a
