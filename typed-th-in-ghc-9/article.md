@@ -8,7 +8,7 @@ In our [previous blog post](https://serokell.io/blog/typed-template-haskell-over
 
 The `template-haskell` package was changed in version 2.17.0.0 and GHC version 9.0 according to the [Make Q (TExp a) into a newtype](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0195-code-texp.rst) proposal, in which the typed expression quasi-quoter (`[|| ... ||]`) now returns a different datatype.
 
-Under the new specification, typed quotations now return `Quote m => Code m a` instead of `Q (TExp a)`. This is a breaking change for existing code, and codebases targeting GHC 9.0 either need to adapt their TTH code or use an alternative approach for compatibility.
+Under the new specification, typed quotations now return `Quote m => Code m a` instead of `Q (TExp a)`, and typed splices expect this new type as well. This is a breaking change for existing code, and codebases targeting GHC 9.0 either need to adapt their TTH code or use an alternative approach for compatibility.
 
 The `Code` newtype is simply a wrapper around an `m (TExp a)`, defined similarly to this:
 
@@ -28,8 +28,6 @@ newtype Code m (a :: TYPE (r :: RuntimeRep)) = Code
 The differences between the simplified and real definitions are not important for the understanding of this post, and you may keep the simplified definition in mind while reading through this.
 
 Thankfully, the untyped TH interface remains mostly unchanged, and the typed TH interface should only need to use `Code` instead of `TExp` to compile again with some helper functions.
-
-<!-- TODO: Write about motivation as well? -->
 
 ## Example GHC 8 code
 
@@ -62,9 +60,9 @@ logLevelFromFlag = do
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
 ```
 
-If you try to compile this module with GHC 9, however, this example will fail to compile:
+If you try to compile this module with GHC 9, however, this example will fail to compile. We omit similar errors for brevity:
 
-```hs
+```text
 >>> :l TH
 
 TH.hs:18:16: error:
@@ -77,29 +75,19 @@ TH.hs:18:16: error:
    |
 18 |     Nothing -> [|| Production ||]  -- We default to Production if the flag is unset
    |                ^^^^^^^^^^^^^^^^^^
+```
 
-TH.hs:20:24: error:
-    • Couldn't match type ‘Code m1’ with ‘Q’
-      Expected: Q (TExp LogLevel)
-        Actual: Code m1 LogLevel
-    • In the Template Haskell quotation [|| Development ||]
-      In the expression: [|| Development ||]
-      In a case alternative: "DEVELOPMENT" -> [|| Development ||]
-   |
-20 |       "DEVELOPMENT" -> [|| Development ||]
-   |                        ^^^^^^^^^^^^^^^^^^^
+Similarly, splices will also require that new code return `Code`, which is exemplified with a hole:
 
-TH.hs:21:23: error:
-    • Couldn't match type ‘Code m2’ with ‘Q’
-      Expected: Q (TExp LogLevel)
-        Actual: Code m2 LogLevel
-    • In the Template Haskell quotation [|| Production ||]
-      In the expression: [|| Production ||]
-      In a case alternative: "PRODUCTION" -> [|| Production ||]
-   |
-21 |       "PRODUCTION" -> [|| Production ||]
-   |                       ^^^^^^^^^^^^^^^^^^
-Failed, no modules loaded.
+```text
+>>> $$_
+
+<interactive>:19:3: error:
+    • Found hole: _ :: Code Q p0
+      Where: ‘p0’ is an ambiguous type variable
+    • In the Template Haskell splice $$_
+      In the expression: $$_
+      In an equation for ‘it’: it = $$_
 ```
 
 In the following sections, we will see how to port this code to GHC 9 without and with backward compatibility with GHC 8.
@@ -108,8 +96,9 @@ In the following sections, we will see how to port this code to GHC 9 without an
 
 For this section, you need a GHC whose version is at least 9. Make sure to import the appropriate definitions from `template-haskell` as well:
 
-```hs
-import Language.Haskell.TH.Syntax (Code, Q, examineCode, liftCode)
+```diff
+-import Language.Haskell.TH.Syntax (Q, TExp)
++import Language.Haskell.TH.Syntax (Code, Q, examineCode, liftCode)
 ```
 
 Since we now need to return a value of type `Code`, we change our type signature. And now we can fix the code simply by using two new functions, namely `examineCode` and `liftCode`:
@@ -132,7 +121,7 @@ Since we now need to return a value of type `Code`, we change our type signature
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
 ```
 
-The errors in the previous section happened because the type returned by the quotations is no longer a `Q`, but `Code` instead. The solution is to use `examineCode` to turn a `Code m a` into a `m (TExp a)`, and then `liftCode` to do the opposite operation: turning a `m (TExp a)` into a `Code m a`.
+The errors in the previous section happened because the type returned by the quotations is no longer a `Q`, but `Code` instead. The solution is to use `examineCode` to turn a `Code Q a` into a `Q (TExp a)`, and then `liftCode` to do the opposite operation: turning a `Q (TExp a)` into a `Code Q a`.
 
 ```hs
 liftCode    :: forall (r :: RuntimeRep) (a :: TYPE r) m. m (TExp a) -> Code m a
@@ -145,13 +134,16 @@ And that's it! If you want the code to still work on GHC 8, however, make sure t
 
 For this section, you may choose to use either GHC 8 or GHC 9. We will use the [`th-compat`](https://hackage.haskell.org/package/th-compat) package, besides the familiar [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so make sure you load them both.
 
+`th-compat` is our recommended library for backward compatibility with TTH. In this section, we will show how to change the usage from `Code` to the backward-compatible `Splice` which works on GHC 9 as well as previous versions.
+
 The pattern is pretty similar to the workflow with `Code`, albeit with `Splice` now.
 
 Make sure to import the appropriate definitions first:
 
-```hs
-import Language.Haskell.TH.Syntax (Q)
-import Language.Haskell.TH.Syntax.Compat (Splice, examineSplice, liftSplice)
+```diff
+-import Language.Haskell.TH.Syntax (Code, Q, examineCode, liftCode)
++import Language.Haskell.TH.Syntax (Q)
++import Language.Haskell.TH.Syntax.Compat (Splice, examineSplice, liftSplice)
 ```
 
 And now just replace `Code` with `Splice`:
@@ -175,11 +167,11 @@ And now just replace `Code` with `Splice`:
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
 ```
 
-And that's it! `Splice m a` is defined in `th-compat` as `m (TExp a)` in GHC 8 and `Code m a` in GHC 9, and this is why this code works. In addition, functions like `liftSplice` and `examineSplice` will either be defined as `liftCode` and `examineCode` (in GHC 9) or `id` (in GHC 8).
+And that's it! `Splice m a` is defined in `th-compat` as `Code m a` in GHC 9 and as `m (TExp a)` in prior versions, and this is why this code works. In addition, functions like `liftSplice` and `examineSplice` will either be defined as `liftCode` and `examineCode` (in GHC 9) or `id` (in GHC 8 and below).
 
 ## Parentheses in splices
 
-Just one more thing before we conclude this article. You may see surprising behavior regarding the usage of parentheses in splices for both untyped and typed Template Haskell depending on whether you are using GHC 8 or GHC 9.
+Just one more thing before we conclude this article. You may see surprising behavior regarding the usage of parentheses in splices for both untyped and typed Template Haskell. The parser was tweaked in GHC 9 so parentheses are not necessary in some situations compared to prior versions.
 
 For example, if we had imported `logLevelFromFlag` qualified, then you'd write `$$(TH.logLevelFromFlag)` in GHC 8, otherwise you'd get a parser error:
 
@@ -200,6 +192,6 @@ Production
 
 In this post, we've seen the changes introduced in GHC 9 regarding Typed Template Haskell. We've learned about two different ways to migrate typed Template Haskell code from GHC 8 to GHC 9 and analyzed their differences.
 
-Using `th-compat` has a big advantage in being compatible with two compilers, besides having an interface similar to the one in GHC 9. On the other hand, if supporting GHC 8 is not necessary, it becomes an extra dependency in your project that's potentially unfamiliar to many users. The choice of which strategy to use will ultimately depend on your specific needs, but we hope to have shed light on their pros and cons.
+Using `th-compat` has a big advantage in being compatible with various GHC versions, besides having an interface similar to the one in GHC 9. On the other hand, if supporting GHC 8 is not necessary, it becomes an extra dependency in your project that's potentially unfamiliar to many users. The choice of which strategy to use will ultimately depend on your specific needs, but we hope to have shed light on their pros and cons.
 
 For more Haskell tutorials, you can check out our [Haskell articles](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell/).
