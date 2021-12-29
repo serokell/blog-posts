@@ -306,9 +306,9 @@ An [open ticket](https://gitlab.haskell.org/ghc/ghc/-/issues/10271) exists descr
 
 In GHC 9, the types used by typed Template Haskell were changed according to the [Make Q (TExp a) into a newtype](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0195-code-texp.rst) proposal.
 
-This proposal changed the typed expression quasi-quoter so it now returns `Quote m => Code m a` instead of the old `Quote m => m (TExp a)` from [`template-haskell-2.17.0.0`](https://hackage.haskell.org/package/template-haskell-2.17.0.0/docs/Language-Haskell-TH.html#t:Code).
+This proposal changed the typed expression quasi-quoter so it now returns `Quote m => Code m a` instead of the old `Q (TExp a)` which was used prior to GHC 9.
 
-If the reader is curious, please take a moment to read our [Typed Template Haskell in GHC 9](https://serokell.io/blog/typed-template-haskell-in-ghc-9) article detailing a migration guide of typed TH code to GHC 9, where we discuss a backward-compatible way to integrate typed Template Haskell code in both GHC 8 and GHC 9.
+If you're curious, please take a moment to read our [Typed Template Haskell in GHC 9](https://serokell.io/blog/typed-template-haskell-in-ghc-9) article detailing a migration guide of typed TH code to GHC 9, where we discuss a backward-compatible way of integrating typed Template Haskell code in both GHC 8 and GHC 9.
 
 Thankfully, changing the examples to work with GHC 9 is not difficult. In short, you may replace the parts like `Q (TExp a)` with `Quote m => Code m a` (or `Code Q a`) and the code should compile.
 
