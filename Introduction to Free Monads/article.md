@@ -26,9 +26,13 @@ That is, in this context, "free" means "unrestricted" -- it is not that we can g
 
 More formally, a free structure over a set $S$ is a set $M,$ together with operations on elements of $M,$ such that:
 
-- There is an embedding $i: S\to M$.
+- There is an embedding[^embedding] $i: S\to M$.
 - $M$ only contains elements required to exist by $i$ or the operations on the elements of $M$.
 - The only laws that hold for the generated structure are those required to hold.
+
+[^embedding]: An embedding is an injective morphism.
+    That is, an embedding $S\to M$ is a mapping from elements of $S$ to elements of $M$, such that each element of $S$ is mapped onto a unique element of $M$ (injectivity), and, in some sense, this mapping is structure-preserving (i.e. it's a morphism).
+    The point is that every element of the original set is uniquely representable in the free structure.
 
 Let us start with a simple example, specifically, `Monoid`s.
 In Haskell, any type `α` in the `Monoid` type class must have two functions defined.
@@ -132,7 +136,7 @@ However, but there exists a natural transformation to the category of endofuncto
     [endofunctors]: https://www.reddit.com/r/math/comments/ap25mr/a_monad_is_a_monoid_in_the_category_of/
 
 We can guess a few things, based on the intuition we gained looking at free monoids.
-First, we might note that `return` and `>>=` correspond to `mempty` and `mappend`, respectively.
+First, we might note that `return` and `>=>` correspond to `mempty` and `mappend`, respectively.
 Second, we can expect that for any `Functor` `f :: Type -> Type`, there is a corresponding free `Monad` `Free f :: Type -> Type`, the same as for free monoids.
 
 ## Free monads
@@ -165,8 +169,11 @@ Let us now look at the actual definition of `Free f`:
 data Free f a = Pure a | Free (f (Free f a))
 ```
 
-As you can see, it is indeed very similar to a list -- a bit more general, since the functor is arbitrary, which potentially makes it a tree, with branches of type `f` and leaves of type `a`.
+As you can see, it is indeed very similar to a list.
+Note, however, that it is a bit more general: the functor is arbitrary, potentially making it a tree, with branches of type `f` and leaves of type `a`.
 Pure values, i.e. leaves, are encoded via the constructor `Pure`, and "actions", i.e. branches -- via the constructor `Free`.
+
+This point is important, so we'll repeat -- free monad is similar to a list, but, unlike a list, "continuation" (i.e. `Free`) can be a branching structure, depending on the choice of the base functor `f`.
 
 It may be helpful to write out the types of these constructors explicitly:
 
@@ -182,7 +189,7 @@ If you squint some more, you will notice that the signature of `Free` is very si
 join :: Monad m => m (m a) -> m a
 ```
 
-Instead of defining monads in terms of `return` and `>>=`, we can alternatively define them in terms of `map`, `return`, and `join`.
+Instead of defining monads in terms of `return` and `>>=`, we can alternatively define them in terms of `fmap`, `return`, and `join`.
 So this hopefully provides some insight into why such a structure works as an encoding for a free monad.
 Indeed, if we require that `f` in `Free f` must be a functor, we get `fmap` from the start, and `Pure` and `Free` fill the roles of `return` and `join` respectively.
 
@@ -215,7 +222,7 @@ join (Pure x) = x
 join (Free x) = Free $ join <$> x
 ```
 
-What must be noted here, is that this implementation, while straightforward, is not particularly efficient.
+We must note that this implementation, while straightforward, is not particularly efficient.
 A more efficient implementation, known as Church-encoded free monads, is available.
 Naturally, when using free monads, you should prefer the more efficient implementation.
 However, the core idea remains the same, so we're not delving into this topic in this introduction.
@@ -328,7 +335,7 @@ runState (Free f) s =
 If you're familiar with the usual state monad, you may have noticed that we've essentially moved the implementation of `>>=` to `runState`.
 The free monad doesn't specify the meaning of monadic actions, so we have to decide what those actions mean when we're running it.
 
-To illustrate this point, we're going to write another interpreter, which is essentially a pretty-printer:
+To illustrate this point, we're going to write another interpreter, which is essentially a pretty-printer for the flow of a `State` computation:
 
 ```haskell
 printState :: (Show s, Show a) => State s a -> s -> String
@@ -339,7 +346,7 @@ printState (Free m) s =
     <> printState x s'
 ```
 
-If we run `someComputateion` defined above through this interpreter, we'll get the following output:
+If we run `someComputation` defined above through this interpreter, for example by invoking `printState someComputation 1`, we'll get the following output:
 
 ```
 state change 1 -> 1
@@ -347,9 +354,14 @@ state change 1 -> 2
 pure ((),2)
 ```
 
+The first line of output corresponds to `get`.
+While it doesn't modify the state, it's still an action, so the `state change` line is still printed.
+The second line corresponds to `put $ i + 1`, which naturally changes the state to `2`.
+The third line corresponds to `pure ()`, but it also outputs the end state.
+
 Let's summarize what we've learned so far.
 We can take any usual base functor for some monad, and get a `Monad` instance "for free".
-The caveat is that we need to define the semantics of this monad separately by writing an interpreter.
+The catch is that we need to define the semantics of this monad separately by writing an interpreter.
 
 ### List as a free monad
 
@@ -359,14 +371,14 @@ However, if we derive a free monad for lists, the behavior is slightly different
 Consider:
 
 ```haskell
-listComputation :: FreeList Int
+listComputation :: Free [] Int
 listComputation = do
   x <- liftF [1, 2, 3]
   y <- liftF [70, 80]
   z <- liftF [500, 600]
   pure $ x+y+z
 
-printFreeList :: Show a => FreeList a -> String
+printFreeList :: Show a => Free [] a -> String
 printFreeList (Pure x) = show x
 printFreeList (Free f) = "["
   <> intercalate "," (printFreeList <$> f)
@@ -380,9 +392,10 @@ if we run `printFreeList listComputation`, we will get
 ```
 
 Notice how it gets us what is essentially nested lists, unlike the regular list monad.
+Notice also that it's essentially a rose tree.
 Of course, we can get the standard list monad behavior by concatenating the nested lists, but we might not necessarily want to do that.
 
-In general, we can restore any proper monad behavior from a free monad, since it doesn't actually define any semantics, beyond those necessary for any monad.
+In general, we can restore any proper monad behavior from a free monad, since it doesn't define any semantics beyond those necessary for any monad.
 `free` provides a function for that:
 
 ```haskell
@@ -390,7 +403,12 @@ foldFree :: Monad m => (forall x. f x -> m x) -> Free f a -> m a
 ```
 
 Given a function[^natural-transformation] converting `f x` into some monad `m x` for any `x`, we can convert `Free f a` into `m a`.
-Returning to our list example, we can get the original list behavior by applying `foldFree id`.
+Returning to our list example, we can get the original list behavior by applying `foldFree id`:
+
+```haskell
+> foldFree id listComputation
+[571,671,581,681,572,672,582,682,573,673,583,683]
+```
 
 [^natural-transformation]: This function is a natural transformation.
     The naturality condition is enforced by parametricity.
@@ -400,13 +418,28 @@ Returning to our list example, we can get the original list behavior by applying
 ### Free monads for EDSLs
 
 By now, we hopefully got some intuition for how free monads work.
-Let us now define a toy calculator language, which reads a few integers from the standard input, adds them together, and prints the result.
+Let us now define a toy calculator language that reads a few integers from the standard input, adds them together, and prints the result.
 
 The key intuition here is that if the next action depends on the previous one, we need to encode this as a continuation, i.e. we need to have a function accepting some argument and returning the functor parameter.
 
-One caveat is that in the case of a non-branching computation, we only want our base functor to be a functor in the overall result type, but not in the arguments.
-Indeed, we can't define a lawful regular `Functor` instance if the functor argument ends up in the function argument position[^variance].
-Hence, we will introduce two type parameters: one for the arguments, and another for the result.
+Now, if we try to define a functor where every operation uses the same type everywhere, we'll run into a bit of an issue.
+Consider this datatype for instance:
+
+```haskell
+data ASTF a
+  = Add a a (a -> a)
+  | Input (a -> a)
+  | Output a a
+```
+
+If we try to derive a `Functor` instance, GHC will complain:
+
+```
+Constructor ‘Add’ must not use the type variable in a function argument
+```
+
+It is, in fact, impossible to define a lawful `Functor` instance if the functor's type variable ends up in the function argument position[^variance].
+Hence, we will introduce two type variables: one for operation arguments, and another for the overall result:
 
 [^variance]: This has to do with `Functor` being a covariant functor, but discussion of variance is out of scope here.
 
@@ -419,8 +452,8 @@ data ASTF t a
 ```
 
 Notice that for `Add` we're saying that it takes two arguments `t`, its result is also `t`, but ultimately, the continuation returns the type `a`.
-In practice, we will define `add :: t -> t -> Free (ASTF t) t`, but for the purpose of auto-derivation and more flexibility, we're not assuming these types are the same in this definition.
-The same line of reasoning applies to `Input`.
+In practice, we will define `add :: t -> t -> Free (ASTF t) t`, but to have a lawful `Functor`, and also more flexibility, we're not assuming these types are the same.
+Similar reasoning applies to `Input`.
 
 With `Output`, we could've defined it as `Output t (() -> a)`, since our output action doesn't have any meaningful result.
 But we omit this extraneous argument, and simply encode the continuation as a value.
@@ -570,11 +603,11 @@ printAST fast = snd $ evalState (runWriterT $ go fast) 0
       Output s next -> do
         tell $ "output " <> s <> "\n"
         go next
-      If cond tru fls -> do
+      If cond onTrue onFalse -> do
         tell $ "if' " <> cond <> " (do\n"
-        _ <- go tru
+        _ <- go onTrue
         tell "\n) (do\n"
-        _ <- go fls
+        _ <- go onFalse
         tell "\n)\n"
 ```
 
