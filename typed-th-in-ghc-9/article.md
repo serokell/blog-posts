@@ -1,8 +1,8 @@
 # Typed Template Haskell in GHC 9
 
-Welcome to our third post about Template Haskell! Today we will take a look at the changes that were made in GHC 9 regarding Typed Template Haskell (TTH) and how to use the [`th-compat`](https://hackage.haskell.org/package/th-compat) library to make TTH code that will work with both GHC 8 and GHC 9.
+Welcome to our third post about Template Haskell! Today we will take a look at the changes that were made in GHC 9 regarding Typed Template Haskell (TTH) and how to use the [`th-compat`](https://hackage.haskell.org/package/th-compat) library to write TTH code that will work with both GHC 8 and GHC 9.
 
-In our [previous blog post](https://serokell.io/blog/typed-template-haskell-overview), we made an overview of Template Haskell in GHC 8. The article was later amended with the changes required so that the examples compile in GHC 9 in a non-backward compatible way. Make sure to read that post before you continue!
+In our [previous blog post](https://serokell.io/blog/typed-template-haskell-overview), we gave an overview of Typed Template Haskell in GHC 8. The article was later amended with the changes required so that the examples compile in GHC 9 in a non-backward compatible way. Make sure to read that post before you continue!
 
 ## Changed Typed Template Haskell specification
 
@@ -102,7 +102,7 @@ TH.hs:21:23: error:
 Failed, no modules loaded.
 ```
 
-In the next sections, we will see how to port this code to GHC 9 without and with backward compatibility with GHC 8.
+In the following sections, we will see how to port this code to GHC 9 without and with backward compatibility with GHC 8.
 
 ## Porting old TTH code without backward compatibility
 
@@ -125,8 +125,8 @@ Since we now need to return a value of type `Code`, we change our type signature
 -    Nothing -> [|| Production ||]  -- We default to Production if the flag is unset
 +    Nothing -> examineCode [|| Production ||]  -- We default to Production if the flag is unset
     Just level -> case level of
-_      "DEVELOPMENT" -> [|| Development ||]
-_      "PRODUCTION" -> [|| Production ||]
+-      "DEVELOPMENT" -> [|| Development ||]
+-      "PRODUCTION" -> [|| Production ||]
 +      "DEVELOPMENT" -> examineCode [|| Development ||]
 +      "PRODUCTION" -> examineCode [|| Production ||]
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
@@ -143,7 +143,7 @@ And that's it! If you want the code to still work on GHC 8, however, make sure t
 
 ## Porting old TTH code with backward compatibility
 
-For this section, you may choose to use either GHC 8 or GHC 9. We will use the [`th-compat`](https://hackage.haskell.org/package/th-compat) package, besides the familiar [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so make sure you load them.
+For this section, you may choose to use either GHC 8 or GHC 9. We will use the [`th-compat`](https://hackage.haskell.org/package/th-compat) package, besides the familiar [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so make sure you load them both.
 
 The pattern is pretty similar to the workflow with `Code`, albeit with `Splice` now.
 
@@ -175,7 +175,7 @@ And now just replace `Code` with `Splice`:
       other -> fail $ "Unrecognized LOG_LEVEL flag: " <> other
 ```
 
-And that's it! `Splice m a` is defined in `th-compat` as `m (TExp a)` in GHC 8 and `Code m a` in GHC 9, and this is why this code works. In addition, functions like `liftSplice` and `examineSplice` will either be defined `liftCode` and `examineCode` (in GHC 9) or `id` (in GHC 8).
+And that's it! `Splice m a` is defined in `th-compat` as `m (TExp a)` in GHC 8 and `Code m a` in GHC 9, and this is why this code works. In addition, functions like `liftSplice` and `examineSplice` will either be defined as `liftCode` and `examineCode` (in GHC 9) or `id` (in GHC 8).
 
 ## Parentheses in splices
 
