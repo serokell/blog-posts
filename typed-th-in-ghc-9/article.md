@@ -2,11 +2,11 @@
 
 Welcome to our third post about Template Haskell! 
 
-Today we will take a look at the changes that were made in GHC 9 regarding Typed Template Haskell (TTH) and how to use the [`th-compat`](https://hackage.haskell.org/package/th-compat) library to write TTH code that will work with both GHC 8 and GHC 9.
+Today we will take a look at the changes that were made in GHC 9 regarding typed Template Haskell (TTH) and how to use the [`th-compat`](https://hackage.haskell.org/package/th-compat) library to write TTH code that will work with both GHC 8 and GHC 9.
 
-In our [previous blog post](https://serokell.io/blog/typed-template-haskell-overview), we gave an overview of Typed Template Haskell in GHC 8. The article was later amended with the changes required so that the examples compile in GHC 9 in a non-backward compatible way. Make sure to read that post before you continue!
+In our [previous blog post](https://serokell.io/blog/typed-template-haskell-overview), we gave an overview of typed Template Haskell in GHC 8. The article was later amended with the changes required so that the examples compile in GHC 9 in a non-backward compatible way. Make sure to read that post before you continue!
 
-## Changes in the Typed Template Haskell specification
+## Changes in the typed Template Haskell specification
 
 The `template-haskell` package was changed in version 2.17.0.0 and GHC version 9.0 according to the [Make Q (TExp a) into a newtype](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0195-code-texp.rst) proposal, in which the typed expression quasi-quoter (`[|| ... ||]`) now returns a different datatype.
 
@@ -192,7 +192,7 @@ Production
 
 ## Conclusion
 
-In this post, we've seen the changes introduced in GHC 9 regarding Typed Template Haskell. We've learned about two different ways to migrate typed Template Haskell code from GHC 8 to GHC 9 and analyzed their differences.
+In this post, we've seen the changes introduced in GHC 9 regarding typed Template Haskell. We've learned about two different ways to migrate typed Template Haskell code from GHC 8 to GHC 9 and analyzed their differences.
 
 Using `th-compat` has a big advantage in being compatible with various GHC versions, besides having an interface similar to the one in GHC 9. On the other hand, if supporting GHC 8 is not necessary, it becomes an extra dependency in your project that's potentially unfamiliar to many users. The choice of which strategy to use will ultimately depend on your specific needs, but we hope to have shed light on their pros and cons.
 
