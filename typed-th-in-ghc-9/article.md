@@ -177,7 +177,7 @@ Just one more thing before we conclude this article. You may see surprising beha
 
 For example, if we had imported `logLevelFromFlag` qualified, then you'd write `$$(TH.logLevelFromFlag)` in GHC 8, otherwise you'd get a parser error:
 
-```hs
+```none
 >>> $$TH.logLevelFromFlag
 
 <interactive>:200:1: error: parse error on input ‘$$’
@@ -185,7 +185,7 @@ For example, if we had imported `logLevelFromFlag` qualified, then you'd write `
 
 But it works in GHC 9:
 
-```hs
+```none
 >>> $$TH.logLevelFromFlag
 Production
 ```
