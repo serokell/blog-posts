@@ -1,10 +1,12 @@
 # Typed Template Haskell in GHC 9
 
-Welcome to our third post about Template Haskell! Today we will take a look at the changes that were made in GHC 9 regarding Typed Template Haskell (TTH) and how to use the [`th-compat`](https://hackage.haskell.org/package/th-compat) library to write TTH code that will work with both GHC 8 and GHC 9.
+Welcome to our third post about Template Haskell! 
+
+Today we will take a look at the changes that were made in GHC 9 regarding Typed Template Haskell (TTH) and how to use the [`th-compat`](https://hackage.haskell.org/package/th-compat) library to write TTH code that will work with both GHC 8 and GHC 9.
 
 In our [previous blog post](https://serokell.io/blog/typed-template-haskell-overview), we gave an overview of Typed Template Haskell in GHC 8. The article was later amended with the changes required so that the examples compile in GHC 9 in a non-backward compatible way. Make sure to read that post before you continue!
 
-## Changed Typed Template Haskell specification
+## Changes in the Typed Template Haskell specification
 
 The `template-haskell` package was changed in version 2.17.0.0 and GHC version 9.0 according to the [Make Q (TExp a) into a newtype](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0195-code-texp.rst) proposal, in which the typed expression quasi-quoter (`[|| ... ||]`) now returns a different datatype.
 
@@ -25,13 +27,13 @@ newtype Code m (a :: TYPE (r :: RuntimeRep)) = Code
   }
 ```
 
-The differences between the simplified and real definitions are not important for the understanding of this post, and you may keep the simplified definition in mind while reading through this.
+The differences between the simplified and real definitions are not important for understanding this post, and you may keep the simplified definition in mind while reading through this.
 
 Thankfully, the untyped TH interface remains mostly unchanged, and the typed TH interface should only need to use `Code` instead of `TExp` to compile again with some helper functions.
 
-## Example GHC 8 code
+## GHC 8 code example
 
-To make the examples here easier to follow, let us define a small typed Template Haskell module that we wish to work under GHC 8, which we will later port to GHC 9. The code will be quite simple, its purpose is to parse an environment flag into a known data type or stop the compilation altogether if it fails.
+To make the examples here easier to follow, let us define a small typed Template Haskell module that we wish to work under GHC 8, which we will later port to GHC 9. The code will be quite simple: its purpose will be to parse an environment flag into a known data type or stop the compilation altogether if it fails.
 
 We will use the [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so don't forget to load it. You will also need to activate the `TemplateHaskell` language extension.
 
@@ -134,7 +136,7 @@ And that's it! If you want the code to still work on GHC 8, however, make sure t
 
 For this section, you may choose to use either GHC 8 or GHC 9. We will use the [`th-compat`](https://hackage.haskell.org/package/th-compat) package, besides the familiar [`template-haskell`](https://hackage.haskell.org/package/template-haskell) package, so make sure you load them both.
 
-`th-compat` is our recommended library for backward compatibility with TTH. In this section, we will show how to change the usage from `Code` to the backward-compatible `Splice` which works on GHC 9 as well as previous versions.
+`th-compat` is our recommended library for backward compatibility with TTH. In this section, we will show how to change the usage from `Code` to the backward-compatible `Splice`, which works on GHC 9 as well as previous versions.
 
 The pattern is pretty similar to the workflow with `Code`, albeit with `Splice` now.
 
@@ -171,7 +173,7 @@ And that's it! `Splice m a` is defined in `th-compat` as `Code m a` in GHC 9 and
 
 ## Parentheses in splices
 
-Just one more thing before we conclude this article. You may see surprising behavior regarding the usage of parentheses in splices for both untyped and typed Template Haskell. The parser was tweaked in GHC 9 so parentheses are not necessary in some situations compared to prior versions.
+Just one more thing before we conclude this article. You may see surprising behavior regarding the usage of parentheses in splices for both untyped and typed Template Haskell. The parser was tweaked in GHC 9 so parentheses are unnecessary in some situations compared to prior versions.
 
 For example, if we had imported `logLevelFromFlag` qualified, then you'd write `$$(TH.logLevelFromFlag)` in GHC 8, otherwise you'd get a parser error:
 
