@@ -19,7 +19,7 @@ Generally, you can write web applications in almost every language.
 Because we like Haskell, could we write our web applications in a functional language (or even in Haskell)? The answer is yes.
 There is strongly-typed PureScript with Haskell-like syntax, purely functional Elm, Reflex framework for Haskell with GHCJS, F# with Fabel.
 
-Unfortunately, these don't give us proper flexibility in working with JS libraries (whose numbers are enormous) and take more time on fixing related problems.
+Unfortunately, these don't give us proper flexibility in working with JS libraries (whose numbers are enormous), and when problems related to library management appear, it takes more time to fix those.
 Additionally, customers will be locked in when they need to maintain such applications.
 On the other hand, TypeScript, which has a vast community and provides modern technologies out of the box, is a great decision.
 
@@ -89,9 +89,8 @@ sendMessage("St. Petersburg" as City); // Argument of type 'City' is not assigna
 sendMessage("email@gmail.com" as Email); // Ok
 ```
 
-This is not an ideal solution for newtypes.
-There is a [comment](https://github.com/Microsoft/TypeScript/issues/4895#issuecomment-401067935) in issue with a better solution.
-And there is also a [library](https://github.com/sveseme/taghiro), which provides a prettier implementation for them.
+While this is the simplest solution for newtypes, it is not the best for complex systems. 
+For a better (but more complex) one, check this [comment](https://github.com/Microsoft/TypeScript/issues/4895#issuecomment-401067935) in TypeScript's issues.
 
 ### ADTs in TypeScript
 
