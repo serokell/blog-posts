@@ -92,15 +92,16 @@ sendMessage("email@gmail.com" as Email); // Ok
 While this is the simplest solution for newtypes, it is not the best for complex systems. 
 For a better (but more complex) one, check this [comment](https://github.com/Microsoft/TypeScript/issues/4895#issuecomment-401067935) in TypeScript's issues.
 
-### ADTs in TypeScript
+### Algebraic data types
 
-In Haskell, [ADTs](https://www.youtube.com/watch?v=UqwLn2OyQ_E) are a constantly-used functionality of the language.
+In Haskell, [algebraic data types (ADTs)](https://www.youtube.com/watch?v=UqwLn2OyQ_E) are a commonly used functionality of the language.
 They allow you to build your own types from small blocks.
 And with pattern matching, it is easy to access this data.
 
-Unfortunately, you can't build an ADT in the same way in TypeScript, but we will show you what we can do with the existing type system. We will start from the easiest enums and move to more complex things after that.
+Unfortunately, you can't build an ADT in the same way in TypeScript, but we will show you what we can do with the existing type system. 
+We will start with the easiest enums and move to more complex things after that.
 
-#### Unit types
+#### Union types
 
 Union types allow you to combine different types.
 Unions are not tagged, so they are just a set of possible types.
