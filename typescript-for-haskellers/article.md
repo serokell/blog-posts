@@ -55,7 +55,7 @@ And you can also create types with properties:
 ```typescript
 type Document = {
   name: string;
-  athor?: string;
+  author?: string;
 }
 ```
 
@@ -231,15 +231,14 @@ const a: A = { x: 1 };
 a.x = 12; // Cannot assign to 'x' because it is a read-only property.
 ```
 
-Nevertheless, you can easily see problems here.
+Nevertheless, you can easily see some problems here.
+
 `const` and `readonly` only block reference changes but do nothing about values.
-With `const a = [1, 2, 3]` or `readonly x: number[]`, you still will be able to change the content of an array.
+With `const a = [1, 2, 3]` or `readonly x: number[]`, you can still change the contents of an array.
 
 Also, you need to be careful when passing an object with read-only fields to a function because it may be changed inside the function.
 This happens because of information loss.
-The type of an object with `readonly` is a subtype of the type without it.
-When you pass it to a function with a more general type, the function does not have access to information about its subtype.
-As a result, you should always write proper types of arguments.
+The type of an object with `readonly` is a subtype of the type without it, and when you pass it to a function with a more general type, the function does not have access to information about its subtype.
 
 ```typescript
 const a: { readonly x: number } = { x: 1 };
@@ -253,10 +252,12 @@ changeA(a);
 a.x; // 2
 ```
 
+For this reason, you should always write proper types of arguments.
 
-#### `Readonly` types
 
-With the `Readonly` type, you can mark all properties as `readonly`.
+#### `Readonly` type
+
+With the [`Readonly`](https://www.typescriptlang.org/docs/handbook/utility-types.html#readonlytype) type, you can mark all properties as `readonly`.
 
 ```typescript
 type A = {
@@ -302,12 +303,10 @@ Fortunately, there are libraries that can help you deal with this issue.
 The first one (and the most powerful) is [immer](https://immerjs.github.io/immer/), which is used for immutable state flow.
 Immutable data there is not copied but shared in memory.
 In other words, `immer` gives you the ability to work with a draft copy of your data and not worry about mutability.
-After all changes, it will produce an actually immutable state.
+After all the changes are done, it will produce an actually immutable state.
 It also has helpers for React.
 
-Produce here is a base primitive for working with `immer`.
-It takes your current state and a function, which takes a draft and applies changes.
-And in the end, it creates a new `nextA` state without any changes in  `a`.
+Here's an example of it's use:
 
 ```typescript
 type A = Immutable<
@@ -333,6 +332,10 @@ const nextA = produce(a, (draft) => {
   draft.push({ text: "some text", valid: false }); // add new element to array
 });
 ```
+
+In the code example above, `produce` is a base primitive for working with `immer`.
+It takes your current state and a function, which takes a draft and applies changes.
+And in the end, it creates a new `nextA` state without any changes in  `a`.
 
 And finally, there are three interesting optics libraries that can help you work with immutable data structures: 
 
@@ -399,7 +402,7 @@ Let's start with the first one.
 
 #### Parametric polymorphism
 
-Parametric polymorphism allows us to write abstract functions or data types which don't depend on their type.
+Parametric polymorphism allows us to write abstract functions or data types that don't depend on their type.
 In TypeScript, we call those generics.
 
 ```typescript
@@ -448,7 +451,7 @@ class IntArrEq implements Eq<number[]> {
 
 Now let's implement a `lookup` function, which for an array of key-value pairs and a specific key will return the value associated with this key or `undefined`.
 
-We can write it polymorphic by passing a comparator class that implements `Eq` for the key type.
+We can make it polymorphic by passing a comparator class that implements `Eq` for the key type.
 
 ```typescript
 const lookup = <T, K extends Eq<T>, V>(cmp: K, k: T, mp: [T, V][]): V | undefined => {
@@ -473,7 +476,7 @@ It allows you to ensure that a record contains at least the given set of fields.
 
 Unfortunately, TypeScript's type compatibility is based on structural subtyping, so what we have available is not _exactly_ row polymorphism.
 Despite this, we can use intersection types to emulate this.
-But you should be careful with using it since you can lose information during assignments.
+But you should be careful with that since you can lose information during assignments.
 Therefore, you must be cautious about propagating the full type-level information when you need it.
 
 ```typescript
@@ -491,12 +494,12 @@ a.x; // Property 'x' does not exist on type 'A'.
 
 ### Mapped types, conditional types, and type families
 
-[Mapped](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html) and [conditional](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html) types are a rather practical part of TypeScript.
-They give us the flexibility to modify existing types or create new ones out of them.
+Mapped and conditional types are a rather practical part of TypeScript.
+They give us the flexibility to modify existing types or create new types out of them.
 
 #### Mapped types
 
-Mapped types allow you to create new types based on old types by transforming them in some way.
+[Mapped types](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html) allow you to create new types based on old types by transforming them in some way.
 The syntax looks like this: `[set of field names]: type;`.
 For example, you can add an optional modifier or a readonly modifier to each field with `type Partial<T> = { [P in keyof T]?: T[P] }` and `type Readonly<T> = { readonly [P in keyof T]: T[P] }`, respectively.
 
@@ -504,7 +507,7 @@ For example, you can add an optional modifier or a readonly modifier to each fie
 type Partial<T> = { [P in keyof T]?: T[P] };
 
 type A = { x: number; y: number };
-type PartialA = Partia<A>;
+type PartialA = Partial<A>;
 
 const a: A = { x: 1 }; // Property 'y' is missing in type '{ x: number; }' but required in type 'A'.
 const a: PartialA = { x: 1 }; // Ok
@@ -513,7 +516,7 @@ const a: PartialA = { x: 1 }; // Ok
 In the code above: 
 
 * `Partial` type adds the `?` modifier for each property.
-* The `keyof` operator in the code above produces a union of properties name.
+* The [`keyof`](https://www.typescriptlang.org/docs/handbook/2/keyof-types.html) operator in the code above produces a union of property names.
 * Square brackets indicate the computed names.
 * And the `in` operator goes over all the field keys.
 
@@ -535,7 +538,7 @@ a.x = 2; // Ok
 
 Now, let's look at some more complex examples of mapped types.
 
-First, define a type that contains string and numerical properties.
+First, let's define a `Point` type with some string and numerical properties.
 
 ```typescript
 type Point = {
@@ -545,50 +548,54 @@ type Point = {
 }
 ```
 
-Now, using mapped types, we will create a type that will pick only some of the properties.
-Word `extends` here says that generic `K` will contain a subset of union properties keys `T`.
-And the resulting type will contain only properties from `K`.
+Now, using mapped types, we can create a type that will pick a subset of the properties of a type.
+
+Here,`K` is a generic type that is constrained by `keyof T`, which is a union of all `T`'s properties.
+For each of the properties in `K`, we pick them out of T. 
 
 ```typescript
 type Pick<T, K extends keyof T> = {
   [P in K]: T[P];
 };
+```
 
+Then, by applying `Pick` to `Point` and `"x" | 0`, we can map a type from `Point` to a type with only the properties listed. 
+
+```
 type PointValues = Pick<Point, "x" | 0> // type PointValues = { x: number; 0: number }
 ```
 
 The next example will be more complex.
-We will try to create the type which produces a type with getters for all string properties.
+We will try to create a type that produces a type with getters for all string properties.
 
-To implement it, let's first define a `Getter` helper type.
-Capitalize is a built-in type, which may be applied to the string type.
-So, for `T`, which extends string, we can produce getter specific name.
+To implement it, let's first define a `Getter` helper type (`Capitalize<T>` is a built-in type that can be applied to the string type.).
 
 ```typescript
 type Getter<T extends string> = `get${Capitalize<T>}`;
 ```
+So, for each `T` that extends string, we can produce a getter-specific name.
 
-And finally, we can implement the `Getters` type.
-Type `Extract` extracts from a type all union members that are assignable to some type.
-So, here for each property name `K` in `T` that is assignable to `string`, we create a getter property name with type `() => T[K]`.
+After that, we can implement the `Getters` type by using the [`Extract`](https://www.typescriptlang.org/docs/handbook/utility-types.html#extracttype-union) type, which will construct a type by extracting from type `K` all union members that are assignable to `string`.
 
 ```typescript
 type Getters<T> = {
     [K in keyof T as Getter<Extract<K, string>>]: () => T[K];
 }
+```
 
+So for each property name `K` in `T` that is assignable to `string`, we create a getter with property name and type `() => T[K]`.
+
+```
 type PointGetters = Getters<Point> // type PointValues = { getX: () => number; getY: () => number; }
 ```
 
+
 #### Conditional types
 
-Another great feature of TypeScript is conditional types.
-It allows you to choose the type based on some condition expressed as another type.
+Another great feature of TypeScript is [conditional types](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html).
+They allow you to choose the type based on some condition expressed as another type.
 
-With the `extends` keyword, you can make a condition: `T extends U ? X : Y`.
-
-Here is a basic example of a conditional type.
-Type `B` extends `A`, but type `C` doesn't, and the `Condition` type will return one type if `T extends V` and the other one otherwise.
+Here is a basic example of a conditional type:
 
 ```typescript
 type A = { x: number };
@@ -600,12 +607,18 @@ type Condition<T, V> = T extends V ? number : string;
 type N = Condition<B, A>; // type N = number
 type E = Condition<C, A>; // type E = string
 ```
+With the `extends` keyword, you can make a condition: `T extends U ? X : Y`.
+In the example, type `B` extends `A` but type `C` doesn't. 
+So the `Condition` type will be `number` with `Condition<B,A>` and `string` with `Condition<C,A>`.
 
-It also allows you to choose not only from two but from many types: `T extends U ? X : T extends W ? Y : Z`.
+You can also choose from more than two types: `T extends U ? X : T extends W ? Y : Z`.
 
-With such functionality, you can implement things that resemble [type families](https://serokell.io/blog/type-families-haskell), although they are not quite like them. In conjunction with mapped types, it is a great feature to manage your types.
+With such functionality, you can implement things that resemble [type families](https://serokell.io/blog/type-families-haskell), although they are not quite like them. 
+In conjunction with mapped types, it's a great feature to manage your types.
 
 Conditional types together with union types are called distributive conditional types. How they work might be a little bit confusing, but we'll give an example.
+
+Take a look at this: 
 
 ```typescript
 type Exclude<T, U> = T extends U ? never : T;
