@@ -650,11 +650,11 @@ This part will show very brief descriptions of different approaches. We have als
 
 ### HKTs
 
-As we said before, TypeScript's type system is not so bad as one may think.
-But it has one significant limitation – the absence of kinds.
-Higher-kinded types allow us to write types that have their own type constructors as parameters.
-So, with them, we can bring another level of abstraction.
-Imaging that your generic type is not just specific type, but type constructor like `Map` or `Array` which is waiting for its own generic type to be specified.
+As we said before, TypeScript's type system is not as bad as one may think.
+But it has one significant limitation: the absence of [kinds](https://en.wikipedia.org/wiki/Kind_(type_theory)).
+Higher-kinded types let us to write types that have their own type constructors as parameters.
+So, with them, we can create another level of abstraction.
+For example, imagine that your generic type is not just a specific type, but a type constructor like `Map` or `Array` that is waiting for its own generic type to be specified.
 
 Let's take a look on example of theoretical implementation, which, unfortunately, TypeScript's type system doesn't allow.
 
@@ -670,12 +670,12 @@ const collectionArray: Collection<Array> = {
 };
 ```
 
-Fortunately, we can simulate kinds by using defunctionalization, which allows us to translate higher-order programs into a first-order language.
+Fortunately, we can simulate kinds by using [defunctionalization](https://en.wikipedia.org/wiki/Defunctionalization), which allows us to translate higher-order programs into a first-order language.
 The main idea is to map type constructor names to their implementations.
-With it, we can create a type Kind which works with `* -> *` constructors, Kind2 for `* -> * -> *`, and so on.
+With it, we can create a type called `Kind` which works with `* -> *` constructors, `Kind2` for `* -> * -> *`, and so on.
 
 Let's define two types: `URItoKind` and `URItoKind2`.
-They will be our identifiers for 1-arity and 2-arities types.
+They will be our identifiers for types with arities 1 and 2.
 And `URIS` with `URIS2` will be present for all such types.
 
 ```typescript
@@ -692,10 +692,10 @@ type URIS = keyof URItoKind<unknown>;
 type URIS2 = keyof URItoKind2<unknown, unknown>;
 ```
 
-Here, [`unknown`](https://mariusschulz.com/blog/the-unknown-type-in-typescript) is a more type-safe representation of `any` that forces us to do some checks before doing actions with values of this type.
+Above, [`unknown`](https://mariusschulz.com/blog/the-unknown-type-in-typescript) is a more type-safe representation of `any` that forces us to do some checks before doing actions with values of this type.
 
 So, now we are ready to present our kinds.
-They take an identifier property as the first type parameter and rest parameters are for type parameters of this identifier.
+They take an identifier property as the first type parameter, and the rest of parameters are type parameters of this identifier.
 
 ```typescript
 type Kind<F extends URIS, A> = URItoKind<A>[F];
@@ -740,13 +740,13 @@ Of course, this is a tiny subset of what you can do with kinds.
 Most of this part is inspired by [`fp-ts`](https://gcanti.github.io/fp-ts/) library and [Yuriy Bogomolov's](https://ybogomolov.me/) blog.
 `fp-ts` contains a ton of things that you may know from Haskell, and in the blog, you can find excellent explanations of how the library works.
 
-There are a lot of libraries based on `fp-ts`: 
+There are also a lot of libraries based on `fp-ts`: 
 
 * [`io-ts`](https://github.com/gcanti/io-ts);
 * [`parser-ts`](https://github.com/gcanti/parser-ts); 
 * [`monocle-ts`](https://github.com/gcanti/monocle-ts); 
 * [`remote-data-ts`](https://github.com/devex-web-frontend/remote-data-ts);
-* and others.
+* etc.
 
 ### Peano numbers
 
