@@ -93,48 +93,24 @@ This is not an ideal solution for newtypes.
 There is a [comment](https://github.com/Microsoft/TypeScript/issues/4895#issuecomment-401067935) in issue with a better solution.
 And there is also a [library](https://github.com/sveseme/taghiro), which provides a prettier implementation for them.
 
-### Unit types, unions, data types, and pattern matching
+### ADTs in TypeScript
 
 In Haskell, [ADTs](https://www.youtube.com/watch?v=UqwLn2OyQ_E) are a constantly-used functionality of the language.
 They allow you to build your own types from small blocks.
 And with pattern matching, it is easy to access this data.
 
-Unfortunately, you can't build an ADT in the same way in TypeScript, but we will show you what we can do with the existing type system. We will start from the easiest enums and move to more complex things after that. 
+Unfortunately, you can't build an ADT in the same way in TypeScript, but we will show you what we can do with the existing type system. We will start from the easiest enums and move to more complex things after that.
 
 #### Unit types
 
-Unit types are a subtype of primitive types that contain precisely one primitive value.
-You can use it like [enums](https://www.typescriptlang.org/docs/handbook/enums.html) by setting unique string values.
-Or even use values with different types.
-
-```typescript
-type Result = true | "error" | 5;
-```
-
-You can pass it to the function and match it by its type.
-
-```typescript
-const resultInterpreter = (result: Result): string => {
-  if (result === true) {
-    return "true";
-  }
-  if (result === "error") {
-    return result;
-  }
-  return "five";
-};
-```
-
-#### Union types
-
-The next feature is union types.
+Union types allow you to combine different types.
 Unions are not tagged, so they are just a set of possible types.
 
 ```typescript
 type Result = string | number | (() => string);
 ```
 
-Here and in the example with unit types: if you already failed to match some type, the compiler knows that it will not be present in the future.
+Here if you already failed to match some type, the compiler knows that it will not be present in the future.
 In the first `if`, we passed `typeof result === "number"`, so we know that it may be only `function` or `string` in the code below.
 And we can run `length.toString()` on this value (even if `number` doesn't have such a property) since both `function` and `string` have property `length`.
 But we can't `call` this value because `string` is not callable. We can do it only after failing to match `string`.
@@ -153,6 +129,31 @@ const resultInterpreter = (result: Result): string | undefined => {
   }
 
   return result();
+};
+```
+
+#### Unit types
+
+The next feature is unit types.
+Unit types are a subtype of primitive types that contain precisely one primitive value.
+With unions, you can use it like [enums](https://www.typescriptlang.org/docs/handbook/enums.html) by setting unique string values.
+Or even use values with different types.
+
+```typescript
+type Result = true | "error" | 5;
+```
+
+You can pass it to the function and match it by its type.
+
+```typescript
+const resultInterpreter = (result: Result): string => {
+  if (result === true) {
+    return "true";
+  }
+  if (result === "error") {
+    return result;
+  }
+  return "five";
 };
 ```
 
@@ -447,7 +448,7 @@ class IntArrEq implements Eq<number[]> {
 
 Now let's implement a `lookup` function, which for an array of key-value pairs and a specific key will return the value associated with this key or `undefined`.
 
-We can write it polymorph passing comparator class which implements `Eq` for the key type.
+We can write it polymorphic by passing a comparator class that implements `Eq` for the key type.
 
 ```typescript
 const lookup = <T, K extends Eq<T>, V>(cmp: K, k: T, mp: [T, V][]): V | undefined => {
@@ -586,10 +587,6 @@ It allows you to choose the type based on some condition expressed as another ty
 
 With the `extends` keyword, you can make a condition: `T extends U ? X : Y`.
 
-It also allows you to choose not only from two but from many types: `T extends U ? X : T extends W ? Y : Z`.
-
-With such functionality, you can implement things that resemble [type families](https://serokell.io/blog/type-families-haskell), although they are not quite like them. In conjunction with mapped types, it is a great feature to manage your types.
-
 Here is a basic example of a conditional type.
 Type `B` extends `A`, but type `C` doesn't, and the `Condition` type will return one type if `T extends V` and the other one otherwise.
 
@@ -604,6 +601,10 @@ type N = Condition<B, A>; // type N = number
 type E = Condition<C, A>; // type E = string
 ```
 
+It also allows you to choose not only from two but from many types: `T extends U ? X : T extends W ? Y : Z`.
+
+With such functionality, you can implement things that resemble [type families](https://serokell.io/blog/type-families-haskell), although they are not quite like them. In conjunction with mapped types, it is a great feature to manage your types.
+
 Conditional types together with union types are called distributive conditional types. How they work might be a little bit confusing, but we'll give an example.
 
 ```typescript
@@ -611,10 +612,10 @@ type Exclude<T, U> = T extends U ? never : T;
 ```
 
 The `Exclude` type may look strange, but what if we will pass union types here?
-It will simply exclude such types in union `T` which exist in union `U`, and return `never` in other cases, where the [`never`](https://www.tutorialsteacher.com/typescript/typescript-never) type describes the type of values that will never occur.
+It will simply exclude such types in union `T` which exist in union `U` by setting `never` type, where the [`never`](https://www.tutorialsteacher.com/typescript/typescript-never) type describes the type of values that will never occur.
 
 You may think about it as two nested cycles.
-For each type in `T` and each type in `U`, if `T extends U`, return `never`. Otherwise, return `T`.
+For each type in `T` and each type in `U`, if `T extends U`, set `never`. Otherwise, set `T`.
 
 ```typescript
 type A = "a" | "b" | "c";
@@ -652,9 +653,10 @@ This part will show very brief descriptions of different approaches. We have als
 As we said before, TypeScript's type system is not so bad as one may think.
 But it has one significant limitation – the absence of kinds.
 Higher-kinded types allow us to write types that have their own type constructors as parameters.
-So, by using generics instead of abstracting only over types, we are able to abstract over types which already abstract over types.
+So, with them, we can bring another level of abstraction.
+Imaging that your generic type is not just specific type, but type constructor like `Map` or `Array` which is waiting for its own generic type to be specified.
 
-Unfortunately, TypeScript's type system doesn't allow such code.
+Let's take a look on example of theoretical implementation, which, unfortunately, TypeScript's type system doesn't allow.
 
 ```typescript
 interface Collection<F> {
@@ -672,7 +674,8 @@ Fortunately, we can simulate kinds by using defunctionalization, which allows us
 The main idea is to map type constructor names to their implementations.
 With it, we can create a type Kind which works with `* -> *` constructors, Kind2 for `* -> * -> *`, and so on.
 
-Let's define two types: `URItoKind` and `URItoKind2`. They will be our identifiers for 1-arity and 2-arity types.
+Let's define two types: `URItoKind` and `URItoKind2`.
+They will be our identifiers for 1-arity and 2-arities types.
 And `URIS` with `URIS2` will be present for all such types.
 
 ```typescript
@@ -692,7 +695,7 @@ type URIS2 = keyof URItoKind2<unknown, unknown>;
 Here, [`unknown`](https://mariusschulz.com/blog/the-unknown-type-in-typescript) is a more type-safe representation of `any` that forces us to do some checks before doing actions with values of this type.
 
 So, now we are ready to present our kinds.
-They take an identifier property as the first type parameter and its type parameters for this identifier.
+They take an identifier property as the first type parameter and rest parameters are for type parameters of this identifier.
 
 ```typescript
 type Kind<F extends URIS, A> = URItoKind<A>[F];
@@ -823,11 +826,14 @@ type Fibonacci<N, F0 = Zero, F1 = One> = {
 Generalized algebraic data types (GADTs) in Haskell give us the ability to manually write types of constructors.
 With a data type `D a` with the type value `a`, we can create constructors like `C :: Int -> D Int`.
 
-The key feature is that Haskell can tell us about the equality of types `a` and `Int` here. TypeScript, on the other hand, doesn't have equality inference. Nevertheless, we can manually provide such equality to it as a value.
+The key feature here is that Haskell can infer the equality of types `a` and `Int`.
+TypeScript, on the other hand, doesn't have equality inference.
+Nevertheless, we can manually provide such equality to it as a value.
 
 The other great feature of this approach is that we can make a nice eDSL with GADTs.
 TypeScript will not provide you with such a good eDSL as Haskell would, but it doesn't mean that we can't do it.
 
+Let's show on example how it will look like and work.
 We will use `fp-ts` here and below since it has a lot of useful built-in types and functions.
 
 ```typescript
@@ -908,7 +914,8 @@ const wrongExpr = and(num(23), num(12)); // Argument of type 'ArithExpr<number>'
 #### Tagless final eDSL
 
 Another way to implement an eDSL is [tagless final](https://serokell.io/blog/introduction-tagless-final).
-Moving from data type to type class, we are able to implement the same logic.
+We can move from data type to type classes having the same logic.
+Here type class will describe possible actions and using instances we will be able to write interpreters.
 
 Let's start with defining our type class.
 To do this, we need the already-mentioned `URIS`, which is a union of all 1-arity defined in `URItoKind`, and also the already-mentioned `Kind`.
@@ -925,8 +932,8 @@ type ArithExpr<Expr extends URIS> = {
 ```
 
 Now, we will present our types for which we will create `ArithExpr` instances.
-The first one will be just an interpreter.
-And the second one will create a string representation of expression.
+The first one will be just an `Interpreter<A>`.
+And the second one `ToS<A>` will create a string representation of expression.
 But now we need somehow add them to the `fp-ts` `URItoKind` interface to be able to use them in `ArithExpr` as it take `Expr extends URIS`.
 And `URIS` is just `keyof URItoKind<unknown>`.
 Here we need the TypeScript module augmentation feature, which allows us to patch existing objects by importing and then updating them.
