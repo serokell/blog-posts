@@ -1,8 +1,8 @@
-Welcome to our second post on Template Haskell! 
+Welcome to our second post on Template Haskell!
 
 Today we will take a quick look at typed Template Haskell. This article assumes some familiarity with Template Haskell (TH) already. If this is your first journey with TH, then check out our [introduction to Template Haskell](https://serokell.io/blog/introduction-to-template-haskell) first.
 
-For this article, we will be using GHC 8.10.4.
+For this article, we will be using GHC 8.10.4. However, we will also show the changes that are necessary so the code works in GHC 9.
 
 ## Why typed TH?
 
@@ -68,7 +68,9 @@ SigE (LitE (IntegerL 42)) (ConT GHC.Base.String)
 
 ## Typed splices
 
-Just like we had untyped splices such as `$foo`, now we also have typed splices, written as `$$foo`. Note, however, that if your GHC version is below 9.0, you may need to write `$$(foo)` instead.
+Just like we had untyped splices such as `$foo`, now we also have typed splices, written as `$$foo`. In this section, we will see how to define and splice typed Template Haskell code.
+
+We reiterate one point mentioned in our previous article: before GHC 9, the usage of splices may require parentheses or not. For instance, if `foo` came from a qualified import, then you'd need to write `$$(Foo.foo)` instead. In GHC 9, the parser is more relaxed and will not require parentheses in such situations.
 
 ## Example: calculating prime numbers
 
@@ -108,6 +110,8 @@ Keep in mind that these functions are _very_ inefficient, so make sure to use a 
 
 Now for our Template Haskell version. As usual, let's create two files, `TH.hs` and `Main.hs`, to work with through this example.
 
+Please note that for GHC 9, you will need to write `Code Q a` in places where we write `Q (TExp a)`. For more details, see the section about [Compatibility with GHC 9](#compatibility-with-ghc-9).
+
 This is what should be in `TH.hs`:
 ```hs
 {-# LANGUAGE TemplateHaskell #-}
@@ -119,6 +123,7 @@ import Language.Haskell.TH
 import Primes (isPrime)
 
 primesUpTo' :: Integer -> Q (TExp [Integer])
+--primesUpTo' :: Integer -> Code Q [Integer]
 primesUpTo' n = go 2
   where
     go i
@@ -177,6 +182,7 @@ Had we made any mistakes in the definition, for example, by using the following 
 
 ```hs
 primesUpTo' :: Integer -> Q (TExp [Integer])
+--primesUpTo' :: Integer -> Code Q [Integer]
 primesUpTo' n = go 2
   where
     go i
@@ -253,6 +259,7 @@ And the corresponding TH function as:
 
 ```hs
 primesUpTo' :: Integer -> Q (TExp [Integer])
+--primesUpTo' :: Integer -> Code Q [Integer]
 primesUpTo' n = [|| primesUpTo n ||]
 ```
 
@@ -260,14 +267,14 @@ And with this, you should be ready to use typed Template Haskell in the wild.
 
 ## Caveat
 
-Typed Template Haskell may have some difficulties resolving overloads. Surprisingly, the following does not type-check:
+Typed Template Haskell may have some difficulties resolving overloads in versions older than GHC 9. Surprisingly, the following does not type-check:
 
 ```hs
 >>> mempty' :: Monoid a => Q (TExp a)
 ... mempty' = [|| mempty ||]
 
 >>> x :: String
-... x = id $$(mempty')
+... x = id $$mempty'
 <interactive>:549:11: error:
     • Ambiguous type variable ‘a0’ arising from a use of ‘mempty'’
       prevents the constraint ‘(Monoid a0)’ from being solved.
@@ -279,8 +286,8 @@ Typed Template Haskell may have some difficulties resolving overloads. Surprisin
         ...plus 7 others
         (use -fprint-potential-instances to see them all)
     • In the expression: mempty'
-      In the Template Haskell splice $$(mempty')
-      In the first argument of ‘id’, namely ‘$$(mempty')’
+      In the Template Haskell splice $$mempty'
+      In the first argument of ‘id’, namely ‘$$mempty'’
 ```
 
 Annotating `mempty'` may resolve it in this case:
@@ -294,6 +301,41 @@ Annotating `mempty'` may resolve it in this case:
 ```
 
 An [open ticket](https://gitlab.haskell.org/ghc/ghc/-/issues/10271) exists describing the issue, but if you run into some strange errors, it's a good idea to keep it in mind.
+
+## Compatibility with GHC 9
+
+In GHC 9, the types used by typed Template Haskell were changed according to the [Make Q (TExp a) into a newtype](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0195-code-texp.rst) proposal.
+
+This proposal changed the typed expression quasi-quoter so it now returns `Quote m => Code m a` instead of the old `Q (TExp a)` which was used prior to GHC 9. Besides returing `Code m a` instead of `Q a`, the introduction of the `Quote` type class allows using an arbitrary type instead of the concrete `Q` from previous versions. Most of the times, `Code Q a` should suffice for your applications.
+
+If you're curious, please take a moment to read our [Typed Template Haskell in GHC 9](https://serokell.io/blog/typed-template-haskell-in-ghc-9) article detailing a migration guide of typed TH code to GHC 9, where we discuss a backward-compatible way of integrating typed Template Haskell code in both GHC 8 and GHC 9.
+
+Thankfully, changing the examples to work with GHC 9 is not difficult. In short, you may replace the parts like `Q (TExp a)` with `Quote m => Code m a` (or `Code Q a`) and the code should compile.
+
+```hs
+primesUpTo' :: Quote m => Integer -> Code m [Integer]
+primesUpTo' n = [|| primesUpTo n ||]
+```
+
+Furthermore, as discussed, the [caveat](#caveat) in the previous section doesn't apply anymore to GHC 9, and you will be able to write the example above.
+
+```hs
+>>> mempty' :: Monoid a => Code Q a
+... mempty' = [|| mempty ||]
+
+>>> x :: String
+... x = id $$mempty'
+
+>>> x
+""
+```
+
+Should you need to explicitly convert between the old and new types, you may pattern match directly on `Code` or use the following functions from [Language.Haskell.TH](https://hackage.haskell.org/package/template-haskell-2.18.0.0/docs/Language-Haskell-TH.html#t:Code):
+
+```hs
+liftCode :: m (TExp a) -> Code m a
+examineCode :: Code m a -> m (TExp a)
+```
 
 ## Further reading
 
