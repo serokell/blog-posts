@@ -16,12 +16,18 @@ Historically, any new language that allows you to write web applications transla
 And there are a lot of such languages and language extensions: TypeScript, Kotlin JS, CoffeeScript, Scala JS, Babel, ClojureScript, etc.
 Generally, you can write web applications in almost every language.
 
-Because we like Haskell, could we write our web applications in a functional language (or even in Haskell)? The answer is yes.
-There is strongly-typed PureScript with Haskell-like syntax, purely functional Elm, Reflex framework for Haskell with GHCJS, F# with Fabel.
+Because we like Haskell, we could write our web applications in a functional language (or even in Haskell).
+There are a lot of options: 
+
+* [PureScript](https://www.purescript.org/), which has Haskell-like syntax;
+* [Elm](https://elm-lang.org/);
+* Haskell (via [Reflex](https://reflex-frp.org/) & [GHCJS](https://github.com/ghcjs/ghcjs);
+* F# (via [Fable](https://fable.io/).
 
 Unfortunately, these don't give us proper flexibility in working with JS libraries (whose numbers are enormous), and when problems related to library management appear, it takes more time to fix those.
 Additionally, customers will be locked in when they need to maintain such applications.
-On the other hand, TypeScript, which has a vast community and provides modern technologies out of the box, is a great decision.
+
+Meanwhile TypeScript, which has a vast community and provides modern technologies out of the box, is a great decision.
 
 ## Basic concepts
 
@@ -63,8 +69,8 @@ Symbol `?` here is used as syntactic sugar for the `string | undefined` type.
 
 #### Newtype
 
-Creating a `newtype` is not so trivial.
-There is no such analogue in TypeScript, but you can do it by using tags.
+Creating a [`newtype`](https://wiki.haskell.org/Newtype) is not so trivial.
+There is no analogue for it in TypeScript, but you can do it via tags.
 
 ```typescript
 type Email = string & { readonly __tag: unique symbol };
@@ -77,7 +83,7 @@ Here's how all this magic works:
 * `symbol` lets you declare const-named properties on types.
 * `unique` means that the type is unique – your type is tagged with a unique symbol.
 
-With [`as`](https://www.typescriptlang.org/docs/handbook/basic-types.html#type-assertions) (which does type assertion), you can cast your base type to a tagged type.
+Now, with [`as`](https://www.typescriptlang.org/docs/handbook/basic-types.html#type-assertions) (which does type assertion), you can cast your base type to a tagged type.
 And when you try to pass a value of another tagged type, the compiler says that the two unique symbols are different.
 
 ```typescript
@@ -98,7 +104,7 @@ In Haskell, [algebraic data types (ADTs)](https://www.youtube.com/watch?v=UqwLn2
 They allow you to build your own types from small blocks.
 And with pattern matching, it is easy to access this data.
 
-Unfortunately, you can't build an ADT in the same way in TypeScript, but we will show you what we can do with the existing type system. 
+Unfortunately, you can't build an ADT in TypeScript the same way as in Haskell, but we will show you what you can do with the existing type system. 
 We will start with the easiest enums and move to more complex things after that.
 
 #### Union types
@@ -110,10 +116,12 @@ Unions are not tagged, so they are just a set of possible types.
 type Result = string | number | (() => string);
 ```
 
-Here if you already failed to match some type, the compiler knows that it will not be present in the future.
-In the first `if`, we passed `typeof result === "number"`, so we know that it may be only `function` or `string` in the code below.
-And we can run `length.toString()` on this value (even if `number` doesn't have such a property) since both `function` and `string` have property `length`.
-But we can't `call` this value because `string` is not callable. We can do it only after failing to match `string`.
+If you fail to match a type in the union, the compiler knows that it will not be present in the future.
+
+In the first `if`, we pass `typeof result === "number"`, so we know that it may be only `function` or `string` in the code below.
+And we can run `length.toString()` on this value (even if `number` doesn't have such a property) since both `function` and `string` have the property `length`.
+But we can't `call` this value because `string` is not callable. 
+We can do it only after failing to match `string`.
 
 ```typescript
 const resultInterpreter = (result: Result): string | undefined => {
@@ -132,18 +140,18 @@ const resultInterpreter = (result: Result): string | undefined => {
 };
 ```
 
+
 #### Unit types
 
 The next feature is unit types.
 Unit types are a subtype of primitive types that contain precisely one primitive value.
-With unions, you can use it like [enums](https://www.typescriptlang.org/docs/handbook/enums.html) by setting unique string values.
-Or even use values with different types.
+With unions, you can use them like [enums](https://www.typescriptlang.org/docs/handbook/enums.html) by setting unique string values or even values with different types.
 
 ```typescript
 type Result = true | "error" | 5;
 ```
 
-You can pass it to the function and match it by its type.
+You can pass the `Result` type to a function and match it by its type.
 
 ```typescript
 const resultInterpreter = (result: Result): string => {
@@ -159,9 +167,8 @@ const resultInterpreter = (result: Result): string => {
 
 #### Discriminated unions, or a data type analogue
 
-Going further with unions makes it possible to construct an analogue of Haskell data types.
-Those are called discriminated unions.
-The main idea is to store a unique property for each variant that will allow switching on it.
+By storing a unique property in each member of an union that we can switch on, we can make an analogue of Haskell data types. 
+Unions like these are called [discriminated unions](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html#discriminated-unions). 
 
 ```typescript
 type Result = 
@@ -180,15 +187,14 @@ const resultInterpreter = (result: Result): string => {
 };
 ```
 
+By using type parameters, you can also make more complex things like [this library](https://github.com/pfgray/ts-adt) for ADTs.
+
 #### Pattern matching
 
-These were straightforward examples of working with ADT-like structures in TypeScript.
-By using type parameters, you can also make some more complex things like [this library](https://github.com/pfgray/ts-adt) for ADTs.
-But one of the most valuable features of Haskell that is connected with ADTs is pattern matching.
-It allows you to disclose you structure comparing it with some pattern and based on this condition, execute some code.
-There is [no such functionality](https://github.com/tc39/proposal-pattern-matching) in TypeScript yet, but [ts-pattern](https://github.com/gvergnaud/ts-pattern) can provide it for you.
+One of the most valuable features of Haskell that is connected with ADTs is [pattern matching](https://en.wikipedia.org/wiki/Pattern_matching), which allows you to write code branches based on the structure of values. 
+There is [no such built-in functionality](https://github.com/tc39/proposal-pattern-matching) in TypeScript yet, but you can use [ts-pattern](https://github.com/gvergnaud/ts-pattern).
 
-Example from repository:
+Here's an example from the repository:
 
 ```typescript
 type Data =
@@ -231,7 +237,7 @@ const a: A = { x: 1 };
 a.x = 12; // Cannot assign to 'x' because it is a read-only property.
 ```
 
-Nevertheless, you can easily see some problems here.
+Nevertheless, there are some problems here.
 
 `const` and `readonly` only block reference changes but do nothing about values.
 With `const a = [1, 2, 3]` or `readonly x: number[]`, you can still change the contents of an array.
@@ -294,19 +300,19 @@ Now you have a more flexible way to make things read-only.
 
 #### Working with immutable objects
 
-Although you can now get immutable objects, usually you don't need them as they are.
+Although you can now make immutable objects, usually you don't need them as they are.
 You want to do some actions on them and make new immutable objects.
 To do that, you can construct new objects by hand or use the `Writable` utility type, but it is not that simple.
 
 Fortunately, there are libraries that can help you deal with this issue.
 
-The first one (and the most powerful) is [immer](https://immerjs.github.io/immer/), which is used for immutable state flow.
+The most powerful is [immer](https://immerjs.github.io/immer/), which is used for immutable state flow.
 Immutable data there is not copied but shared in memory.
 In other words, `immer` gives you the ability to work with a draft copy of your data and not worry about mutability.
 After all the changes are done, it will produce an actually immutable state.
 It also has helpers for React.
 
-Here's an example of it's use:
+Here's an example of its use:
 
 ```typescript
 type A = Immutable<
@@ -337,7 +343,7 @@ In the code example above, `produce` is a base primitive for working with `immer
 It takes your current state and a function, which takes a draft and applies changes.
 And in the end, it creates a new `nextA` state without any changes in  `a`.
 
-And finally, there are three interesting optics libraries that can help you work with immutable data structures: 
+There are also three interesting optics libraries that can help you work with immutable data structures: 
 
 * [`optics-ts`](https://github.com/akheron/optics-ts). The newest and more TypeScript-oriented optics library.
 * [`monocle-ts`](https://github.com/gcanti/monocle-ts). This one supports TypeScript and is a partial porting of Scala monocle.
@@ -583,7 +589,7 @@ type Getters<T> = {
 }
 ```
 
-So for each property name `K` in `T` that is assignable to `string`, we create a getter with property name and type `() => T[K]`.
+So for each property name `K` in `T` that is assignable to `string`, we create a getter with the property name and type `() => T[K]`.
 
 ```
 type PointGetters = Getters<Point> // type PointValues = { getX: () => number; getY: () => number; }
@@ -624,7 +630,7 @@ Take a look at this:
 type Exclude<T, U> = T extends U ? never : T;
 ```
 
-The `Exclude` type may look strange, but what if we will pass union types here?
+The `Exclude` type may look strange, but what if we will pass union types to it?
 It will simply exclude such types in union `T` which exist in union `U` by setting `never` type, where the [`never`](https://www.tutorialsteacher.com/typescript/typescript-never) type describes the type of values that will never occur.
 
 You may think about it as two nested cycles.
@@ -637,7 +643,7 @@ type C = Exclude<A, "a" | "b" | "c">; // type C = never
 type D = Exclude<A, "z">; // type D = "a" | "b" | "c"
 ```
 
-With distributed conditional types, we can write an `Omit` type which will remove properties from a type.
+With distributed conditional types, we can write an `Omit` type, which will remove properties from a type.
 When taking properties of `T` via `keyof T`, we exclude properties whose names are written in `K`, and then simply pick the remaining ones using `Pick`.
 
 ```typescript
@@ -657,9 +663,10 @@ TypeScript [contains](https://www.typescriptlang.org/docs/handbook/utility-types
 ## Going further
 
 Built-in concepts are good.
-But as you can see, TypeScript's type system is not really a weak one.
+But, as you can see, TypeScript's type system is not really a weak one.
 By adding our knowledge from Haskell and type theory, we can get more from this type system.
-This part will show very brief descriptions of different approaches. We have also added links to references and other articles to help you understand them more deeply, if necessary.
+This part will show very brief descriptions of different approaches. 
+We have also added links to references and other articles to help you understand them more deeply, if necessary.
 
 ### HKTs
 
@@ -669,7 +676,7 @@ Higher-kinded types let us to write types that have their own type constructors 
 So, with them, we can create another level of abstraction.
 For example, imagine that your generic type is not just a specific type, but a type constructor like `Map` or `Array` that is waiting for its own generic type to be specified.
 
-Let's take a look on example of theoretical implementation, which, unfortunately, TypeScript's type system doesn't allow.
+Let's take a look at an example of a theoretical implementation, which, unfortunately, TypeScript's type system doesn't allow.
 
 ```typescript
 interface Collection<F> {
@@ -707,15 +714,14 @@ type URIS2 = keyof URItoKind2<unknown, unknown>;
 
 Above, [`unknown`](https://mariusschulz.com/blog/the-unknown-type-in-typescript) is a more type-safe representation of `any` that forces us to do some checks before doing actions with values of this type.
 
-So, now we are ready to present our kinds.
-They take an identifier property as the first type parameter, and the rest of parameters are type parameters of this identifier.
+Our kinds take an identifier property as the first type parameter, and the rest of parameters are type parameters of this identifier.
 
 ```typescript
 type Kind<F extends URIS, A> = URItoKind<A>[F];
 type Kind2<F extends URIS2, A, B> = URItoKind2<A, B>[F];
 ```
 
-And now we can return to the `Collection` above and implement it using kinds.
+And now we can return to our theoretical `Collection` above and implement it using kinds.
 
 ```typescript
 interface Collection<F extends URIS> {
@@ -731,7 +737,7 @@ const collectionArray: Collection<"Array"> = {
 
 Let's see how it works in practice.
 
-We implement a new `Collection` instance with `Set`, and then write a generic function `f` over `Collection`.
+We implement a new `Collection` instance for `Set`, and then write a generic function `f` over `Collection`.
 The last thing we need to do is to pass the implementation as a function argument.
 
 ```typescript
@@ -753,7 +759,7 @@ Of course, this is a tiny subset of what you can do with kinds.
 Most of this part is inspired by [`fp-ts`](https://gcanti.github.io/fp-ts/) library and [Yuriy Bogomolov's](https://ybogomolov.me/) blog.
 `fp-ts` contains a ton of things that you may know from Haskell, and in the blog, you can find excellent explanations of how the library works.
 
-There are also a lot of libraries based on `fp-ts`: 
+There are also a lot of other libraries based on `fp-ts`: 
 
 * [`io-ts`](https://github.com/gcanti/io-ts);
 * [`parser-ts`](https://github.com/gcanti/parser-ts); 
@@ -763,8 +769,8 @@ There are also a lot of libraries based on `fp-ts`:
 
 ### Peano numbers
 
-Moving further, we can look into type-level programming and, more concretely, about computations on types.
-The basic primitive which may help us with this problem is Peano numbers.
+Moving further, we can look into type-level programming and, more concretely, computations on types.
+The basic primitive that can guide us is Peano numbers.
 Let's see how those would look in TypeScript.
 
 ```typescript
@@ -773,7 +779,7 @@ type Zero = "zero";
 type Nat = Zero | { n: Nat };
 ```
 
-And now we are able to define `Succ`, which adds one to our `Nat`.
+Now we are able to define `Succ`, which adds one to our `Nat`.
 
 ```typescript
 type Succ<N extends Nat> = { n: N };
@@ -781,9 +787,11 @@ type Succ<N extends Nat> = { n: N };
 
 With a simple `Nat` definition, we can make something useful.
 
+#### Type-safe vector
+
 Let's create a type-safe vector that will store its length in type.
 
-Empty vector will simply be a `"nil"`.
+An empty vector will simply be a `"nil"`.
 
 ```typescript
 type Nil = "nil";
@@ -800,8 +808,8 @@ And the main type, `Vec`, combines them by using a conditional type.
 type Vec<A, N extends Nat> = N extends Succ<infer R> ? Cons<A, R> : Nil;
 ```
 
-Using `infer`, we are able to infer a new type variable `R` from `N`.
-So, when `N` is a `Succ`, we can infer nested `R` from it and return `Cons<A, R>`.
+Using [`infer`](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-8.html#type-inference-in-conditional-types), we are able to infer a new type variable `R` from `N`.
+So, when `N` is a `Succ`, we can infer a nested `R` from it and return `Cons<A, R>`.
 Otherwise, it is `Nil`.
 
 And here are examples of `Vec`'s usage.
@@ -836,14 +844,10 @@ type Fibonacci<N, F0 = Zero, F1 = One> = {
 
 #### Generalized algebraic data types
 
-Generalized algebraic data types (GADTs) in Haskell give us the ability to manually write types of constructors.
+[Generalized algebraic data types (GADTs)](https://en.wikipedia.org/wiki/Generalized_algebraic_data_type) in Haskell give us the ability to manually write types of constructors.
 With a data type `D a` with the type value `a`, we can create constructors like `C :: Int -> D Int`.
 
-The key feature here is that Haskell can infer the equality of types `a` and `Int`.
-TypeScript, on the other hand, doesn't have equality inference.
-Nevertheless, we can manually provide such equality to it as a value.
-
-The other great feature of this approach is that we can make a nice eDSL with GADTs.
+The great feature of this approach is that we can make a nice eDSL.
 TypeScript will not provide you with such a good eDSL as Haskell would, but it doesn't mean that we can't do it.
 
 Let's show on example how it will look like and work.
@@ -853,15 +857,12 @@ We will use `fp-ts` here and below since it has a lot of useful built-in types a
 import { identity } from "fp-ts/lib/function";
 ```
 
-The next step is defining `Equality`.
-To provide equality as a value, we use Leibniz equality.
-
-Here is a simplified version of it.
+Haskell can infer the equality of types `a` and `Int`.
+TypeScript, on the other hand, doesn't have equality inference.
+Nevertheless, we can manually provide such equality to it as a value.
+To provide equality as a value, we use [Leibniz equality](https://ryanglscott.github.io/2021/08/22/leibniz-equality-in-haskell-part-1/).
 
 Interface `Equality` is a hybrid type, which gives an object the ability to act as a function.
-Then in `ArithExpr`, we simplify `Equality<A, B>` into an identity `(a: A) => A`.
-And, finally, in `interpret`, switching on `type` TypeScript does type narrowing for that case, and `proof` gets inferred into a conversion of that specific type into `A`.
-To fully understand this equality, you can check the [original](http://code.slipthrough.net/2016/08/10/approximating-gadts-in-purescript/) PureScript article and also Giulio Canti's [example](https://gist.github.com/gcanti/9a0c2a666621f03b80457831ff3ab997) (on which this part is based on) of its implementation in TypeScript.
 
 ```typescript
 interface Equality<A, B> {
@@ -869,7 +870,7 @@ interface Equality<A, B> {
 }
 ```
 
-Now we can use `Equality` to write our GADT with additional proof representation as a value.
+Then in `ArithExpr`, we simplify `Equality<A, B>` into an identity `(a: A) => A`, which gives us proof representation as a value.
 
 ```typescript
 type ArithExpr<A> =
@@ -900,7 +901,7 @@ const and: (l: ArithExpr<boolean>, r: ArithExpr<boolean>) => ArithExpr<boolean> 
 ```
 
 The last step will be just the implementation of `interpret`.
-With a switch statement on `expr.type`, we construct our result by running `interpret` on nested expressions and proving resulting types with the proof from this `expr`.
+With a switch statement on `expr.type`, we construct our result by running `interpret` on nested expressions and proving the resulting types with the proof from this `expr`.
 
 ```typescript
 const interpret: <A>(expr: ArithExpr<A>) => A = (expr) => {
@@ -924,14 +925,16 @@ interpret(testExpr); // false
 const wrongExpr = and(num(23), num(12)); // Argument of type 'ArithExpr<number>' is not assignable to parameter of type 'ArithExpr<boolean>'.
 ```
 
+For a deeper understanding of this, you can check the [original](http://code.slipthrough.net/2016/08/10/approximating-gadts-in-purescript/) PureScript article and also Giulio Canti's [example](https://gist.github.com/gcanti/9a0c2a666621f03b80457831ff3ab997) (on which this part is based on) of its implementation in TypeScript.
+
 #### Tagless final eDSL
 
 Another way to implement an eDSL is [tagless final](https://serokell.io/blog/introduction-tagless-final).
-We can move from data type to type classes having the same logic.
-Here type class will describe possible actions and using instances we will be able to write interpreters.
+We can move from data type to type classes with the same logic.
+Here the type class will describe possible actions, and by using instances, we will be able to write interpreters.
 
-Let's start with defining our type class.
-To do this, we need the already-mentioned `URIS`, which is a union of all 1-arity defined in `URItoKind`, and also the already-mentioned `Kind`.
+Let's start by defining our type class.
+To do this, we need the already-mentioned `URIS`(which is a union of all 1-arity defined in `URItoKind`) and the already-mentioned `Kind`.
 
 ```typescript
 import { Kind, URIS } from "fp-ts/HKT";
@@ -944,12 +947,14 @@ type ArithExpr<Expr extends URIS> = {
 };
 ```
 
-Now, we will present our types for which we will create `ArithExpr` instances.
-The first one will be just an `Interpreter<A>`.
-And the second one `ToS<A>` will create a string representation of expression.
-But now we need somehow add them to the `fp-ts` `URItoKind` interface to be able to use them in `ArithExpr` as it take `Expr extends URIS`.
-And `URIS` is just `keyof URItoKind<unknown>`.
-Here we need the TypeScript module augmentation feature, which allows us to patch existing objects by importing and then updating them.
+Here are the types for which we will create `ArithExpr` instances:
+
+* `Interpreter<A>`, which defines how the algebra should behave.
+* `ToS<A>`, which will create a string representation of the expression.
+
+We need to somehow add them to the `fp-ts` `URItoKind` interface to be able to use them in `ArithExpr` since it takes `Expr extends URIS`, where `URIS` is just `keyof URItoKind<unknown>`.
+
+Here we need the TypeScript's module augmentation feature, which allows us to patch existing objects by importing and then updating them.
 So, we simply add `Interpreter` and `ToS` to `URItoKind`.
 
 ```typescript
@@ -1019,7 +1024,7 @@ You can also see more complex examples in Yuriy Bogomolov's [eDSL workshop](http
 
 In this article, we have shown how your knowledge from Haskell may help you write type-safe code in TypeScript.
 We started from basic concepts such as type aliases and data types and moved towards more complex and TypeScript-specific topics like mapped and conditional types.
-In the last part, we learned how to implement more complex things with TypeScript's type system.
+In the last part, we learned how to implement simple eDSLs with TypeScript's type system.
 
 This article is not a tutorial for learning TypeScript.
 A lot of things were omitted, and others may require more detailed research from you.
