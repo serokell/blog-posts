@@ -1,16 +1,16 @@
 # Introduction to Free Monads
 
 If you've been around Haskell circles for a bit, you've probably seen the term "free monads".
-This article aims to introduce free monads and to explain why they are useful.
+This article aims to introduce free monads and explain why they are useful.
 
-To wet your appetite a litte, free monads are basically a way to easily get a generic pure `Monad` instance for any `Functor`.
+To whet your appetite a little, free monads are basically a way to easily get a generic pure `Monad` instance for any `Functor`.
 This can be rather useful in many cases when you're dealing with tree-like structures, but to name a few:
 
 - To build an AST for an EDSL using do-notation.
 - To have different semantics for the same monad in different contexts, e.g. define an interpreter and a pretty-printer for an EDSL, or have a mock interpreter in addition to a real one.
 - To build a decision-tree type structure harnessing the do-notation for non-determinism (like with lists, but for trees).
 
-All of this is of course perfectly achievable with regular old monads and some newtype wrappers, but free monads let us get rid of a bit of boilerplate.
+Of course, all of this is perfectly achievable with regular old monads and some newtype wrappers, but free monads let us get rid of a bit of boilerplate.
 
 Basic familiarity with Haskell is assumed for the rest of this article.
 Specifically, the `do`-notation, and type classes `Monoid`, `Functor`, and `Monad`.
@@ -127,6 +127,9 @@ f >=> g = \x -> f x >>= g
 it becomes much more apparent[^equivalence]:
 
 [^equivalence]: The proof of equivalence is left as an exercise to the reader.
+    Here, by equivalence we mean that the monad laws expressed via Kleisli arrows imply the monad laws expressed via `>>=` and vice versa.
+    The proof itself is a straightforward application of equational reasoning.
+    It's easier to start from the Kleisli arrow form.
 
 ```haskell
 (f >=> g) >=> h = f >=> (g >=> h) -- associativity
@@ -136,7 +139,7 @@ f >=> return = f -- right identity
 
 That is why a monad is indeed a monoid: it satisfies the same laws, and the "values" are of the type `Functor f => a -> f b`.
 Note, though, that this is not the category of endofunctors.
-However, but there exists a natural transformation to the category of endofunctors[^endofunctors].
+However, there exists a natural transformation to the category of endofunctors[^endofunctors].
 
 [^endofunctors]: One could alternatively define monads via `join :: m (m a) -> m a` instead of `>>=`, which would make it a little more evident that monads are monoids over endofunctors, but to explain this properly, we would need to use a bit more of category theory jargon.
     There is an excellent [r/math post][endofunctors] on the subject.
@@ -294,6 +297,9 @@ In our case, we can pretend that
 
 ```haskell
 liftF :: Functor f => f a -> Free f a
+-- The implementation of this simplified version
+-- is rather straightforward, as discussed above,
+-- so it is left as an exercise for the reader.
 ```
 
 Hence, we can define
@@ -341,7 +347,7 @@ printState :: (Show s, Show a) => State s a -> s -> String
 printState (Pure x) s = "pure (" <> show x <> "," <> show s <> ")"
 printState (Free m) s =
   let (x, s') = runStateF m s
-  in "state change " <> show s <> " -> "<> show s' <> "\n"
+  in "state change " <> show s <> " -> " <> show s' <> "\n"
     <> printState x s'
 ```
 
@@ -360,7 +366,7 @@ The third line corresponds to `pure ()`, but it also outputs the end state.
 
 Let's summarize what we've learned so far.
 We can take any usual base functor for some monad, and get a `Monad` instance "for free".
-The catch is that we need to define the semantics of this monad separately by writing an interpreter.
+There's no free lunch here though, so we need to define the semantics of this monad separately by writing an interpreter (or several if we need to).
 
 ### List as a free monad
 
@@ -373,8 +379,8 @@ Consider:
 listComputation :: Free [] Int
 listComputation = do
   x <- liftF [1, 2, 3]
-  y <- liftF [70, 80]
-  z <- liftF [500, 600]
+  y <- liftF [10, 20]
+  z <- liftF [100, 200]
   pure $ x+y+z
 
 printFreeList :: Show a => Free [] a -> String
@@ -387,7 +393,7 @@ printFreeList (Free f) = "["
 if we run `printFreeList listComputation`, we will get
 
 ```haskell
-[[[571,671],[581,681]],[[572,672],[582,682]],[[573,673],[583,683]]]
+[[[111,211],[121,221]],[[112,212],[122,222]],[[113,213],[123,223]]]
 ```
 
 Notice how it gets us what is essentially nested lists, unlike the regular list monad.
@@ -406,7 +412,7 @@ Returning to our list example, we can get the original list behavior by applying
 
 ```haskell
 > foldFree id listComputation
-[571,671,581,681,572,672,582,682,573,673,583,683]
+[111,211,121,221,112,212,122,222,113,213,123,223]
 ```
 
 [^natural-transformation]: This function is a natural transformation.
@@ -422,7 +428,7 @@ Let us now define a toy calculator language that reads a few integers from the s
 The key intuition here is that if the next action depends on the previous one, we need to encode this as a continuation, i.e. we need to have a function accepting some argument and returning the functor parameter.
 
 Now, if we try to define a functor where every operation uses the same type everywhere, we'll run into a bit of an issue.
-Consider this datatype for instance:
+Consider this datatype for instance[^astf-explanation]:
 
 ```haskell
 data ASTF a
@@ -430,6 +436,10 @@ data ASTF a
   | Input (a -> a)
   | Output a a
 ```
+
+[^astf-explanation]: If this definition seems confusing, let's consider `Add`.
+    Left-to-right, its arguments are the left operand, the right operand, and the continuation.
+    Continuation accepts the result of addition, and (eventually) returns some end result.
 
 If we try to derive a `Functor` instance, GHC will complain:
 
