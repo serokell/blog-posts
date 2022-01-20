@@ -668,6 +668,69 @@ The reason for this is simple: when the free monad is built up, the continuation
 This means that all the code after our "if'" command gets copied to both branches.
 There isn't a workaround for this, since free monads build trees, and not general graphs, however a more efficient representation -- e.g. the Church encoding mentioned previously -- will reduce the overhead.
 
+#### Decomposing ASTs
+
+Naturally, we don't have to define the whole AST at once, we're free to decompose it however we see fit.
+Likewise, we can also decompose interpreters.
+
+For instance, we could decompose our AST into a part for arithmetic, and a part for I/O:
+
+```haskell
+data ArithASTF t a
+  = Add t t (t -> a)
+  -- + Sub, Mul, etc
+  deriving Functor
+
+data IOASTF t a
+  = Input (t -> a)
+  | Output t a
+  deriving Functor
+
+data ASTF t a
+  = Arith (ArithASTF t a)
+  | IO (IOASTF t a)
+  deriving Functor
+```
+
+We would have to modify the helper functions slightly:
+
+```haskell
+input :: FreeAST t t
+input = liftF $ IO $ Input id
+
+add :: t -> t -> FreeAST t t
+add x y = liftF $ Arith $ Add x y id
+
+output :: t -> FreeAST t ()
+output x = liftF $ IO $ Output x ()
+```
+
+And we could also decompose the interpreter:
+
+```haskell
+computeAST :: FreeAST Int () -> IO ()
+computeAST = foldFree computeASTF
+
+computeASTF :: (Num t, Read t, Show t) => ASTF t x -> IO x
+computeASTF arg = case arg of
+  Arith c -> pure $ computeArith c
+  IO c -> computeIO c
+
+computeArith :: Num t => ArithASTF t a -> a
+computeArith (Add x y next) = next (x + y)
+
+computeIO :: (Read t, Show t) => IOASTF t a -> IO a
+computeIO arg = case arg of
+  Input next -> next . read <$> getLine
+  Output x next -> do
+    print x
+    pure next
+```
+
+Notice how we managed to neatly decompose the interpreter into two, one pure and one doing I/O.
+
+This all might be pretty obvious, but it bears mentioning.
+
 ### Trees as free monads
 
 To close this section out, let's look at another application of free monads.
@@ -757,6 +820,11 @@ Let us then briefly review what we've learned.
 - Generally, a free monad can be converted to any other monad via a natural transformation.
 - One particular application of free monads is in building ASTs for EDSLs.
 - But you could use them almost anywhere where a tree could be used.
+
+For further reading, turns out, to get a monad, we don't really even need a functor if we cheat a little.
+This construction is known as freer monads (as in, more free than free).
+See [Free and Freer Monads: Putting Monads Back into Closet
+](https://okmij.org/ftp/Computation/free-monad.html).
 
 ## Exercises
 
