@@ -378,9 +378,15 @@ There's no free lunch here though, so we need to define the semantics of this mo
 ### List as a free monad
 
 Not all free monads behave exactly the same as their regular counterparts.
-For instance, you might know that the list monad encodes non-determinism.
+For instance, you might know that the list monad encodes non-determinism[^non-determinism].
 However, if we derive a free monad for lists, the behavior is slightly different.
 Consider:
+
+[^non-determinism]: If the statement about list monad encoding non-determinism is surprising, consider that one could use a list to represent all possible outcomes of some event, and then handle those one by one.
+    For further reading on this topic, refer to the [School of Haskell article on the list monad][school-of-haskell] or to the [Haskell wikibook section on understanding monads][haskell-wikibook]
+
+    [school-of-haskell]: https://www.schoolofhaskell.com/school/starting-with-haskell/basics-of-haskell/13-the-list-monad#non-deterministic-computations
+    [haskell-wikibook]: https://en.wikibooks.org/wiki/Haskell/Understanding_monads/List
 
 ```haskell
 listComputation :: Free [] Int
@@ -434,8 +440,14 @@ Let us now define a toy calculator language that reads a few integers from the s
 
 The key intuition here is that if the next action depends on the previous one, we need to encode this as a continuation, i.e. we need to have a function accepting some argument and returning the functor parameter.
 
+For example, for addition, we would need to define a data constructor with three arguments: two operands, and the continuation.
+The continuation would need to accept the result of addition, and (eventually) return some end result.
+
+If a continuation doesn't accept a value, we might just as well encode it as its end result.
+Since Haskell is lazy, `() -> a` is basically the same as `a`.
+
 Now, if we try to define a functor where every operation uses the same type everywhere, we'll run into a bit of an issue.
-Consider this datatype for instance[^astf-explanation]:
+Consider this datatype for instance:
 
 ```haskell
 data ASTF a
@@ -443,10 +455,6 @@ data ASTF a
   | Input (a -> a)
   | Output a a
 ```
-
-[^astf-explanation]: If this definition seems confusing, let's consider `Add`.
-    Left-to-right, its arguments are the left operand, the right operand, and the continuation.
-    Continuation accepts the result of addition, and (eventually) returns some end result.
 
 If we try to derive a `Functor` instance, GHC will complain:
 
