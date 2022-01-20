@@ -889,4 +889,4 @@ See [Free and Freer Monads: Putting Monads Back into Closet
 
     It is a monad.
 
-    Implement a conventional `Monad` instance, and implement `convert :: FreeBinTree l a -> BinTree l a` using `foldFree` and a natural transformation.
+    Implement a conventional `Monad` instance, and implement `convert :: FreeBinTree l a -> BinTree l a` using `foldFree` and a natural transformation `BinTreeF l a -> BinTree l a`
