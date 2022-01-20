@@ -33,7 +33,7 @@ That is, in this context, "free" means "unrestricted" -- it is not that we can g
 More formally, a free structure over a set $S$ is a set $M,$ together with operations on elements of $M,$ such that:
 
 - There is an embedding[^embedding] $i: S\to M$.
-- $M$ only contains elements required to exist by $i$ or the operations on the elements of $M$.
+- $M$ is a minimal closure, i.e. it only contains all the results of applying $i$ to elements of $S$, and any results of applying the operations, defined as part of the structure, to the elements of $M$.
 - The only laws that hold for the generated structure are those required to hold.
 
 [^embedding]: An embedding is an injective morphism.
@@ -71,7 +71,14 @@ i :: S -> M
 i x = [x]
 ```
 
-and then `mempty = []` and `(<>) = (++)`, all the laws hold, and no other laws are implied.
+Then `mempty = []` and `(<>) = (++)`.
+$M$ contains `[]`, as required by `mempty`, all single-element lists, and all possible concatenations.
+Finally, all the monoid laws hold, and no other laws are implied.
+
+On the other hand, addition over non-negative integers doesn't constitute a free monoid.
+That would imply the law of commutativity, which isn't a monoid law.
+
+If you're wondering why `[]` is an element of `M`, despite it not being required by either `i` or `(<>)`, that's because `mempty` is also an operation on `M`, one that happens to have zero arguments.
 
 Similar to monoids, any set- and group-theoretic construction can, in principle, have a free counterpart.
 For example, you might have free groups or free rings.
