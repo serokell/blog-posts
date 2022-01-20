@@ -1,10 +1,16 @@
 # Introduction to Free Monads
 
 If you've been around Haskell circles for a bit, you've probably seen the term "free monads".
-If you're relatively new to Haskell, you might feel that monads are hard enough to grasp as is, and now there's these different type of monads to worry about.
-Perhaps you've used Haskell for a while but didn't yet get to wrapping your head around free monads.
-In any case, the concept is ultimately rather straightforward.
 This article aims to introduce free monads and to explain why they are useful.
+
+To wet your appetite a litte, free monads are basically a way to easily get a generic pure `Monad` instance for any `Functor`.
+This can be rather useful in many cases when you're dealing with tree-like structures, but to name a few:
+
+- To build an AST for an EDSL using do-notation.
+- To have different semantics for the same monad in different contexts, e.g. define an interpreter and a pretty-printer for an EDSL, or have a mock interpreter in addition to a real one.
+- To build a decision-tree type structure harnessing the do-notation for non-determinism (like with lists, but for trees).
+
+All of this is of course perfectly achievable with regular old monads and some newtype wrappers, but free monads let us get rid of a bit of boilerplate.
 
 Basic familiarity with Haskell is assumed for the rest of this article.
 Specifically, the `do`-notation, and type classes `Monoid`, `Functor`, and `Monad`.
@@ -37,17 +43,19 @@ More formally, a free structure over a set $S$ is a set $M,$ together with opera
 Let us start with a simple example, specifically, `Monoid`s.
 In Haskell, any type `α` in the `Monoid` type class must have two functions defined.
 First, to construct a neutral element, we have `mempty :: α`.
-Second, to in some sense combine two elements, we have `mappend :: α -> α -> α`.
+Second, to in some sense combine two elements, we have `(<>) :: α -> α -> α`[^semigroup].
 Additionally, these functions must satisfy three equations, called the monoid laws:
 
+[^semigroup]: The `(<>)` operator is actually defined in the `Semigroup` type class, but we'll gloss over semigroups here for the sake of simplicity.
+
 ```haskell
-(x `mappend` y) `mappend` z = x `mappend` (y `mappend` z) -- associativity
-mempty `mappend` x = x -- left identity
-x `mappend` mempty = x -- right identity
+(x <> y) <> z = x <> (y <> z) -- associativity
+mempty <> x = x -- left identity
+x <> mempty = x -- right identity
 ```
 
 A free monoid thus has to have these two operations (together with an embedding of some underlying set) and satisfy these laws and only them.
-For example, it is implied that commutativity, i.e. the equation ``x `mappend` y = y `mappend` x``, should only hold if `x = y` or `x = mempty`, or `y = mempty`, and not in general.
+For example, it is implied that commutativity, i.e. the equation `x <> y = y <> x`, should only hold if `x = y` or `x = mempty`, or `y = mempty`, and not in general.
 
 To give a more concrete example, a list (or, more generally, a sequence) of elements of the set `S` constitutes a free monoid over `S`.
 Indeed, if the set $M$ is a set of lists of elements of $S$,
@@ -63,7 +71,7 @@ i :: S -> M
 i x = [x]
 ```
 
-and then `mempty = []` and `mappend = (++)`, all the laws hold, and no other laws are implied.
+and then `mempty = []` and `(<>) = (++)`, all the laws hold, and no other laws are implied.
 
 Similar to monoids, any set- and group-theoretic construction can, in principle, have a free counterpart.
 For example, you might have free groups or free rings.
@@ -136,15 +144,10 @@ However, but there exists a natural transformation to the category of endofuncto
     [endofunctors]: https://www.reddit.com/r/math/comments/ap25mr/a_monad_is_a_monoid_in_the_category_of/
 
 We can guess a few things, based on the intuition we gained looking at free monoids.
-First, we might note that `return` and `>=>` correspond to `mempty` and `mappend`, respectively.
+First, we might note that `return` and `>=>` correspond to `mempty` and `(<>)`, respectively.
 Second, we can expect that for any `Functor` `f :: Type -> Type`, there is a corresponding free `Monad` `Free f :: Type -> Type`, the same as for free monoids.
 
 ## Free monads
-
-> Basically, the idea behind the Free Monad is that all of our computations become a value.
-> The idea is that whenever we define our application, it does not really execute itself, but constructs an abstract syntax tree that describes the application that we can run later.
->
-> -- Anatolii Kmetiuk, Mastering Functional Programming
 
 Let us first try to construct `Free f` by analogy.
 We've seen that lists are free monoids.
@@ -238,10 +241,6 @@ The data structure in question doesn't define how the computation is performed, 
 
 ## Using free monads
 
-> Talk is cheap, show me the code
->
-> -- Linus Torvalds
-
 With the theory out of the way, let us see some examples to build our intuitions.
 
 ### State as a free monad
@@ -265,7 +264,7 @@ getF :: StateF s s
 getF = StateF $ \s -> (s, s)
 
 putF :: s -> StateF s ()
-putF s = StateF $ \_ -> ((), s)
+putF s = StateF $ const ((), s)
 ```
 
 Now we can define a "free state" monad:
@@ -301,10 +300,10 @@ Hence, we can define
 
 ```haskell
 get :: State s s
-get = liftF get
+get = liftF getF
 
-set :: s -> State s ()
-set = liftF . set
+put :: s -> State s ()
+put = liftF . putF
 ```
 
 and, like magic, we have a `State` monad:
@@ -470,7 +469,7 @@ input = liftF $ Input id
 add :: t -> t -> FreeAST t t
 add x y = liftF $ Add x y id
 
-output :: Show t => t -> FreeAST t ()
+output :: t -> FreeAST t ()
 output x = liftF $ Output x ()
 ```
 
@@ -695,7 +694,7 @@ convert :: FreeBinTree a (Maybe a) -> BinTree a
 convert (Pure Nothing) = Nil
 convert (Pure (Just x)) = Leaf x
 convert (Free f) =
-  let BranchF x l r = convert <$> f
+  let NodeF x l r = convert <$> f
   in Branch x l r
 ```
 
@@ -733,3 +732,68 @@ Let us then briefly review what we've learned.
 - Generally, a free monad can be converted to any other monad via a natural transformation.
 - One particular application of free monads is in building ASTs for EDSLs.
 - But you could use them almost anywhere where a tree could be used.
+
+## Exercises
+
+1. Implement the standard monads `Reader`, `Writer` using `Free`.
+    Here is a template to get you started:
+
+    ```haskell
+    import Control.Monad.Free
+
+    newtype ReaderF r a = ReaderF { runReaderF :: r -> a }
+      deriving Functor
+
+    type Reader ...
+
+    ask :: Reader r r
+    ask = undefined
+
+    runReader :: Reader r a -> r -> a
+    runReader = undefined
+
+    newtype WriterF w a = WriterF { runWriterF :: (w, a) }
+      deriving Functor
+
+    type Writer ...
+
+    tell :: w -> Writer w ()
+    tell = undefined
+
+    listen :: Monoid w => Writer w a -> Writer w (a, w)
+    listen = undefined
+
+    pass :: Monoid w => Writer w (a, w -> w) -> Writer w a
+    pass = undefined
+
+    runWriter :: Monoid w => Writer w a -> (a, w)
+    runWriter = undefined
+    ```
+
+2. Using a free monad, define a monad for a `String`-keyed, `String`-valued key-value store.
+    The store must support two commands, assuming the store monad is called `Store`,
+
+    ```haskell
+    type Key = String
+    type Value = String
+
+    getValue :: Key -> Store (Maybe Value)
+    putValue :: Key -> Value -> Store ()
+    ```
+
+    For an interpreter, implement a natural transformation from `StoreF` to `IO`, using `IORef [(String, String)]` as a backing store.
+    Feel free to use `Map` or `HashMap` if you want to.
+
+3. Notice that `BinTree` defined above is not a `Monad`.
+    However, if leaves and branches could have different types, it would be.
+    Now consider the following type:
+
+    ```haskell
+    data BinTree l a
+      = Leaf a | Branch l (BinTree l a) (BinTree l a)
+      deriving (Show, Functor)
+    ```
+
+    It is a monad.
+
+    Implement a conventional `Monad` instance, and implement `convert :: FreeBinTree l a -> BinTree l a` using `foldFree` and a natural transformation.
