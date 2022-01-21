@@ -46,7 +46,7 @@ Second, to in some sense combine two elements, we have `(<>) :: α -> α -> α`.
 
 <p>
 <details>
-<summary>A note about `(<>)`</summary>
+<summary>A note about (&lt;&gt;)</summary>
 
 The `(<>)` operator is actually defined in the `Semigroup` type class, but we'll gloss over semigroups here for the sake of simplicity.
 
@@ -122,7 +122,7 @@ class Functor m => Monad m where
 
 <p>
 <details>
-<summary>A note on `Monad`'s superclass</summary>
+<summary>A note on Monad's superclass</summary>
 
 If you're more familiar with modern Haskell, you might object that actually, the superclass of `Monad` is `Applicative`, but we will gloss over that for the sake of simplicity.
 
