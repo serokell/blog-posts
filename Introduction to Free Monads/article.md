@@ -525,7 +525,7 @@ computeAST = foldFree go
         pure next
 ```
 
-We can write other interpreters, of course. 
+We can write other interpreters, of course.
 For instance, we could write a pretty-printer here.
 Using the fact that we can convert a free monad to any other monad using `foldFree`, we'll do just that.
 For instance, let's convert `FreeAST String` into `WriterT String (State Int)`.
@@ -667,7 +667,7 @@ output x1
 
 The reason for this is simple: when the free monad is built up, the continuation is passed to each place where the base functor is recursive in its parameter.
 This means that all the code after our "if'" command gets copied to both branches.
-There isn't a workaround for this because free monads build trees and not general graphs. 
+There isn't a workaround for this because free monads build trees and not general graphs.
 However, a more efficient representation -- e.g., the Church encoding mentioned previously -- will reduce the overhead.
 
 #### Decomposing ASTs
@@ -828,6 +828,10 @@ This construction is known as freer monads (as in, more free than free).
 See [Free and Freer Monads: Putting Monads Back into Closet
 ](https://okmij.org/ftp/Computation/free-monad.html).
 
+All examples from this article are available as code [on GitHub][github-link].
+
+[github-link]: https://github.com/lierdakil/free-monad-examples
+
 ## Exercises
 
 1. Implement the standard monads `Reader` and `Writer` using `Free`.
@@ -892,3 +896,5 @@ See [Free and Freer Monads: Putting Monads Back into Closet
     It is a monad.
 
     Implement a conventional `Monad` instance, and implement `convert :: FreeBinTree l a -> BinTree l a` using `foldFree` and a natural transformation `BinTreeF l a -> BinTree l a`.
+
+If you get absolutely stuck, the intended solutions to exercises are avaliable in the [GitHub repository with the examples][github-link] on the `solutions` branch.
