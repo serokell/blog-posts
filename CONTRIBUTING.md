@@ -20,7 +20,7 @@ Of course, this is just a suggestion – if you have your own way that “works�
 
 You are writing to help a person. Imagine a person, and where they encounter your article. What do they want to accomplish? What do they already know about the topic? What do they need to know? 
 
-You can write that info down for yourself or just keep it in mind while writing. 
+You can write that info down for yourself at the top of the article or just keep it in mind while writing. 
 
 _It’s like making a user story._  
 
@@ -73,21 +73,21 @@ More about lists: https://www.grammarly.com/blog/bullet-points/
 
 **Headers**
 
-Title of the article is in the [title case](https://titlecase.com/). 
+Title of the article is in [title case](https://titlecase.com/). 
 
-All other headers start from Header 2 (##+). They are in the [sentence case](https://www.thoughtco.com/sentence-case-titles-1691944#:~:text=Sentence%20case%20is%20the%20conventional,the%20standard%20form%20for%20headlines.). 
+All other headers start from Header 2 (##+). They are in [sentence case](https://www.thoughtco.com/sentence-case-titles-1691944#:~:text=Sentence%20case%20is%20the%20conventional,the%20standard%20form%20for%20headlines.). 
 
 **Writing style**
 
-Here are some tips that will make you write like a god: 
+Here are some tips to make your writing better: 
 
 * Keep the language classy – no cursing, engaging in fervent statements, etc.  
 * Write conversationally – you are writing for other human beings.
-* Avoid passive voice like plague.   
+* Avoid passive voice.   
 * Keep the sentences clear and simple. Whenever possible, avoid lengthy, run-on sentences.
-* Don’t use complicated words unless necessary. 
+* Don’t use complicated words unless you need to. 
 * Define the terms you are using (or link to definitions) unless they are common knowledge. 
-* Use some kind of automatic checker (Grammarly) to make sure there are no typos in words. 
+* Use some kind of automatic checker (Grammarly) to make sure there are no typos & simple grammar mistakes. 
 
 For more info on good style, we suggest browsing The Elements of Style: [http://www.jlakes.org/ch/web/The-elements-of-style.pdf](http://www.jlakes.org/ch/web/The-elements-of-style.pdf)
 
@@ -100,29 +100,25 @@ If you use any other image, make sure it is at least **one of these**:
 
 * Owned by Serokell.
 * Appropriately licensed and attributed (CC, public domain, etc.).
-* You have the permission of the owner to use it 
-
+* You have the permission of the owner to use it. 
 
 ## Submitting the article 
 
 You can submit your article in two different ways: via GitHub or via Google Docs.
 
-
-### GitHub (for developers)
+### GitHub 
 
 We have a [GitHub repository](https://github.com/serokell/blog-posts) for submitting blog posts. Once you have a draft, you can open a pull request there with: 
-
-
 
 * A folder with the name of your article. 
 * Draft as .md. 
 * Any other images you want to use in the draft.
 
-The draft should contain the text of your article in Markdown. 
-
-Each sentence of the article should be in a new line, the lines should be unwrapped (this is to reduce the noise in diffs). Here’s a good example: [https://github.com/serokell/blog-posts/blob/master/lorentz-base/article.md](https://github.com/serokell/blog-posts/blob/master/lorentz-base/article.md)
+The name of the pull request should contain the issue number of the article.
 
 You can also use [HTML](https://www.w3schools.com/html/) and [LaTeX](https://latex-tutorial.com/tutorials/amsmath/) in the post. 
+
+**Regarding Markdown:** We do not support footnotes. Whenever possible, prefer to use the simpler features over the more complicated ones.
 
 **Regarding HTML:** Do not use HTML and Markdown in the same block – it will not render nicely. 
 
@@ -140,13 +136,15 @@ Block:
 $$Y = a + bX$$
 ```
 
+If you want to see how your article will render and if one or other feature is present, you can use the admin panel of staging to submit a post there and preview it.
+
 ### Google Docs (for non-developers)
 
 The other option is to submit via Google Docs. This is a reasonable option for non-developers or for texts that don’t contain a lot of code. 
 
-After editing, your article will be auto-converted to Markdown, which will erase colors and some formatting. **These are the things you can use to format your text:**
+After reviewing, your article will be converted to Markdown, which will erase some formatting. 
 
-
+**These are the things you can use to format your text:**
 
 * Paragraph styles, such as Normal text, Heading 2, etc. (Accessible on the toolbar or in the Format menu.) 
 * Monospace fonts to signify code blocks, such as Courier New. (Copying code straight from VSCode works.)
@@ -159,10 +157,9 @@ After editing, your article will be auto-converted to Markdown, which will erase
 
 Attach all the images you use as an archive to the corresponding issue – Google Docs doesn’t play well with images, for some reason. 
 
-
 ## Reviews & Proof-reading 
 
-After submission, your article will (hopefully) be reviewed by 1 or 2 people that are knowledgeable in the area. You can suggest reviewers of your own. At this step, the editor might also suggest structural improvements.  
+After submission, your article will (hopefully) be reviewed by 2 people that are knowledgeable in the area. You can suggest reviewers of your own. At this step, the editor might also suggest structural improvements.  
  
 After the review process is over, the editor will make sure it is grammatically correct and presentable.
 
