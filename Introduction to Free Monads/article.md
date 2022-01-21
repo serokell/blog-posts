@@ -46,7 +46,7 @@ Second, to in some sense combine two elements, we have `(<>) :: α -> α -> α`.
 
 <p>
 <details>
-<summary>A note about (&lt;&gt;)</summary>
+	<summary>A note about <code>(<>)</code></summary>
 
 The `(<>)` operator is actually defined in the `Semigroup` type class, but we'll gloss over semigroups here for the sake of simplicity.
 
@@ -73,7 +73,7 @@ Indeed, if the set $M$ is a set of lists of elements of $S$:
 type M = [S]
 ```
 
-then our embedding can be defined as:
+Then our embedding can be defined as:
 
 ```haskell
 i :: S -> M
@@ -142,14 +142,14 @@ m >>= return = m -- right identity
 If you look at the monad laws and squint a bit (or perhaps a lot), you might notice that these laws seem somewhat similar to the monoid laws.
 The names of the laws are the same, at least.
 Our choice of the definition makes it a little harder to see the connection, though.
-If we instead rewrite these laws using the Kleisli composition
+If we instead rewrite these laws using the Kleisli composition:
 
 ```haskell
 (>=>) :: Monad m => (a -> m b) -> (b -> m c) -> (a -> m c)
 f >=> g = \x -> f x >>= g
 ```
 
-it becomes much more apparent:
+It becomes much more apparent:
 
 ```haskell
 (f >=> g) >=> h = f >=> (g >=> h) -- associativity
@@ -205,7 +205,7 @@ data List a = Nil | Cons a (List a)
 ```
 
 Now, `List a` is a type, but `Free f` is a unary type constructor, so we'd need one more type argument.
-Doing that directly yields
+Doing that directly yields:
 
 ```haskell
 data Free f a = Nil a | Cons f (Free f) a
@@ -453,7 +453,7 @@ printFreeList (Free f) = "["
   <> "]"
 ```
 
-if we run `printFreeList listComputation`, we will get
+If we run `printFreeList listComputation`, we will get:
 
 ```haskell
 [[[111,211],[121,221]],[[112,212],[122,222]],[[113,213],[123,223]]]
@@ -957,4 +957,4 @@ All examples from this article are available as code [on GitHub][github-link].
 
     Implement a conventional `Monad` instance, and implement `convert :: FreeBinTree l a -> BinTree l a` using `foldFree` and a natural transformation `BinTreeF l a -> BinTree l a`.
 
-If you get absolutely stuck, the intended solutions to exercises are avaliable in the [GitHub repository with the examples][github-link] on the `solutions` branch.
+If you get absolutely stuck, the intended solutions to exercises are avaliable in the [GitHub repository with the examples][github-link] in the `solutions` branch.
