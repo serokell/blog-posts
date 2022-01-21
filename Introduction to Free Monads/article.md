@@ -44,6 +44,7 @@ In Haskell, any type `α` in the `Monoid` type class must have two functions def
 First, to construct a neutral element, we have `mempty :: α`.
 Second, to in some sense combine two elements, we have `(<>) :: α -> α -> α`.
 
+<p>
 <details>
 <summary>A note about `(<>)`</summary>
 
@@ -52,6 +53,7 @@ The `(<>)` operator is actually defined in the `Semigroup` type class, but we'll
 ***
 
 </details>
+</p>
 
 Additionally, these functions must satisfy three equations, called the monoid laws:
 
@@ -118,6 +120,7 @@ class Functor m => Monad m where
   (>>=) :: m a -> (a -> m b) -> m b
 ```
 
+<p>
 <details>
 <summary>A note on `Monad`'s superclass</summary>
 
@@ -126,6 +129,7 @@ If you're more familiar with modern Haskell, you might object that actually, the
 ***
 
 </details>
+</p>
 
 This definition needs to additionally satisfy the monad laws:
 
@@ -155,6 +159,7 @@ f >=> return = f -- right identity
 
 (the proof of equivalence between monad laws expressed via `>>=` and `>=>` is left as an exercise for the reader)
 
+<p>
 <details>
 <summary>On equivalence</summary>
 
@@ -165,11 +170,13 @@ It's easier to start from the Kleisli arrow form.
 ***
 
 </details>
+</p>
 
 That is why a monad is indeed a monoid: it satisfies the same laws, and the "values" are of the type `Functor f => a -> f b`.
 Note, though, that this is not the category of endofunctors.
 However, there exists an isomorphism with the category of endofunctors.
 
+<p>
 <details>
 <summary>On endofunctors</summary>
 
@@ -181,6 +188,7 @@ There is an excellent [r/math post][endofunctors] on the subject.
 ***
 
 </details>
+</p>
 
 We can guess a few things based on the intuition we gained by looking at free monoids.
 First, we might note that `return` and `>=>` correspond to `mempty` and `(<>)`, respectively.
@@ -412,6 +420,7 @@ There's no free lunch here, though, so we need to define the semantics of this m
 Not all free monads behave exactly the same as their regular counterparts.
 For instance, you might know that the list monad encodes non-determinism.
 
+<p>
 <details>
 <summary>In case the last statement is surprising...</summary>
 
@@ -424,6 +433,7 @@ For further reading on this topic, refer to the [School of Haskell article on th
 ***
 
 </details>
+</p>
 
 However, if we derive a free monad for lists, the behavior is slightly different.
 To give a specific example:
@@ -462,6 +472,7 @@ foldFree :: Monad m => (forall x. f x -> m x) -> Free f a -> m a
 
 Given a function (a natural transformation) converting `f x` into some monad `m x` for any `x`, we can convert `Free f a` into `m a`.
 
+<p>
 <details>
 <summary>On natural transformations</summary>
 
@@ -474,6 +485,7 @@ Essentially, you can think of any function with type `forall a. f a -> g a` as a
 ***
 
 </details>
+</p>
 
 Returning to our list example, we can get the original list behavior by applying `foldFree id`:
 
