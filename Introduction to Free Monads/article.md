@@ -7,13 +7,13 @@ To whet your appetite a little, free monads are basically a way to easily get a 
 This can be rather useful in many cases when you're dealing with tree-like structures, but to name a few:
 
 - To build an AST for an EDSL using do-notation.
-- To have different semantics for the same monad in different contexts, e.g. define an interpreter and a pretty-printer for an EDSL, or have a mock interpreter in addition to a real one.
+- To have different semantics for the same monad in different contexts, e.g., define an interpreter and a pretty-printer for an EDSL, or have a mock interpreter in addition to a real one.
 - To build a decision-tree type structure harnessing the do-notation for non-determinism (like with lists, but for trees).
 
 Of course, all of this is perfectly achievable with regular old monads and some newtype wrappers, but free monads let us get rid of a bit of boilerplate.
 
 Basic familiarity with Haskell is assumed for the rest of this article.
-Specifically, the `do`-notation, and type classes `Monoid`, `Functor`, and `Monad`.
+Specifically, the `do`-notation and type classes `Monoid`, `Functor`, and `Monad`.
 
 ## Free algebraic structures
 
@@ -25,7 +25,7 @@ So, to start with, let us try to explore what "free" in free monads stands for.
 This part is a bit theory-heavy, so if it is not your cup of tea, feel free to skim over it.
 
 In abstract algebra, we call something a "free X" when it is in some sense a minimal structure that satisfies conditions for being X.
-The exact definition of "minimal" in abstract algebra is a little vague, but the main idea is that "free X" satisfies all laws for X, and does not have any other laws describing it.
+The exact definition of "minimal" in abstract algebra is a little vague, but the main idea is that "free X" satisfies all laws for X and does not have any other laws describing it.
 That is, in this context, "free" means "unrestricted" -- it is not that we can get a structure "for free"[^for-free], but that no other laws are restricting the structure apart from those absolutely necessary.
 
 [^for-free]: Although in most cases, we actually might, depending on your definition of "for free".
@@ -33,7 +33,7 @@ That is, in this context, "free" means "unrestricted" -- it is not that we can g
 More formally, a free structure over a set $S$ is a set $M,$ together with operations on elements of $M,$ such that:
 
 - There is an embedding[^embedding] $i: S\to M$.
-- $M$ is a minimal closure, i.e. it only contains all the results of applying $i$ to elements of $S$, and any results of applying the operations, defined as part of the structure, to the elements of $M$.
+- $M$ is a minimal closure, i.e., it only contains all the results of applying $i$ to elements of $S$, and any results of applying the operations, defined as part of the structure, to the elements of $M$.
 - The only laws that hold for the generated structure are those required to hold.
 
 [^embedding]: An embedding is an injective morphism.
@@ -58,13 +58,13 @@ A free monoid thus has to have these two operations (together with an embedding 
 For example, it is implied that commutativity, i.e. the equation `x <> y = y <> x`, should only hold if `x = y` or `x = mempty`, or `y = mempty`, and not in general.
 
 To give a more concrete example, a list (or, more generally, a sequence) of elements of the set `S` constitutes a free monoid over `S`.
-Indeed, if the set $M$ is a set of lists of elements of $S$,
+Indeed, if the set $M$ is a set of lists of elements of $S$:
 
 ```haskell
 type M = [S]
 ```
 
-then, our embedding can be defined as
+then our embedding can be defined as:
 
 ```haskell
 i :: S -> M
@@ -103,7 +103,7 @@ If you're interested, [Bartosz Milewski's article on adjunctions][adjunctions] d
 Before we see how this idea applies to monads, it might be helpful to compare monads to monoids first.
 
 Let us first review the definition of the `Monad` type class.
-In Haskell, it is defined as[^applicative]
+In Haskell, it is defined as[^applicative]:
 
 [^applicative]: If you're more familiar with modern Haskell, you might object that actually, the superclass of `Monad` is `Applicative`, but we will gloss over that for the sake of simplicity.
 
@@ -153,7 +153,7 @@ However, there exists a natural transformation to the category of endofunctors[^
 
     [endofunctors]: https://www.reddit.com/r/math/comments/ap25mr/a_monad_is_a_monoid_in_the_category_of/
 
-We can guess a few things, based on the intuition we gained looking at free monoids.
+We can guess a few things based on the intuition we gained by looking at free monoids.
 First, we might note that `return` and `>=>` correspond to `mempty` and `(<>)`, respectively.
 Second, we can expect that for any `Functor` `f :: Type -> Type`, there is a corresponding free `Monad` `Free f :: Type -> Type`, the same as for free monoids.
 
@@ -174,19 +174,19 @@ Doing that directly yields
 data Free f a = Nil a | Cons f (Free f) a
 ```
 
-We can't define such a data type, due to `f` not being a plain type and hence can't be an argument of a data constructor, but we're actually very close.
+We can't define such a data type due to `f` not being a plain type and hence can't be an argument of a data constructor, but we're actually very close.
 
-Let us now look at the actual definition of `Free f`:
+Let us now look at the definition of `Free f`:
 
 ```haskell
 data Free f a = Pure a | Free (f (Free f a))
 ```
 
 As you can see, it is indeed very similar to a list.
-Note, however, that it is a bit more general: the functor is arbitrary, potentially making it a tree, with branches of type `f` and leaves of type `a`.
+Note, however, that it is a bit more general: the functor is arbitrary, potentially making it a tree with branches of type `f` and leaves of type `a`.
 Pure values, i.e. leaves, are encoded via the constructor `Pure`, and "actions", i.e. branches -- via the constructor `Free`.
 
-This point is important, so we'll repeat -- free monad is similar to a list, but, unlike a list, "continuation" (i.e. `Free`) can be a branching structure, depending on the choice of the base functor `f`.
+This point is important, so we'll repeat: free monad is similar to a list, but, unlike a list, "continuation" (i.e. `Free`) can be a branching structure, depending on the choice of the base functor `f`.
 
 It may be helpful to write out the types of these constructors explicitly:
 
@@ -203,8 +203,8 @@ join :: Monad m => m (m a) -> m a
 ```
 
 Instead of defining monads in terms of `return` and `>>=`, we can alternatively define them in terms of `fmap`, `return`, and `join`.
-So this hopefully provides some insight into why such a structure works as an encoding for a free monad.
-Indeed, if we require that `f` in `Free f` must be a functor, we get `fmap` from the start, and `Pure` and `Free` fill the roles of `return` and `join` respectively.
+Hopefully, this provides some insight into why such a structure works as an encoding for a free monad.
+Indeed, if we require that `f` in `Free f` must be a functor, we get `fmap` from the start, and `Pure` and `Free` fill the roles of `return` and `join`, respectively.
 
 If `f` is a `Functor`, then `Free f` is also a `Functor`.
 Indeed, the instance is very straightforward:
@@ -256,16 +256,16 @@ With the theory out of the way, let us see some examples to build our intuitions
 ### State as a free monad
 
 Let us start off with the `State` monad.
-We'll pretend we "forgot" that it's a monad, and try to implement it from scratch in terms of a free monad.
+We'll pretend we "forgot" that it's a monad and will try to implement it from scratch in terms of a free monad.
 
-First, we define a typical `State` newtype, and let GHC auto-derive the functor instance:
+First, we define a typical `State` newtype and let GHC auto-derive the functor instance:
 
 ```haskell
 newtype StateF s a = StateF { runStateF :: s -> (a, s) }
   deriving stock Functor
 ```
 
-(note that we're calling it `StateF` for "state functor")
+(Note that we're calling it `StateF` for "state functor".)
 
 We can also define the typical functions for working with state:
 
@@ -285,8 +285,8 @@ type State s = Free (StateF s)
 
 We'll also need to lift our state operations into the monad.
 We could do it manually, of course.
-We have `StateF s a`, and we need to get `StateF s (Free (StateF s) a)`, and wrap it in `Free`.
-To lift any `a` into `Free f a` we just need to apply `Pure`:
+We have `StateF s a`, and we need to get `StateF s (Free (StateF s) a)` and wrap it in `Free`.
+To lift any `a` into `Free f a`, we just need to apply `Pure`:
 
 ```haskell
 get :: State s s
@@ -300,7 +300,7 @@ liftF :: (Functor f, MonadFree f m) => f a -> m a
 ```
 
 `MonadFree` is just an MTL-style type class for different encodings of the free monad.
-In our case, we can pretend that
+In our case, we can pretend that:
 
 ```haskell
 liftF :: Functor f => f a -> Free f a
@@ -309,7 +309,7 @@ liftF :: Functor f => f a -> Free f a
 -- so it is left as an exercise for the reader.
 ```
 
-Hence, we can define
+Hence, we can define:
 
 ```haskell
 get :: State s s
@@ -319,7 +319,7 @@ put :: s -> State s ()
 put = liftF . putF
 ```
 
-and, like magic, we have a `State` monad:
+And, like magic, we have a `State` monad:
 
 ```haskell
 someComputation :: State Int ()
@@ -333,7 +333,7 @@ There is a catch, however.
 This code will happily compile, but it doesn't do anything interesting.
 Indeed, we didn't define the meaning of the computation, only its form, and we can't directly use `runStateF` to "run" our free state monad.
 
-This means we need to write an interpreter, so let's do just that.
+This means we need to write an interpreter, so let's do that.
 Remember that `Free` has two constructors, `Pure` and `Free`, so we need to pattern-match on those:
 
 ```haskell
@@ -372,8 +372,8 @@ The second line corresponds to `put $ i + 1`, which naturally changes the state 
 The third line corresponds to `pure ()`, but it also outputs the end state.
 
 Let's summarize what we've learned so far.
-We can take any usual base functor for some monad, and get a `Monad` instance "for free".
-There's no free lunch here though, so we need to define the semantics of this monad separately by writing an interpreter (or several if we need to).
+We can take any usual base functor for some monad and get a `Monad` instance "for free".
+There's no free lunch here, though, so we need to define the semantics of this monad separately by writing an interpreter (or several if we need to).
 
 ### List as a free monad
 
@@ -382,8 +382,8 @@ For instance, you might know that the list monad encodes non-determinism[^non-de
 However, if we derive a free monad for lists, the behavior is slightly different.
 Consider:
 
-[^non-determinism]: If the statement about list monad encoding non-determinism is surprising, consider that one could use a list to represent all possible outcomes of some event, and then handle those one by one.
-    For further reading on this topic, refer to the [School of Haskell article on the list monad][school-of-haskell] or to the [Haskell wikibook section on understanding monads][haskell-wikibook]
+[^non-determinism]: If the statement about list monad encoding non-determinism is surprising, consider that one could use a list to represent all possible outcomes of some event and then handle those one by one.
+    For further reading on this topic, refer to the [School of Haskell article on the list monad][school-of-haskell] or the [Haskell wikibook section on understanding monads][haskell-wikibook]
 
     [school-of-haskell]: https://www.schoolofhaskell.com/school/starting-with-haskell/basics-of-haskell/13-the-list-monad#non-deterministic-computations
     [haskell-wikibook]: https://en.wikibooks.org/wiki/Haskell/Understanding_monads/List
@@ -413,7 +413,7 @@ Notice how it gets us what is essentially nested lists, unlike the regular list 
 Notice also that it's essentially a rose tree.
 Of course, we can get the standard list monad behavior by concatenating the nested lists, but we might not necessarily want to do that.
 
-In general, we can restore any proper monad behavior from a free monad, since it doesn't define any semantics beyond those necessary for any monad.
+In general, we can restore any proper monad behavior from a free monad since it doesn't define any semantics beyond those necessary for any monad.
 `free` provides a function for that:
 
 ```haskell
@@ -438,10 +438,10 @@ Returning to our list example, we can get the original list behavior by applying
 By now, we hopefully got some intuition for how free monads work.
 Let us now define a toy calculator language that reads a few integers from the standard input, adds them together, and prints the result.
 
-The key intuition here is that if the next action depends on the previous one, we need to encode this as a continuation, i.e. we need to have a function accepting some argument and returning the functor parameter.
+The key intuition here is that if the next action depends on the previous one, we need to encode this as a continuation, i.e., we need to have a function accepting some argument and returning the functor parameter.
 
-For example, for addition, we would need to define a data constructor with three arguments: two operands, and the continuation.
-The continuation would need to accept the result of addition, and (eventually) return some end result.
+For example, for addition, we would need to define a data constructor with three arguments: two operands and the continuation.
+The continuation would need to accept the result of addition and (eventually) return some end result.
 
 If a continuation doesn't accept a value, we might just as well encode it as its end result.
 Since Haskell is lazy, `() -> a` is basically the same as `a`.
@@ -463,7 +463,7 @@ Constructor ‘Add’ must not use the type variable in a function argument
 ```
 
 It is, in fact, impossible to define a lawful `Functor` instance if the functor's type variable ends up in the function argument position[^variance].
-Hence, we will introduce two type variables: one for operation arguments, and another for the overall result:
+Hence, we will introduce two type variables: one for operation arguments, and another for the overall result.
 
 [^variance]: This has to do with `Functor` being a covariant functor, but discussion of variance is out of scope here.
 
@@ -476,11 +476,11 @@ data ASTF t a
 ```
 
 Notice that for `Add` we're saying that it takes two arguments `t`, its result is also `t`, but ultimately, the continuation returns the type `a`.
-In practice, we will define `add :: t -> t -> Free (ASTF t) t`, but to have a lawful `Functor`, and also more flexibility, we're not assuming these types are the same.
+In practice, we will define `add :: t -> t -> Free (ASTF t) t`, but to have a lawful `Functor` and also more flexibility, we're not assuming these types are the same.
 Similar reasoning applies to `Input`.
 
-With `Output`, we could've defined it as `Output t (() -> a)`, since our output action doesn't have any meaningful result.
-But we omit this extraneous argument, and simply encode the continuation as a value.
+With `Output`, we could've defined it as `Output t (() -> a)` since our output action doesn't have any meaningful result.
+But we omit this extraneous argument and simply encode the continuation as a value.
 In practice, we'll set `a` to be `()`.
 
 We can now define our monad and a few helper functions:
@@ -498,7 +498,7 @@ output :: t -> FreeAST t ()
 output x = liftF $ Output x ()
 ```
 
-and write a simple program:
+And write a simple program:
 
 ```haskell
 program :: (Read a, Show a) => FreeAST a ()
@@ -509,8 +509,8 @@ program = do
   output res
 ```
 
-Now, the interpreter for this program will need to convert our `FreeAST` to `IO`, since we're doing input and output.
-We know we can do this with `foldFree`, for that we only need to provide a conversion from the base functor to `IO`:
+Now, the interpreter for this program will need to convert our `FreeAST` to `IO` because we're doing input and output.
+We can do this with `foldFree`; we only need to provide a conversion from the base functor to `IO`.
 
 ```haskell
 computeAST :: FreeAST Int () -> IO ()
@@ -525,7 +525,8 @@ computeAST = foldFree go
         pure next
 ```
 
-We can write other interpreters of course, for instance, we could write a pretty-printer here.
+We can write other interpreters, of course. 
+For instance, we could write a pretty-printer here.
 Using the fact that we can convert a free monad to any other monad using `foldFree`, we'll do just that.
 For instance, let's convert `FreeAST String` into `WriterT String (State Int)`.
 We'll be naming variables using a counter in the `State` and producing the printed output using the `Writer`.
@@ -556,9 +557,9 @@ printAST fast = snd $ evalState (runWriterT $ foldFree go fast) 0
         pure next
 ```
 
-Notice, up to this point, all constructors of our `ASTF` had exactly one parameter that had anything to do with the functor.
-A question you might have now is what happens if we have several.
-If you gained a bit of intuition for free monads by now, you might suspect we get a branching computation, and that's exactly right!
+Notice that, up to this point, all constructors of our `ASTF` had exactly one parameter that had anything to do with the functor.
+A question you might have now is: what happens if we have several?
+If you've gained a bit of intuition for free monads by now, you might suspect we get a branching computation, and that's exactly right!
 Let's add simple branching to our toy language to see how it works.
 
 ```haskell
@@ -571,7 +572,7 @@ data ASTF t a
 ```
 
 We add a new constructor, `If`, with one scalar parameter and two branches.
-We can now define a helper,
+We can now define a helper:
 
 ```haskell
 if' :: t -> FreeAST t a -> FreeAST t a -> FreeAST t a
@@ -597,9 +598,9 @@ computeAST = foldFree go
         if cond /= 0 then pure t else pure f
 ```
 
-Here we define the semantics of the branching -- for the sake of not complicating the example, we interpret `0` as false, and non-zero as true.
+Here we define the semantics of the branching -- for the sake of not complicating the example, we interpret `0` as false and non-zero as true.
 
-When we try modifying the pretty printer, we run into a bit of a problem.
+When we try modifying the pretty printer, we run into a problem.
 Since our branching operation introduces a bit of non-determinism into the computation, our approach with `WriterT (State Int)` doesn't work anymore.
 One could fix it by explicitly adding some kind of non-determinism transformer on top of this, like `ListT` or `LogicT`, but let us instead write the pretty-printer directly.
 
@@ -637,9 +638,9 @@ printAST fast = snd $ evalState (runWriterT $ go fast) 0
 
 Not much has changed.
 Instead of `pure`, we use explicit recursion, and we have to handle the `Pure` case explicitly.
-For the sake of simplicity, the return type of `go` is fixed at `()`, since we don't care about the result here.
+For the sake of simplicity, the return type of `go` is fixed at `()` since we don't care about the result here.
 
-When we try to run this pretty printer on some code that uses branching, we might be a little surprised by the output.
+When we try to run this pretty-printer on some code that uses branching, we might be a little surprised by the output.
 For example, with the following "program":
 
 ```haskell
@@ -666,14 +667,15 @@ output x1
 
 The reason for this is simple: when the free monad is built up, the continuation is passed to each place where the base functor is recursive in its parameter.
 This means that all the code after our "if'" command gets copied to both branches.
-There isn't a workaround for this, since free monads build trees, and not general graphs, however a more efficient representation -- e.g. the Church encoding mentioned previously -- will reduce the overhead.
+There isn't a workaround for this because free monads build trees and not general graphs. 
+However, a more efficient representation -- e.g., the Church encoding mentioned previously -- will reduce the overhead.
 
 #### Decomposing ASTs
 
-Naturally, we don't have to define the whole AST at once, we're free to decompose it however we see fit.
+Naturally, we don't have to define the whole AST at once -- we're free to decompose it however we see fit.
 Likewise, we can also decompose interpreters.
 
-For instance, we could decompose our AST into a part for arithmetic, and a part for I/O:
+For instance, we could decompose our AST into a part for arithmetic and a part for I/O:
 
 ```haskell
 data ArithASTF t a
@@ -727,13 +729,13 @@ computeIO arg = case arg of
     pure next
 ```
 
-Notice how we managed to neatly decompose the interpreter into two, one pure and one doing I/O.
+Notice how we managed to neatly decompose the interpreter into two: one pure and one doing I/O.
 
 This all might be pretty obvious, but it bears mentioning.
 
 ### Trees as free monads
 
-To close this section out, let's look at another application of free monads.
+To close out this section, let's look at another application of free monads.
 Namely, let's build a binary search tree from a sorted list.
 
 Our base functor for the binary tree would look like this:
@@ -743,8 +745,8 @@ data BinTreeF l a = NodeF l a a
   deriving Functor
 ```
 
-You might ask yourself, where are the leaf and/or nil branch constructors.
-We can actually encode those as the "return value" of type `Maybe l`, so we don't really need them here.
+You might ask yourself: where are the leaf and/or nil branch constructors?
+We can actually encode those as the "return value" of type `Maybe l`, so we don't need them here.
 
 Now we define our free monad type and build the tree.
 
@@ -761,14 +763,14 @@ buildBalanced xs = do
   buildBalanced b
 ```
 
-The first two cases, where lists have sizes of zero and one respectively, are self-evident.
+The first two cases, where lists have sizes of zero and one, respectively, are self-evident.
 If there are more elements in the list, we divide it in half.
 The approximate "middle" element serves as the current node value.
 We then recursively construct left and right subtrees from the corresponding halves of the list.
 
 Notice how we're passing left and right halves of the list to `NodeF` and then bind it to name `b`.
 As we discussed previously, multiple functor variables per constructor encode non-determinism.
-So here we basically split the computation into two branches.
+So here, we basically split the computation into two branches.
 We then recursively build the tree for each branch.
 
 The caveat here is there's no simple way to print this all, and working with a tree wrapped in the `Free` is probably not particularly convenient.
@@ -787,7 +789,7 @@ convert (Free f) =
 ```
 
 Note how `Pure` values correspond to leaves, and `Free` values correspond to branches.
-Running `convert . buildBalanced` on a list produces the expected result, i.e. a binary search tree.
+Running `convert . buildBalanced` on a list produces the expected result, i.e., a binary search tree.
 
 ```
 > convert $ buildBalanced [0..10]
@@ -807,7 +809,7 @@ Running `convert . buildBalanced` on a list produces the expected result, i.e. a
 >
 > -- Dennis Ritchie
 
-Hopefully, after this brief introduction, you understand, at least in principle, what free monads are, and how they may be useful.
+Hopefully, after this brief introduction, you understand, at least in principle, what free monads are and how they may be useful.
 Of course, the only way to get proficient with them is to use them in projects, and no blog post can replace actual hands-on experience, but that applies to everything in programming.
 
 Let us then briefly review what we've learned.
@@ -818,17 +820,17 @@ Let us then briefly review what we've learned.
 - They build tree-like structures, which later can be interpreted.
 - Any typical Haskell monad can be implemented as a free monad with a corresponding interpreter.
 - Generally, a free monad can be converted to any other monad via a natural transformation.
-- One particular application of free monads is in building ASTs for EDSLs.
+- One particular application of free monads is in building ASTs for eDSLs.
 - But you could use them almost anywhere where a tree could be used.
 
-For further reading, turns out, to get a monad, we don't really even need a functor if we cheat a little.
+For further reading: it turns out, to get a monad, we don't really even need a functor if we cheat a little.
 This construction is known as freer monads (as in, more free than free).
 See [Free and Freer Monads: Putting Monads Back into Closet
 ](https://okmij.org/ftp/Computation/free-monad.html).
 
 ## Exercises
 
-1. Implement the standard monads `Reader`, `Writer` using `Free`.
+1. Implement the standard monads `Reader` and `Writer` using `Free`.
     Here is a template to get you started:
 
     ```haskell
@@ -864,7 +866,7 @@ See [Free and Freer Monads: Putting Monads Back into Closet
     ```
 
 2. Using a free monad, define a monad for a `String`-keyed, `String`-valued key-value store.
-    The store must support two commands, assuming the store monad is called `Store`,
+    The store must support two commands, assuming the store monad is called `Store`:
 
     ```haskell
     type Key = String
