@@ -26,27 +26,34 @@ This part is a bit theory-heavy, so if it is not your cup of tea, feel free to s
 
 In abstract algebra, we call something a "free X" when it is in some sense a minimal structure that satisfies conditions for being X.
 The exact definition of "minimal" in abstract algebra is a little vague, but the main idea is that "free X" satisfies all laws for X and does not have any other laws describing it.
-That is, in this context, "free" means "unrestricted" -- it is not that we can get a structure "for free"[^for-free], but that no other laws are restricting the structure apart from those absolutely necessary.
-
-[^for-free]: Although in most cases, we actually might, depending on your definition of "for free".
+That is, in this context, "free" means "unrestricted" -- it is not that we can get a structure "for free", but that no other laws are restricting the structure apart from those absolutely necessary.
+That said, depending on your definition of "for free", in most cases, we actually might also get a structure "for free".
 
 More formally, a free structure over a set $S$ is a set $M,$ together with operations on elements of $M,$ such that:
 
-- There is an embedding[^embedding] $i: S\to M$.
+- There is an embedding $i: S\to M$.
 - $M$ is a minimal closure, i.e., it only contains all the results of applying $i$ to elements of $S$, and any results of applying the operations, defined as part of the structure, to the elements of $M$.
 - The only laws that hold for the generated structure are those required to hold.
 
-[^embedding]: An embedding is an injective morphism.
-    That is, an embedding $S\to M$ is a mapping from elements of $S$ to elements of $M$, such that each element of $S$ is mapped onto a unique element of $M$ (injectivity), and, in some sense, this mapping is structure-preserving (i.e. it's a morphism).
-    The point is that every element of the original set is uniquely representable in the free structure.
+An embedding is an injective morphism.
+That is, an embedding $S\to M$ is a mapping from elements of $S$ to elements of $M$, such that each element of $S$ is mapped onto a unique element of $M$ (injectivity), and, in some sense, this mapping is structure-preserving (i.e. it's a morphism).
+The point is that every element of the original set is uniquely representable in the free structure.
 
 Let us start with a simple example, specifically, `Monoid`s.
 In Haskell, any type `α` in the `Monoid` type class must have two functions defined.
 First, to construct a neutral element, we have `mempty :: α`.
-Second, to in some sense combine two elements, we have `(<>) :: α -> α -> α`[^semigroup].
-Additionally, these functions must satisfy three equations, called the monoid laws:
+Second, to in some sense combine two elements, we have `(<>) :: α -> α -> α`.
 
-[^semigroup]: The `(<>)` operator is actually defined in the `Semigroup` type class, but we'll gloss over semigroups here for the sake of simplicity.
+<details>
+<summary>A note about `(<>)`</summary>
+
+The `(<>)` operator is actually defined in the `Semigroup` type class, but we'll gloss over semigroups here for the sake of simplicity.
+
+***
+
+</details>
+
+Additionally, these functions must satisfy three equations, called the monoid laws:
 
 ```haskell
 (x <> y) <> z = x <> (y <> z) -- associativity
@@ -103,15 +110,22 @@ If you're interested, [Bartosz Milewski's article on adjunctions][adjunctions] d
 Before we see how this idea applies to monads, it might be helpful to compare monads to monoids first.
 
 Let us first review the definition of the `Monad` type class.
-In Haskell, it is defined as[^applicative]:
-
-[^applicative]: If you're more familiar with modern Haskell, you might object that actually, the superclass of `Monad` is `Applicative`, but we will gloss over that for the sake of simplicity.
+In Haskell, it is defined as:
 
 ```haskell
 class Functor m => Monad m where
   return :: a -> m a
   (>>=) :: m a -> (a -> m b) -> m b
 ```
+
+<details>
+<summary>A note on `Monad`'s superclass</summary>
+
+If you're more familiar with modern Haskell, you might object that actually, the superclass of `Monad` is `Applicative`, but we will gloss over that for the sake of simplicity.
+
+***
+
+</details>
 
 This definition needs to additionally satisfy the monad laws:
 
@@ -131,12 +145,7 @@ If we instead rewrite these laws using the Kleisli composition
 f >=> g = \x -> f x >>= g
 ```
 
-it becomes much more apparent[^equivalence]:
-
-[^equivalence]: The proof of equivalence is left as an exercise to the reader.
-    Here, by equivalence we mean that the monad laws expressed via Kleisli arrows imply the monad laws expressed via `>>=` and vice versa.
-    The proof itself is a straightforward application of equational reasoning.
-    It's easier to start from the Kleisli arrow form.
+it becomes much more apparent:
 
 ```haskell
 (f >=> g) >=> h = f >=> (g >=> h) -- associativity
@@ -144,14 +153,34 @@ return >=> f = f -- left identity
 f >=> return = f -- right identity
 ```
 
+(the proof of equivalence between monad laws expressed via `>>=` and `>=>` is left as an exercise for the reader)
+
+<details>
+<summary>On equivalence</summary>
+
+Here, by equivalence we mean that the monad laws expressed via Kleisli arrows imply the monad laws expressed via `>>=` and vice versa.
+The proof itself is a straightforward application of equational reasoning.
+It's easier to start from the Kleisli arrow form.
+
+***
+
+</details>
+
 That is why a monad is indeed a monoid: it satisfies the same laws, and the "values" are of the type `Functor f => a -> f b`.
 Note, though, that this is not the category of endofunctors.
-However, there exists a natural transformation to the category of endofunctors[^endofunctors].
+However, there exists an isomorphism with the category of endofunctors.
 
-[^endofunctors]: One could alternatively define monads via `join :: m (m a) -> m a` instead of `>>=`, which would make it a little more evident that monads are monoids over endofunctors, but to explain this properly, we would need to use a bit more of category theory jargon.
-    There is an excellent [r/math post][endofunctors] on the subject.
+<details>
+<summary>On endofunctors</summary>
 
-    [endofunctors]: https://www.reddit.com/r/math/comments/ap25mr/a_monad_is_a_monoid_in_the_category_of/
+One could alternatively define monads via `join :: m (m a) -> m a` instead of `>>=`, which would make it a little more evident that monads are monoids over endofunctors, but to explain this properly, we would need to use a bit more of category theory jargon.
+There is an excellent [r/math post][endofunctors] on the subject.
+
+[endofunctors]: https://www.reddit.com/r/math/comments/ap25mr/a_monad_is_a_monoid_in_the_category_of/
+
+***
+
+</details>
 
 We can guess a few things based on the intuition we gained by looking at free monoids.
 First, we might note that `return` and `>=>` correspond to `mempty` and `(<>)`, respectively.
@@ -380,15 +409,23 @@ There's no free lunch here, though, so we need to define the semantics of this m
 ### List as a free monad
 
 Not all free monads behave exactly the same as their regular counterparts.
-For instance, you might know that the list monad encodes non-determinism[^non-determinism].
+For instance, you might know that the list monad encodes non-determinism.
+
+<details>
+<summary>In case the last statement is surprising...</summary>
+
+If the statement about list monad encoding non-determinism is surprising, consider that one could use a list to represent all possible outcomes of some event and then handle those one by one.
+For further reading on this topic, refer to the [School of Haskell article on the list monad][school-of-haskell] or the [Haskell wikibook section on understanding monads][haskell-wikibook]
+
+[school-of-haskell]: https://www.schoolofhaskell.com/school/starting-with-haskell/basics-of-haskell/13-the-list-monad#non-deterministic-computations
+[haskell-wikibook]: https://en.wikibooks.org/wiki/Haskell/Understanding_monads/List
+
+***
+
+</details>
+
 However, if we derive a free monad for lists, the behavior is slightly different.
 To give a specific example:
-
-[^non-determinism]: If the statement about list monad encoding non-determinism is surprising, consider that one could use a list to represent all possible outcomes of some event and then handle those one by one.
-    For further reading on this topic, refer to the [School of Haskell article on the list monad][school-of-haskell] or the [Haskell wikibook section on understanding monads][haskell-wikibook]
-
-    [school-of-haskell]: https://www.schoolofhaskell.com/school/starting-with-haskell/basics-of-haskell/13-the-list-monad#non-deterministic-computations
-    [haskell-wikibook]: https://en.wikibooks.org/wiki/Haskell/Understanding_monads/List
 
 ```haskell
 listComputation :: Free [] Int
@@ -422,18 +459,27 @@ In general, we can restore any proper monad behavior from a free monad since it 
 foldFree :: Monad m => (forall x. f x -> m x) -> Free f a -> m a
 ```
 
-Given a function[^natural-transformation] converting `f x` into some monad `m x` for any `x`, we can convert `Free f a` into `m a`.
+Given a function (a natural transformation) converting `f x` into some monad `m x` for any `x`, we can convert `Free f a` into `m a`.
+
+<details>
+<summary>On natural transformations</summary>
+
+The discussion of naturality is not particularly relevant here, but we'll introduce the concept briefly.
+The natural transformation is a structure-preserving transformation between two functors.
+Here, the naturality condition is enforced by the parametricity, that is, the function is polymorphic in `x`.
+
+Essentially, you can think of any function with type `forall a. f a -> g a` as a natural transformation between `f` and `g`, as long as you ignore `undefined` and other bottoms.
+
+***
+
+</details>
+
 Returning to our list example, we can get the original list behavior by applying `foldFree id`:
 
 ```haskell
 > foldFree id listComputation
 [111,211,121,221,112,212,122,222,113,213,123,223]
 ```
-
-[^natural-transformation]: This function is a natural transformation.
-    The naturality condition is enforced by parametricity.
-    That being said, the discussion of naturality is not particularly relevant here.
-    Essentially, you can think of any function with type `forall a. f a -> g a` as a natural transformation between `f` and `g`, as long as you ignore `undefined` and other bottoms.
 
 ### Free monads for EDSLs
 
@@ -464,10 +510,8 @@ If we try to derive a `Functor` instance, GHC will complain:
 Constructor ‘Add’ must not use the type variable in a function argument
 ```
 
-It is, in fact, impossible to define a lawful `Functor` instance if the functor's type variable ends up in the function argument position[^variance].
+It is, in fact, impossible to define a lawful `Functor` instance if the functor's type variable ends up in the function argument position (this has to do with `Functor` being a covariant functor, but discussion of variance is out of scope here).
 Hence, we will introduce two type variables: one for operation arguments, and another for the overall result.
-
-[^variance]: This has to do with `Functor` being a covariant functor, but discussion of variance is out of scope here.
 
 ```haskell
 data ASTF t a
