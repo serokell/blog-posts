@@ -214,7 +214,8 @@ data Free f a = Pure a | Free (f (Free f a))
 
 As you can see, it is indeed very similar to a list.
 Note, however, that it is a bit more general: the functor is arbitrary, potentially making it a tree with branches of type `f` and leaves of type `a`.
-Pure values, i.e. leaves, are encoded via the constructor `Pure`, and "actions", i.e. branches -- via the constructor `Free`.
+Leaves are encoded via the `Pure` constructor, and branches -- via the `Free` constructor.
+We can also note that leaves correspond to pure values, and branches correspond to monadic "actions", respectively.
 
 This point is important, so we'll repeat: free monad is similar to a list, but, unlike a list, "continuation" (i.e. `Free`) can be a branching structure, depending on the choice of the base functor `f`.
 
