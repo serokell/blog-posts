@@ -300,6 +300,7 @@ liftF :: (Functor f, MonadFree f m) => f a -> m a
 ```
 
 `MonadFree` is just an MTL-style type class for different encodings of the free monad.
+Also, while on the topic of different encodings, for more flexibility, instead of directly using `Free` and `Pure`, one would generally use `wrap` (defined in `MonadFree`) and `pure` respectively.
 In our case, we can pretend that:
 
 ```haskell
@@ -580,6 +581,7 @@ if' cond t f = Free $ If cond t f
 ```
 
 Notice how instead of `liftF` we have to use `Free` directly here -- our branches are already of type `FreeAST`.
+As discussed earlier, in general you would use `wrap` defined in `MonadFree` instead of `Free` directly, but we're glossing over that for simplicity.
 We can now modify our interpreter `computeAST` by adding another case:
 
 ```haskell
