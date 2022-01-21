@@ -174,7 +174,8 @@ Doing that directly yields
 data Free f a = Nil a | Cons f (Free f) a
 ```
 
-We can't define such a data type due to `f` not being a plain type and hence can't be an argument of a data constructor, but we're actually very close.
+We can't define such a data type -- `f` is not a plain type, so it can't be an argument of a data constructor.
+But we're actually very close.
 
 Let us now look at the definition of `Free f`:
 
@@ -359,7 +360,7 @@ printState (Free m) s =
     <> printState x s'
 ```
 
-If we run `someComputation` defined above through this interpreter, for example by invoking `printState someComputation 1`, we'll get the following output:
+If we run `someComputation` defined above through this interpreter by invoking `printState someComputation 1`, we'll get the following output:
 
 ```
 state change 1 -> 1
@@ -381,7 +382,7 @@ There's no free lunch here, though, so we need to define the semantics of this m
 Not all free monads behave exactly the same as their regular counterparts.
 For instance, you might know that the list monad encodes non-determinism[^non-determinism].
 However, if we derive a free monad for lists, the behavior is slightly different.
-Consider:
+To give a specific example:
 
 [^non-determinism]: If the statement about list monad encoding non-determinism is surprising, consider that one could use a list to represent all possible outcomes of some event and then handle those one by one.
     For further reading on this topic, refer to the [School of Haskell article on the list monad][school-of-haskell] or the [Haskell wikibook section on understanding monads][haskell-wikibook]
