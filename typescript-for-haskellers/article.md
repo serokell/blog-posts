@@ -89,8 +89,8 @@ And when you try to pass a value of another tagged type, the compiler says that 
 ```typescript
 function sendMessage(email: Email);
 
-sendMessage("message"); // Argument of type 'string' is not assignable to parameter of type 'Email'.
-sendMessage("St. Petersburg" as City); // Argument of type 'City' is not assignable to parameter of type 'Email'.
+sendMessage("message"); // Error: Argument of type 'string' is not assignable to parameter of type 'Email'.
+sendMessage("St. Petersburg" as City); // Error: Argument of type 'City' is not assignable to parameter of type 'Email'.
 
 sendMessage("email@gmail.com" as Email); // Ok
 ```
@@ -224,17 +224,17 @@ The first one is used to prevent variable reference change.
 
 ```typescript
 const a = 1;
-a = 2; // Cannot assign to 'a' because it is a constant.
+a = 2; // Error: Cannot assign to 'a' because it is a constant.
 ```
 
 And the second one is used to make properties immutable.
 
 ```typescript
-interface A {
+type A = {
   readonly x: number;
 }
 const a: A = { x: 1 };
-a.x = 12; // Cannot assign to 'x' because it is a read-only property.
+a.x = 12; // Error: Cannot assign to 'x' because it is a read-only property.
 ```
 
 Nevertheless, there are some problems here.
@@ -273,27 +273,27 @@ type A = {
 
 type ImmutableA = Readonly<A>; 
 const a: ImmutableA = { x: 1, y: 2 };
-a.x = 2; // Cannot assign to 'x' because it is a read-only property.
-a.y = 1; // Cannot assign to 'y' because it is a read-only property.
+a.x = 2; // Error: Cannot assign to 'x' because it is a read-only property.
+a.y = 1; // Error: Cannot assign to 'y' because it is a read-only property.
 ```
 
 With `ReadonlyArray`, you can make all array elements `readonly`.
 
 ```typescript
 const arr: ReadonlyArray<number> = [1, 2, 3];
-arr[0] = 4; // Index signature in type 'readonly number[]' only permits reading.
+arr[0] = 4; // Error: Index signature in type 'readonly number[]' only permits reading.
 ```
 
 You can also make a `readonly` dictionary, for example:
 
 ```typescript
-interface A {
+type A = {
     readonly [x: string]: number;
 }
 
 const a: A = { x: 1, y: 2 };
-a.x = 2; // Index signature in type 'A' only permits reading.
-a.y = 1; // Index signature in type 'A' only permits reading.
+a.x = 2; // Error: Index signature in type 'A' only permits reading.
+a.y = 1; // Error: Index signature in type 'A' only permits reading.
 ```
 
 Now you have a more flexible way to make things read-only.
@@ -385,7 +385,7 @@ Unfortunately, unnamed parameters are not supported, but you can set them as `_`
 type addT = (_: number) => (_: number) => number;
 const add: addT = (l) => (r) => l + r;
 
-type foldArrT = (f: (_: number) => (_: number) => number) => (_: number) => (_: number[]) => number;
+type foldArrT = (_: (_: number) => (_: number) => number) => (_: number) => (_: number[]) => number;
 const foldArr: foldArrT = (f) => (z) => (arr) => {
   let m = z;
   arr.forEach((elem) => {
@@ -416,7 +416,7 @@ const arrLength: <T>(_: T[]) => number = (arr) => arr.length;
 
 arrLength([1, 2, 3]); // 3
 arrLength<string>(["1", "2"]); // 2
-arrLength<number>(["1", "2", "3"]); // Type 'string' is not assignable to type 'number'.
+arrLength<number>(["1", "2", "3"]); // Error: Type 'string' is not assignable to type 'number'.
 
 type NonEmpty<T> = {
   head: T;
@@ -488,6 +488,7 @@ Therefore, you must be cautious about propagating the full type-level informatio
 ```typescript
 type fnT = <T>(v: T & { x: number }) => T & { x: number }
 // You should fully describe all types to not lose information.
+// Look at example below
 
 type A = {};
 type B = A & {x: number};
@@ -495,7 +496,7 @@ type B = A & {x: number};
 let a: A = {};
 const b: B = {x: 1};
 a = b;
-a.x; // Property 'x' does not exist on type 'A'.
+a.x; // Error: Property 'x' does not exist on type 'A'.
 ```
 
 ### Mapped types, conditional types, and type families
@@ -515,7 +516,7 @@ type Partial<T> = { [P in keyof T]?: T[P] };
 type A = { x: number; y: number };
 type PartialA = Partial<A>;
 
-const a: A = { x: 1 }; // Property 'y' is missing in type '{ x: number; }' but required in type 'A'.
+const a: A = { x: 1 }; // Error: Property 'y' is missing in type '{ x: number; }' but required in type 'A'.
 const a: PartialA = { x: 1 }; // Ok
 ```
 
@@ -535,9 +536,9 @@ type A = { readonly x?: number; readonly y?: number };
 type NoModifiersA = NoModifiers<A>;
 
 const a: A = { x: 1 }; // Ok
-a.x = 1; // Cannot assign to 'x' because it is a read-only property.
+a.x = 1; // Error: Cannot assign to 'x' because it is a read-only property.
 
-const a: NoModifiersA = { x: 1 }; // Property 'y' is missing in type '{ x: number; }' but required in type 'NoModifiers<A>'
+const a: NoModifiersA = { x: 1 }; // Error: Property 'y' is missing in type '{ x: number; }' but required in type 'NoModifiers<A>'
 const a: NoModifiersA = { x: 1, y: 2 }; // Ok
 a.x = 2; // Ok
 ```
@@ -567,7 +568,7 @@ type Pick<T, K extends keyof T> = {
 
 Then, by applying `Pick` to `Point` and `"x" | 0`, we can map a type from `Point` to a type with only the properties listed. 
 
-```
+```typescript
 type PointValues = Pick<Point, "x" | 0> // type PointValues = { x: number; 0: number }
 ```
 
@@ -591,7 +592,7 @@ type Getters<T> = {
 
 So for each property name `K` in `T` that is assignable to `string`, we create a getter with the property name and type `() => T[K]`.
 
-```
+```typescript
 type PointGetters = Getters<Point> // type PointValues = { getX: () => number; getY: () => number; }
 ```
 
@@ -679,10 +680,10 @@ For example, imagine that your generic type is not just a specific type, but a t
 Let's take a look at an example of a theoretical implementation, which, unfortunately, TypeScript's type system doesn't allow.
 
 ```typescript
-interface Collection<F> {
-  create: <A>() => F<A>; // Type 'F' is not generic.
-  insert: <A>(v: A) => (c: F<A>) => F<A>; // Type 'F' is not generic.
-}
+type Collection<F> = {
+  create: <A>() => F<A>; // Error: Type 'F' is not generic.
+  insert: <A>(v: A) => (c: F<A>) => F<A>; // Error: Type 'F' is not generic.
+};
 
 const collectionArray: Collection<Array> = {
   create: () => [],
@@ -722,9 +723,12 @@ type Kind2<F extends URIS2, A, B> = URItoKind2<A, B>[F];
 ```
 
 And now we can return to our theoretical `Collection` above and implement it using kinds.
+Three dots `...` syntax here is array/object spread operator.
+Here in array we simply copy the array `c` and add value `v` to it.
+And in object you are able to copy all property values from the old object and change some of them by specifying only the ones you need.
 
 ```typescript
-interface Collection<F extends URIS> {
+type Collection<F extends URIS> = {
   create: <A>() => Kind<F, A>;
   insert: <A>(v: A, c: Kind<F, A>) => Kind<F, A>;
 }
@@ -735,20 +739,25 @@ const collectionArray: Collection<"Array"> = {
 };
 ```
 
+And it is how type classes will look in TypeScript.
+We represent them as a dictionary of related methods carried in a mere type.
+Our `Collection` is a type class which work with one arity constructors which we defined in `URItoKind`.
+And `collectionArray` is an instance of this type class for `"Array"` which is `Array<A>` in `URItoKind`.
+
 Let's see how it works in practice.
 
 We implement a new `Collection` instance for `Set`, and then write a generic function `f` over `Collection`.
-The last thing we need to do is to pass the implementation as a function argument.
+The last thing we need to do is to pass the implementation as a function argument like a type class function context.
 
 ```typescript
 const collectionSet: Collection<"Set"> = {
-    create: () => new Set(),
-    insert: (v, c) => c.add(v),
+  create: () => new Set(),
+  insert: (v, c) => c.add(v),
 };
 
-const f = <F extends URIS, A>(C: Collection<F>, v1: A, v2: A) => {
-    const newCollection = C.create<A>();
-    return C.insert(v2, C.insert(v1, newCollection));
+const f = <F extends URIS, A>(C: Collection<F>, v1: A, v2: A): Kind<F, A> => {
+  const newCollection = C.create<A>();
+  return C.insert(v2, C.insert(v1, newCollection));
 };
 
 f(collectionArray, 1, 2); // [ 1, 2 ]
@@ -826,8 +835,8 @@ const pushVec: <A, N extends Nat>(a: A, v: Vec<A, N>) => Vec<A, Succ<N>> = (a, v
 let empty: Vec<number, Zero> = emptyVec(); // Ok
 let oneElem: Vec<number, Succ<Zero>> = pushVec(1, empty); // Ok
 let twoElems: Vec<number, Succ<Succ<Zero>>> = pushVec(2, oneElem); // Ok
-let twoElemsInvalid: Vec<number, Succ<Zero>> = pushVec(2, oneElem); // error
-oneElem = twoElems; // error
+let twoElemsInvalid: Vec<number, Succ<Zero>> = pushVec(2, oneElem); // Error
+oneElem = twoElems; // Error
 ```
 
 This was a simple example of what we can do with type-level programming.
@@ -922,7 +931,7 @@ const interpret: <A>(expr: ArithExpr<A>) => A = (expr) => {
 const testExpr = and(gt(plus(num(23), num(12)), num(170)), gt(num(35), num(47)));
 interpret(testExpr); // false
 
-const wrongExpr = and(num(23), num(12)); // Argument of type 'ArithExpr<number>' is not assignable to parameter of type 'ArithExpr<boolean>'.
+const wrongExpr = and(num(23), num(12)); // Error: Argument of type 'ArithExpr<number>' is not assignable to parameter of type 'ArithExpr<boolean>'.
 ```
 
 For a deeper understanding of this, you can check the [original](http://code.slipthrough.net/2016/08/10/approximating-gadts-in-purescript/) PureScript article and also Giulio Canti's [example](https://gist.github.com/gcanti/9a0c2a666621f03b80457831ff3ab997) (on which this part is based on) of its implementation in TypeScript.
@@ -1036,3 +1045,24 @@ Nevertheless, this article may help you understand what kind of things you can d
 Hopefully, you can use things you learned here, develop your own solutions based on them, and dive into the extraordinary world of TypeScript.
 
 If you would like to read more TypeScript articles, follow us on [Twitter](https://twitter.com/serokell) and [DEV](https://dev.to/serokell), or subscribe to our newsletter below.
+
+
+## Syntax comparison
+
+After all this description of TypeScript possibilities we want to present a comparison table between Haskell and TypeScript syntax.
+
+| Haskell | TypeScript | Comments and Links |
+| --- | --- | --- |
+| `type Email = String` | `type Email = string` | [Type aliases](#type-aliases) |
+| `newtype Email = Email String` | `type Email = string & { readonly __tag: unique symbol }` | [Newtype](#newtype) <br> [More complex and pretty solution](https://github.com/Microsoft/TypeScript/issues/4895#issuecomment-401067935) |
+| <code>data Result = Error &#124; Success</code> | <code>type Result = "Error" &#124; "Success"</code> | [Unit types](#unit-types) |
+| <code>data Result = Error String &#124; Success Int</code> | <code>type Result = { type: "Error"; message: string } &#124; { type: "Success"; n: number }</code> | [Discriminated unions, or a data type analogue](#discriminated-unions-or-a-data-type-analogue) <br> [ts-pattern](https://github.com/gvergnaud/ts-pattern) for pattern matching |
+| Immutability | `const a = 1` <br> `type A = { readonly x: number }` <br> `type ImmutableA = Readonly<A>` <br> `const arr: ReadonlyArray<number> = [1, 2, 3]` <br> `type A = { readonly [x: string]: number }` | [Immutability](#immutability) <br> [immer](https://immerjs.github.io/immer/) for immutable state flow |
+| Currying | `type addT = (_: number) => (_: number) => number` <br> `const add: addT = (l) => (r) => l + r` <br> `add(5)(3)` | [Higher-order functions and currying](#higher-order-functions-and-currying) |
+| `length :: [a] -> Int` | `type length = <T>(_: T[]) => number` | [Parametric polymorphism](#parametric-polymorphism) |
+| `lookup :: Eq a => a -> [(a,b)] -> Maybe b` | <code>type lookup = <T, K extends Eq<T>, V>(cmp: K, k: T, mp: [T, V][]) => V &#124; undefined</code> | [Ad-hoc polymorphism](#ad-hoc-polymorphism) |
+| Row polymorphism | `type fnT = <T>(v: T & { x: number }) => T & { x: number }` | [Row polymorphism](#row-polymorphism) |
+| `type family G a where ; G Int = Bool ; G a = Char` | `type G<A> = A extends number ? boolean : string` | [Conditional types](#conditional-types) |
+| `class Collection (t :: * -> *) where ; create :: t a` | `type URItoKind<A> = { Array: Array<A> }` <br> `type URIS = keyof URItoKind<unknown>` <br> `type Kind<F extends URIS, A> = URItoKind<A>[F]` <br> `type Collection<F extends URIS> = { create: <A>() => Kind<F, A> }` | [HKTs](#hkts) <br> [`fp-ts`](https://gcanti.github.io/fp-ts/) <br> Yuriy Bogomolov's [blog](https://ybogomolov.me/) |
+| `withCollection :: Collection t => t a` | `type withCollection = <F extends URIS, A>(C: Collection<F>) => Kind<F, A>` | [HKTs](#hkts) <br> [`fp-ts`](https://gcanti.github.io/fp-ts/) <br> Yuriy Bogomolov's [blog](https://ybogomolov.me/) |
+| <code>data Peano = Zero &#124; Succ Peano</code> | `type Zero = "zero"` <br> <code>type Nat = Zero &#124; { n: Nat }</code> | [Peano numbers](#peano-numbers) <br> [type-level Fibonacci](https://mjj.io/2021/03/29/type-level-programming-in-typescript/) |
