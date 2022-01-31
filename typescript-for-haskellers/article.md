@@ -33,6 +33,9 @@ Meanwhile TypeScript, which has a vast community and provides modern technologie
 
 In this part, we will introduce you to simple built-in concepts familiar to most Haskellers that do not require any overhead when writing code.
 Nevertheless, we will also leave links to some more complex libraries and articles to help you investigate further.
+Also, if you are not familiar with some TypeScript syntax we explain it in the course of the article.
+But you can also find pivot table in [appendix](#appendix) with links for the better understanding of them.
+And there is also a comparison table between Haskell and TypeScript syntax of covered topics.
 
 ### Strictness
 
@@ -1047,22 +1050,599 @@ Hopefully, you can use things you learned here, develop your own solutions based
 If you would like to read more TypeScript articles, follow us on [Twitter](https://twitter.com/serokell) and [DEV](https://dev.to/serokell), or subscribe to our newsletter below.
 
 
-## Syntax comparison
+## Appendix
 
-After all this description of TypeScript possibilities we want to present a comparison table between Haskell and TypeScript syntax.
+After all this description of TypeScript possibilities we want to present a summary af all syntax and TypeScript features which were discussed here.
+It will also contain comparison between Haskell and TypeScript syntax.
 
-| Haskell | TypeScript | Comments and Links |
-| --- | --- | --- |
-| `type Email = String` | `type Email = string` | [Type aliases](#type-aliases) |
-| `newtype Email = Email String` | `type Email = string & { readonly __tag: unique symbol }` | [Newtype](#newtype) <br> [More complex and pretty solution](https://github.com/Microsoft/TypeScript/issues/4895#issuecomment-401067935) |
-| <code>data Result = Error &#124; Success</code> | <code>type Result = "Error" &#124; "Success"</code> | [Unit types](#unit-types) |
-| <code>data Result = Error String &#124; Success Int</code> | <code>type Result = { type: "Error"; message: string } &#124; { type: "Success"; n: number }</code> | [Discriminated unions, or a data type analogue](#discriminated-unions-or-a-data-type-analogue) <br> [ts-pattern](https://github.com/gvergnaud/ts-pattern) for pattern matching |
-| Immutability | `const a = 1` <br> `type A = { readonly x: number }` <br> `type ImmutableA = Readonly<A>` <br> `const arr: ReadonlyArray<number> = [1, 2, 3]` <br> `type A = { readonly [x: string]: number }` | [Immutability](#immutability) <br> [immer](https://immerjs.github.io/immer/) for immutable state flow |
-| Currying | `type addT = (_: number) => (_: number) => number` <br> `const add: addT = (l) => (r) => l + r` <br> `add(5)(3)` | [Higher-order functions and currying](#higher-order-functions-and-currying) |
-| `length :: [a] -> Int` | `type length = <T>(_: T[]) => number` | [Parametric polymorphism](#parametric-polymorphism) |
-| `lookup :: Eq a => a -> [(a,b)] -> Maybe b` | <code>type lookup = <T, K extends Eq<T>, V>(cmp: K, k: T, mp: [T, V][]) => V &#124; undefined</code> | [Ad-hoc polymorphism](#ad-hoc-polymorphism) |
-| Row polymorphism | `type fnT = <T>(v: T & { x: number }) => T & { x: number }` | [Row polymorphism](#row-polymorphism) |
-| `type family G a where ; G Int = Bool ; G a = Char` | `type G<A> = A extends number ? boolean : string` | [Conditional types](#conditional-types) |
-| `class Collection (t :: * -> *) where ; create :: t a` | `type URItoKind<A> = { Array: Array<A> }` <br> `type URIS = keyof URItoKind<unknown>` <br> `type Kind<F extends URIS, A> = URItoKind<A>[F]` <br> `type Collection<F extends URIS> = { create: <A>() => Kind<F, A> }` | [HKTs](#hkts) <br> [`fp-ts`](https://gcanti.github.io/fp-ts/) <br> Yuriy Bogomolov's [blog](https://ybogomolov.me/) |
-| `withCollection :: Collection t => t a` | `type withCollection = <F extends URIS, A>(C: Collection<F>) => Kind<F, A>` | [HKTs](#hkts) <br> [`fp-ts`](https://gcanti.github.io/fp-ts/) <br> Yuriy Bogomolov's [blog](https://ybogomolov.me/) |
-| <code>data Peano = Zero &#124; Succ Peano</code> | `type Zero = "zero"` <br> <code>type Nat = Zero &#124; { n: Nat }</code> | [Peano numbers](#peano-numbers) <br> [type-level Fibonacci](https://mjj.io/2021/03/29/type-level-programming-in-typescript/) |
+### Syntax cheat sheet
+
+<table>
+
+<tr>
+<th>Syntax</th>	
+<th>Comments and Links</th>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+type Point = {
+    y: number;
+    x?: number;
+};
+```
+
+</td>
+
+<td>
+
+[Optional parameters](https://www.typescriptlang.org/docs/handbook/2/functions.html#optional-parameters)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+type PointWithZ = Point & { z: number };
+```
+
+</td>
+<td>
+
+[Intersection types](https://www.typescriptlang.org/docs/handbook/2/objects.html#intersection-types)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+const x = (s as string).length;
+```
+
+</td>
+<td>
+
+[Type assertions](https://www.typescriptlang.org/docs/handbook/basic-types.html#type-assertions)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+const s: unique symbol;
+```
+
+</td>
+
+<td>
+
+[Symbols](https://www.typescriptlang.org/docs/handbook/symbols.html)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+const s = "hello";
+const n: typeof s;
+```
+
+</td>
+
+<td>
+
+[Typeof types](https://www.typescriptlang.org/docs/handbook/2/typeof-types.html)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+const a = "Hello";
+type A = "Hello";
+
+const b = `${a} world!`;
+type B = `${A} world!`;
+```
+
+</td>
+
+<td>
+
+[Template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
+and
+[Template literal types](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+type Point = {
+    y: number;
+    x?: number;
+};
+
+type P = keyof Point;
+```
+
+</td>
+
+<td>
+
+[Keyof types](https://www.typescriptlang.org/docs/handbook/2/keyof-types.html)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+const a: never;
+```
+
+</td>
+
+<td>
+
+[Never type](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#the-never-type)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+const arr = [1, 2, 3];
+const newArr = [...arr, 4, 5];
+```
+
+</td>
+
+<td>
+
+[Array/Object spread operator](https://oprearocks.medium.com/what-do-the-three-dots-mean-in-javascript-bc5749439c9a)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+
+```typescript
+const a: unknown;
+```
+
+</td>
+
+<td>
+
+[Unknown type](https://mariusschulz.com/blog/the-unknown-type-in-typescript)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+type A<T> = T extends Array<infer B> ? B : T;
+```
+
+</td>
+
+<td>
+
+[Inferring](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#inferring-within-conditional-types)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```typescript
+declare module "someModule" {
+  interface I<A> {
+    arr: Array<A>;
+  }
+}
+```
+
+</td>
+
+<td>
+
+[Module augmentation](https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation)
+
+</td>
+</tr>
+</table>
+
+### Comparison with Haskell
+
+<table>
+
+<tr>
+<th>Haskell</th>	
+<th>TypeScript</th>
+<th>Comments and Links</th>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+type Email = String
+```
+
+</td>
+
+<td>
+
+```typescript
+type Email = string;
+```
+
+</td>
+
+<td>
+
+[Type aliases](#type-aliases)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+newtype Email = Email String
+```
+
+</td>
+
+<td>
+
+```typescript
+type Email = string & { readonly __tag: unique symbol };
+```
+
+</td>
+
+<td>
+
+[Newtype](#newtype)
+<br>
+[More complex and pretty solution](https://github.com/Microsoft/TypeScript/issues/4895#issuecomment-401067935)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+data Result = Error | Success
+```
+
+</td>
+
+<td>
+
+```typescript
+type Result = "Error" | "Success";
+```
+
+</td>
+
+<td>
+
+[Unit types](#unit-types)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+data Result = Error String | Success Int
+```
+
+</td>
+
+<td>
+
+```typescript
+type Result = 
+  | { type: "Error"; message: string } 
+  | { type: "Success"; n: number };
+```
+
+</td>
+
+<td>
+
+[Discriminated unions, or a data type analogue](#discriminated-unions-or-a-data-type-analogue)
+<br>
+[ts-pattern](https://github.com/gvergnaud/ts-pattern) for pattern matching
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+Immutability
+
+</td>
+
+<td>
+
+```typescript
+const a = 1;
+type A = { readonly x: number };
+type ImmutableA = Readonly<A>;
+const arr: ReadonlyArray<number> = [1, 2, 3];
+type A = { readonly [x: string]: number };
+```
+
+</td>
+
+<td>
+
+[Immutability](#immutability)
+<br>
+[immer](https://immerjs.github.io/immer/) for immutable state flow
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+Currying
+
+</td>
+
+<td>
+
+```typescript
+type addT = (_: number) => (_: number) => number;
+const add: addT = (l) => (r) => l + r;
+add(5)(3);
+```
+
+</td>
+
+<td>
+
+[Higher-order functions and currying](#higher-order-functions-and-currying)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+length :: [a] -> Int
+```
+
+</td>
+
+<td>
+
+```typescript
+type length = <T>(_: T[]) => number;
+```
+
+</td>
+
+<td>
+
+[Parametric polymorphism](#parametric-polymorphism)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+lookup :: Eq a => a -> [(a,b)] -> Maybe b;
+```
+
+</td>
+
+<td>
+
+```typescript
+type lookup = <T, K extends Eq<T>, V>(cmp: K, k: T, mp: [T, V][]) => V | undefined;
+```
+
+</td>
+
+<td>
+
+[Ad-hoc polymorphism](#ad-hoc-polymorphism)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+Row polymorphism
+
+</td>
+
+<td>
+
+```typescript
+type fnT = <T>(v: T & { x: number }) => T & { x: number };
+```
+
+</td>
+
+<td>
+
+[Row polymorphism](#row-polymorphism)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+type family G a where 
+  G Int = Bool
+  G a = Char
+```
+
+</td>
+
+<td>
+
+```typescript
+type G<A> = A extends number ? boolean : string;
+```
+
+</td>
+
+<td>
+
+[Conditional types](#conditional-types)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+</td>
+
+<td>
+
+```typescript
+type Partial<T> = { [P in keyof T]?: T[P] };
+```
+
+</td>
+
+<td>
+
+[Mapped types](#mapped-types)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+class Collection (t :: * -> *) where
+  create :: t a
+```
+
+</td>
+
+<td>
+
+```typescript
+type URItoKind<A> = { Array: Array<A> };
+type URIS = keyof URItoKind<unknown>;
+type Kind<F extends URIS, A> = URItoKind<A>[F];
+
+type Collection<F extends URIS> = { create: <A>() => Kind<F, A> };
+```
+
+</td>
+
+<td>
+
+[HKTs](#hkts)
+<br>
+[`fp-ts`](https://gcanti.github.io/fp-ts/)
+<br>
+Yuriy Bogomolov's [blog](https://ybogomolov.me/)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+withCollection :: Collection t => t a
+```
+
+</td>
+
+<td>
+
+```typescript
+type withCollection = <F extends URIS, A>(C: Collection<F>) => Kind<F, A>;
+```
+
+</td>
+
+<td>
+
+[HKTs](#hkts)
+<br>
+[`fp-ts`](https://gcanti.github.io/fp-ts/)
+<br>
+Yuriy Bogomolov's [blog](https://ybogomolov.me/)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```haskell
+data Peano = Zero | Succ Peano
+```
+
+</td>
+
+<td>
+
+```typescript
+type Zero = "zero";
+type Nat = Zero | { n: Nat };
+```
+
+</td>
+
+<td>
+
+[Peano numbers](#peano-numbers)
+<br>
+[type-level Fibonacci](https://mjj.io/2021/03/29/type-level-programming-in-typescript/)
+
+</td>
+</tr>
+
+</table>
+
