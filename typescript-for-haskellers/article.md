@@ -33,9 +33,10 @@ Meanwhile TypeScript, which has a vast community and provides modern technologie
 
 In this part, we will introduce you to simple built-in concepts familiar to most Haskellers that do not require any overhead when writing code.
 Nevertheless, we will also leave links to some more complex libraries and articles to help you investigate further.
-Also, if you are not familiar with some TypeScript syntax we explain it in the course of the article.
-But you can also find pivot table in [appendix](#appendix) with links for the better understanding of them.
-And there is also a comparison table between Haskell and TypeScript syntax of covered topics.
+
+If you are not familiar with some TypeScript syntax, we'll try to explain it in the course of the article.
+But you can also find a table in the [appendix](#appendix) with links for each piece of syntax used in the article.
+In addition, there is also a table with comparisons between the Haskell and TypeScript syntax.
 
 ### Strictness
 
@@ -596,7 +597,7 @@ type Getters<T> = {
 So for each property name `K` in `T` that is assignable to `string`, we create a getter with the property name and type `() => T[K]`.
 
 ```typescript
-type PointGetters = Getters<Point> // type PointValues = { getX: () => number; getY: () => number; }
+type PointGetters = Getters<Point> // type PointGetters = { getX: () => number; getY: () => number; }
 ```
 
 
@@ -1052,8 +1053,8 @@ If you would like to read more TypeScript articles, follow us on [Twitter](https
 
 ## Appendix
 
-After all this description of TypeScript possibilities we want to present a summary af all syntax and TypeScript features which were discussed here.
-It will also contain comparison between Haskell and TypeScript syntax.
+After all these descriptions of the possibilities of TypeScript, we want to present a summary of all the syntax and TypeScript features that were discussed here.
+It also contains comparisons between Haskell and TypeScript syntax.
 
 ### Syntax cheat sheet
 
