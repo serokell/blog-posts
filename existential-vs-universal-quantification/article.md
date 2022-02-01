@@ -1,6 +1,6 @@
 # Existential and Universal Quantification in Haskell
 
-This article gives a brief introduction into one of the most common Haskell extensions – `ExplicitForAll` – and syntax constructions that this extension brings to language. 
+This article gives a brief introduction into one of the most common Haskell extensions – `ExplicitForAll` – and syntax constructions that this extension brings to language.
 I haven't yet found any big project that wouldn't use this extension, so it is very
 useful to either become acquainted with it or to refresh it in your memory if you already know about it.
 
@@ -19,13 +19,13 @@ id :: forall a. a -> a
 id x = x
 ```
 
-This quantification is hidden by default (if you check the type signature of `id`, there is no quantifier there). To see it, you need to use a specific extension – "ExplicitForAll".
+This quantification is implicit by default (if you check the type signature of `id`, there is no quantifier there). To make it explicit, you need to use a specific extension – "ExplicitForAll".
 
 ## Universal quantification and `ExplicitForAll`
 
 The key point of both universal and existential quantification is choosing who is responsible for deducing types of a function, datatype, or class.
 By default, all type variables are considered universally quantified.
-It means that **the caller** of a function (so, the programmer, actually) is responsible in case the type variable is ambiguous.
+It means that the **caller** of a function (so, the programmer, actually) is responsible in case the type variable is ambiguous.
 
 ### Usage
 
@@ -85,8 +85,8 @@ This is useful not only in such big examples but also when your function require
 
 ### Support of other extensions
 
-`ExplicitForAll` shines most when you need to enable other extensions – some of them just won't work without the `forall.` quantifier. :) 
-The most common one is `ScopedTypeVariables`, which allows you to pass a type variable from an outer function to the one defined in a where clause. 
+`ExplicitForAll` shines most when you need to enable other extensions – some of them just won't work without the `forall.` quantifier. :)
+The most common one is `ScopedTypeVariables`, which allows you to pass a type variable from an outer function to the one defined in a where clause.
 
 ```haskell
 example :: a -> [a] -> [a]
@@ -250,13 +250,15 @@ We hide exception type in the same way in the well-known `SomeException` wrapper
 data SomeException = forall a. Exception a => SomeException a
 ```
 
-It allows you to catch exceptions of any type (presumed it was wrapped inside `SomeException`) and then check if this is an exception of the type you want.
+It allows you to catch exceptions of any type.
+As long, as you hadn't specified its type, (and it is not obvious to the compiler, from the handler for example), all exceptions will be catch, wrapped in `SomeException` datatype.
+After that, you can use `fromException` function, to check, that you caught something you wanted to catch.
 
 
 ## Summary
 
 We have taken a look at quantification in Haskell.
-While we didn't introduce many syntax constructions, quantification allows you to further expand the rich type system of the language 
+While we didn't introduce many syntax constructions, quantification allows you to further expand the rich type system of the language
 and to create constructions that previously were impossible.
 
 For more Haskell tutorials, you can check out our [Haskell](https://serokell.io/blog/haskell) section or follow us on [Twitter](https://twitter.com/serokell).
