@@ -6,14 +6,14 @@ This article aims to introduce free monads and explain why they are useful.
 To whet your appetite a little, free monads are basically a way to easily get a generic pure `Monad` instance for any `Functor`.
 This can be rather useful in many cases when you're dealing with tree-like structures, but to name a few:
 
-- To build an AST for an EDSL using do-notation.
-- To have different semantics for the same monad in different contexts, e.g., define an interpreter and a pretty-printer for an EDSL, or have a mock interpreter in addition to a real one.
+- To build an AST for an eDSL using do-notation.
+- To have different semantics for the same monad in different contexts, e.g., define an interpreter and a pretty-printer for an eDSL, or have a mock interpreter in addition to a real one.
 - To build a decision-tree type structure harnessing the do-notation for non-determinism (like with lists, but for trees).
 
 Of course, all of this is perfectly achievable with regular old monads and some newtype wrappers, but free monads let us get rid of a bit of boilerplate.
 
 Basic familiarity with Haskell is assumed for the rest of this article.
-Specifically, the `do`-notation and type classes `Monoid`, `Functor`, and `Monad`.
+Specifically, do-notation and type classes `Monoid`, `Functor`, and `Monad`.
 
 ## Free algebraic structures
 
@@ -157,7 +157,7 @@ return >=> f = f -- left identity
 f >=> return = f -- right identity
 ```
 
-(the proof of equivalence between monad laws expressed via `>>=` and `>=>` is left as an exercise for the reader)
+(The proof of equivalence between monad laws expressed via `>>=` and `>=>` is left as an exercise for the reader.)
 
 <p>
 <details>
@@ -494,7 +494,7 @@ Returning to our list example, we can get the original list behavior by applying
 [111,211,121,221,112,212,122,222,113,213,123,223]
 ```
 
-### Free monads for EDSLs
+### Free monads for eDSLs
 
 By now, we hopefully got some intuition for how free monads work.
 Let us now define a toy calculator language that reads a few integers from the standard input, adds them together, and prints the result.
