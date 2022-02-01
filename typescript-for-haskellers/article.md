@@ -21,8 +21,8 @@ There are a lot of options:
 
 * [PureScript](https://www.purescript.org/), which has Haskell-like syntax;
 * [Elm](https://elm-lang.org/);
-* Haskell (via [Reflex](https://reflex-frp.org/) & [GHCJS](https://github.com/ghcjs/ghcjs);
-* F# (via [Fable](https://fable.io/).
+* Haskell (via [Reflex](https://reflex-frp.org/) & [GHCJS](https://github.com/ghcjs/ghcjs));
+* F# (via [Fable](https://fable.io/)).
 
 Unfortunately, these don't give us proper flexibility in working with JS libraries (whose numbers are enormous), and when problems related to library management appear, it takes more time to fix those.
 Additionally, customers will be locked in when they need to maintain such applications.
