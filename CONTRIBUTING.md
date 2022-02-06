@@ -116,11 +116,15 @@ We have a [GitHub repository](https://github.com/serokell/blog-posts) for submit
 
 The name of the pull request should contain the issue number of the article.
 
+#### Formatting
+
+You can use Markdown for the post. We use the [markdown-it](https://github.com/markdown-it/markdown-it) parser, which follows the [CommonMark](https://spec.commonmark.org/0.30/) specification. 
+
 You can also use [HTML](https://www.w3schools.com/html/) and [LaTeX](https://latex-tutorial.com/tutorials/amsmath/) in the post. 
 
 **Regarding Markdown:** We do not support footnotes. Whenever possible, prefer to use the simpler features over the more complicated ones.
 
-**Regarding HTML:** Do not use HTML and Markdown in the same block – it will not render nicely. 
+**Regarding HTML:** Do not use HTML and Markdown in the same block – it might not render nicely. 
 
 **Regarding LaTeX:** LaTeX expressions are surrounded by dollar signs. They can be either inline (one dollar sign) or block (two dollar signs).
 
@@ -138,9 +142,16 @@ $$Y = a + bX$$
 
 If you want to see how your article will render and if one or other feature is present, you can use the admin panel of staging to submit a post there and preview it.
 
+#### Code samples
+
+You might want to put code samples in a separate repository or a gist. In that case, you can use an [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0) for your code. 
+
+
 ### Google Docs (for non-developers)
 
 The other option is to submit via Google Docs. This is a reasonable option for non-developers or for texts that don’t contain a lot of code. 
+
+#### Formatting
 
 After reviewing, your article will be converted to Markdown, which will erase some formatting. 
 
@@ -154,6 +165,8 @@ After reviewing, your article will be converted to Markdown, which will erase so
 * Tables.
 
 **Don’t use the font size + bold formatting to make your own custom headings** or other elements, don’t colour text, don’t underline. 
+
+#### Images
 
 Attach all the images you use as an archive to the corresponding issue – Google Docs doesn’t play well with images, for some reason. 
 
