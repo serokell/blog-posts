@@ -85,22 +85,22 @@ $M$ contains `[]`, as required by `mempty`, all single-element lists, and all po
 Finally, all the monoid laws hold, and no other laws are implied.
 
 On the other hand, addition over integers doesn't constitute a free monoid.
-That would imply the law of commutativity, which isn't a monoid law, and, in case of integers, doesn't follow from monoid laws.
+That would imply the law of commutativity, which isn't a monoid law and, in the case of integers, doesn't follow from monoid laws.
 
 <p>
 	<details>
 	<summary>On non-free monoids</summary>
 
-The previous version of this article incorrectly claimed that addition over _non-negative_ integers doesn't constitute a free monoid (thanks Michał Kukieła for the correction!).
+The previous version of this article incorrectly claimed that addition over _non-negative_ integers doesn't constitute a free monoid (thanks to Michał Kukieła for the correction!).
 The reason for why that is incorrect is that for naturals, commutativity immediately follows from associativity:
 
-$n+k$
-$= \underset{n \text{ times}}{\underbrace{(1 + \ldots + 1)}} + \underset{k \text{ times}}{\underbrace{(1 + \ldots + 1)}}$
+$n+k$ 
+$= \underset{n \text{ times}}{\underbrace{(1 + \ldots + 1)}} + \underset{k \text{ times}}{\underbrace{(1 + \ldots + 1)}}$	
 $= \underset{k \text{ times}}{\underbrace{(1 + \ldots + 1)}} + \underset{n \text{ times}}{\underbrace{(1 + \ldots + 1)}}$
 $= k + n$
-
-This doesn't hold if integers can be of different sign.
-To see why, assume, e.g. $n < 0 < k:$ in this case, it's impossible to get $k+n$ from $n+k$ just by reshuffling parentheses.
+	
+This doesn't hold if integers can be of different signs.
+To see why, assume, e.g., $n < 0 < k:$ in this case, it's impossible to get $k+n$ from $n+k$ just by reshuffling parentheses.
 
 Another way to look at it is this: a free monoid doesn't do anything interesting.
 Hence, we can "recover" any other monoid from a free one.
@@ -110,7 +110,7 @@ More formally, if $M$ is a free monoid over $S$, then for any monoid $N$, given 
 This also implies that all free monoids over the same set are isomorphic.
 
 Thus, if addition with naturals is a free monoid over some set $S$, then we can convert this to a list monoid over the same set (which we know is a free monoid).
-The trick is in the choice of a set: if we choose $S = \lbrace 1 \rbrace,$ we can map addition to concatenation, and natural numbers to lists of corresponding lengths.
+The trick is in the choice of the set: if we choose $S = \lbrace 1 \rbrace,$ we can map addition to concatenation and natural numbers to lists of corresponding lengths.
 Hence, addition with naturals is a free monoid over a singleton set.
 
 ***
