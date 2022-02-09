@@ -64,7 +64,7 @@ x <> mempty = x -- right identity
 ```
 
 A free monoid thus has to have these two operations (together with an embedding of some underlying set) and satisfy these laws and only them.
-For example, it is implied that commutativity, i.e. the equation `x <> y = y <> x`, should only hold if `x = y` or `x = mempty`, or `y = mempty`, and not in general.
+For example, it is implied that commutativity, i.e. the equation `x <> y = y <> x`, should only hold if it follows from the monoid laws.
 
 To give a more concrete example, a list (or, more generally, a sequence) of elements of the set `S` constitutes a free monoid over `S`.
 Indeed, if the set $M$ is a set of lists of elements of $S$:
@@ -84,8 +84,39 @@ Then `mempty = []` and `(<>) = (++)`.
 $M$ contains `[]`, as required by `mempty`, all single-element lists, and all possible concatenations.
 Finally, all the monoid laws hold, and no other laws are implied.
 
-On the other hand, addition over non-negative integers doesn't constitute a free monoid.
-That would imply the law of commutativity, which isn't a monoid law.
+On the other hand, addition over integers doesn't constitute a free monoid.
+That would imply the law of commutativity, which isn't a monoid law and, in the case of integers, doesn't follow from monoid laws.
+
+<p>
+	<details>
+	<summary>On non-free monoids</summary>
+
+The previous version of this article incorrectly claimed that addition over _non-negative_ integers doesn't constitute a free monoid (thanks to Michał Kukieła for the correction!).
+The reason for why that is incorrect is that for naturals, commutativity immediately follows from associativity:
+
+$n+k$ 
+$= \underset{n \text{ times}}{\underbrace{(1 + \ldots + 1)}} + \underset{k \text{ times}}{\underbrace{(1 + \ldots + 1)}}$	
+$= \underset{k \text{ times}}{\underbrace{(1 + \ldots + 1)}} + \underset{n \text{ times}}{\underbrace{(1 + \ldots + 1)}}$
+$= k + n$
+	
+This doesn't hold if integers can be of different signs.
+To see why, assume, e.g., $n < 0 < k:$ in this case, it's impossible to get $k+n$ from $n+k$ just by reshuffling parentheses.
+
+Another way to look at it is this: a free monoid doesn't do anything interesting.
+Hence, we can "recover" any other monoid from a free one.
+
+More formally, if $M$ is a free monoid over $S$, then for any monoid $N$, given a map $f : S \to N$, we can extend this mapping to a monoid morphism $f' : M \to N$ in a unique way.
+
+This also implies that all free monoids over the same set are isomorphic.
+
+Thus, if addition with naturals is a free monoid over some set $S$, then we can convert this to a list monoid over the same set (which we know is a free monoid).
+The trick is in the choice of the set: if we choose $S = \lbrace 1 \rbrace,$ we can map addition to concatenation and natural numbers to lists of corresponding lengths.
+Hence, addition with naturals is a free monoid over a singleton set.
+
+***
+
+</details>
+</p>
 
 If you're wondering why `[]` is an element of `M`, despite it not being required by either `i` or `(<>)`, that's because `mempty` is also an operation on `M`, one that happens to have zero arguments.
 
