@@ -745,7 +745,7 @@ const collectionArray: Collection<"Array"> = {
 
 And it is how type classes will look in TypeScript.
 We represent them as a dictionary of related methods carried in a mere type.
-Our `Collection` is a type class which work with one arity constructors which we defined in `URItoKind`.
+Our `Collection` is effectively a type class which work with one arity constructors which we defined in `URItoKind`.
 And `collectionArray` is an instance of this type class for `"Array"` which is `Array<A>` in `URItoKind`.
 
 Let's see how it works in practice.
