@@ -1518,6 +1518,10 @@ type fnT = <T>(v: T & { x: number }) => T & { x: number };
 type family G a where 
   G Int = Bool
   G a = Char
+  
+type family H a where 
+  G Int = Bool
+  G String = [Int]
 ```
 
 </td>
@@ -1526,6 +1530,8 @@ type family G a where
 
 ```typescript
 type G<A> = A extends number ? boolean : string;
+
+type H<A extends number | string> = A extends number ? boolean : number[];
 ```
 
 </td>
