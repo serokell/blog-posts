@@ -126,6 +126,8 @@ In the first `if`, we pass `typeof result === "number"`, so we know that it may 
 And we can run `length.toString()` on this value (even if `number` doesn't have such a property) since both `function` and `string` have the property `length`.
 But we can't `call` this value because `string` is not callable. 
 We can do it only after failing to match `string`.
+However, if your type consists of two callable parts you are able to `call` it and the resulting type will be just union of function result types.
+You are also able to combine this checks using `||` to expand restrictions.
 
 ```typescript
 const resultInterpreter = (result: Result): string | undefined => {
@@ -249,6 +251,7 @@ With `const a = [1, 2, 3]` or `readonly x: number[]`, you can still change the c
 Also, you need to be careful when passing an object with read-only fields to a function because it may be changed inside the function.
 This happens because of information loss.
 The type of an object with `readonly` is a subtype of the type without it, and when you pass it to a function with a more general type, the function does not have access to information about its subtype.
+For this reason, you should always write proper types of arguments.
 
 ```typescript
 const a: { readonly x: number } = { x: 1 };
@@ -262,7 +265,6 @@ changeA(a);
 a.x; // 2
 ```
 
-For this reason, you should always write proper types of arguments.
 
 
 #### `Readonly` type
@@ -412,7 +414,7 @@ Let's start with the first one.
 
 #### Parametric polymorphism
 
-Parametric polymorphism allows us to write abstract functions or data types that don't depend on their type.
+Parametric polymorphism allows us to write abstract functions that, for instance, don't depend on concrete types of particular arguments, and types that can abstract out parts of itself as type parameters.
 In TypeScript, we call those generics.
 
 ```typescript
