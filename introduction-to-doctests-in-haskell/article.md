@@ -1,6 +1,7 @@
 # Introduction to Doctests in Haskell
 
-### What are doctests?
+If you ever had to skim through the Haskell source code documentation, you might have noticed those lines with fancy `>>>` symbols at the beginning.
+They are called the doctest examples. Or simply doctests.
 
 To put it simply, doctests are pieces of text within [haddock comments](https://www.haskell.org/haddock/) that look like interactive Haskell sessions.
 The idea to search for and execute those sessions all over Haskell modules actually comes from the awesome
@@ -10,8 +11,37 @@ Documenting software is extremely challenging.
 The doctests concept makes the documentation process not only pleasant and effective - it actually allows Haskell functions to speak for themselves - but
 also helps to get the most out of your testing efforts.
 
-For the sake of simplicity and convenience, we won't cover the markup used to define a doctest.
-Instead, we'll try to go over various libraries the community uses to run the doctest examples.
+### How to define a doctest
+
+These are some basic markup requirements:
+
+* Every doctest example should be placed within a valid haddock documentation, that is followed by either special `-- |` or `{- |` syntaxes.
+
+* Every doctest example should start with `>>>` and contain a valid haskell expression that is in scope (sometimes you have to be explicit about the `import` statements- we'll capture that further in the article).
+
+* Every doctest example is evaluated in a usual [GHCi](http://downloads.haskell.org/~ghc/latest/docs/html/users_guide/ghci.html) session, therefore should be followed by a line containing the expected evaluation result.
+
+<details>
+<summary>Examples</summary>
+
+```haskell
+-- |
+-- >>> 1 + 2
+-- 3
+```
+
+```haskell
+-- |
+-- >>> putStrLn ""
+-- <BLANKLINE>
+```
+
+<hr>
+</details>
+
+You can find the rest of the markup rules, best detailed and covered, [where it all started](https://github.com/sol/doctest#writing-examples-and-properties).
+
+Next, we'll create a demo project and go over libraries the community uses to run the doctest examples.
 Particularly, we'll describe a brand new [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md)
 library in a little bit more details.
 
@@ -19,7 +49,7 @@ library in a little bit more details.
 
 The doctests concept can be best illustrated within [a haskell project](https://wiki.haskell.org/How_to_write_a_Haskell_program).
 So let's create one with short and concise doctest examples.
-Then we'll be launching those them using [doctest](https://github.com/sol/doctest) and [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md) libraries in the following sections.
+Then we'll be launching them using [doctest](https://github.com/sol/doctest) and [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md) libraries in the following sections.
 
 1. Bootstrap a project using [`stack`](https://docs.haskellstack.org/en/stable/README/) first:
 
@@ -53,7 +83,7 @@ bar = "bar"
 
 ```
 
-### Library walkthroughs
+### Doctest libraries in Haskell
 
 #### `doctest`
 
@@ -87,9 +117,6 @@ dependencies into the scope:
 
 * Let's edit our doctest examples a little (don't forget to add `aeson` and `text` packages to the list of project dependencies):
 
-<details>
-<summary>Example</summary>
-
 ```haskell
 -- src/Sample.hs
 
@@ -104,8 +131,8 @@ import Data.Text
 
 data Anime =
     Anime { title  :: Text
-        , rating :: Double
-        }
+          , rating :: Double
+          }
 
 $(deriveJSON defaultOptions ''Anime)
 
@@ -116,9 +143,6 @@ $(deriveJSON defaultOptions ''Anime)
 favourite :: Anime
 favourite = Anime "One-Punch Man" 8.9
 ```
-
-<hr>
-</details>
 
 * Now, if we try to run the doctests using `doctest src` command, we'll fail with the following message:
 
@@ -235,15 +259,15 @@ Let's edit our doctests a little to make `cabal-docspec` work:
 <details>
 <summary>Workaround</summary>
 
-```haskell
+```diff
 
--- |
--- >>> import Data.Aeson
--- >>> encode favourite
--- "{\"title\":\"One-Punch Man\",\"rating\":8.9}"
---
-favourite :: Anime
-favourite = Anime "One-Punch Man" 8.9
+ -- |
++ -- >>> import Data.Aeson
+ -- >>> encode favourite
+ -- "{\"title\":\"One-Punch Man\",\"rating\":8.9}"
+ --
+ favourite :: Anime
+ favourite = Anime "One-Punch Man" 8.9
 
 ```
 
