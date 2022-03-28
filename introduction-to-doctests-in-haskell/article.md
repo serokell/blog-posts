@@ -1,24 +1,52 @@
 # Introduction to Doctests in Haskell
 
+Documenting software is extremely challenging, but it doesn't always need be so.
+
+In this article, we'll introduce a concept – doctests – that makes the documentation process pleasant and effective.
+
+Through the use of interactive sessions inside the module documents, doctests allow functions 
+to speak for themselves and help you get the most out of your testing efforts.
+
+In this article, we'll show you how to use doctests in Haskell.
+
+We'll cover:
+
+* what doctests are; 
+* how to define them in Haskell;
+* which library should you use for Haskell doctests; 
+
+## What are doctests?
+
+Doctests are simply pieces of text embedded in the documentation that look like interactive sessions. 
+With a special library, you can run these sessions and verify that they return the correct value.
+
+The idea for this actually comes from the Python's awesome 
+[`doctest`](https://en.wikipedia.org/wiki/Doctest) module, but since then has spread
+to virtually every programming language.
+
+In Haskell, our doctests are GHCi sessions within [Haddock comments](https://www.haskell.org/haddock/).
+
 If you ever had to skim through the Haskell source code documentation, you might have noticed those lines with fancy `>>>` symbols at the beginning.
-They are called 'doctests' or 'doctest examples'.
 
-To put it simply, doctests are pieces of text within [Haddock comments](https://www.haskell.org/haddock/) that look like interactive Haskell sessions.
-The idea to search for and execute those sessions all over Haskell modules actually comes from the awesome Python's
-[`doctest`](https://en.wikipedia.org/wiki/Doctest) module.
+```haskell
+-- | @const x@ is a unary function which evaluates to @x@ for all inputs.
+--
+-- >>> const 42 "hello"
+-- 42
+--
+-- >>> map (const 42) [0..3]
+-- [42,42,42,42]
+```
 
-Documenting software is extremely challenging.
-Doctests make the documentation process not only pleasant and effective – it actually allows Haskell functions to speak for themselves – but
-also helps to get the most out of your testing efforts.
+As you might have guessed, those are doctests.
 
-## How to define a doctest?
-
+## How to define a doctest in Haskell?
 
 Let's look at an example of a doctest. 
 
 ```haskell
--- |
--- >>> 1 + 2
+-- |                        
+-- >>> 1 + 2                 
 -- 3
 ```
 
@@ -28,39 +56,35 @@ Let's look at an example of a doctest.
 -- <BLANKLINE>
 ```
 
-These are some basic markup requirements:
+Doctests have three basic markup requirements:
 
-* Every doctest example should be placed within a valid piece of Haddock documentation, that is followed by either special `-- |` or `{- |` syntaxes.
+* Every doctest example should be placed within a valid piece of Haddock documentation, which is marked by either [`-- |` or `{- |`](https://haskell-haddock.readthedocs.io/en/latest/markup.html).
 
-* Every doctest example should start with `>>>` and contain a valid Haskell expression that is in scope (sometimes you have to be explicit about the `import` statements- we'll cover that further in the article).
+* Every doctest example should start with `>>>` and contain a valid Haskell expression that is in scope (sometimes you have to be explicit about the `import` statements – we'll cover that further in the article).
 
-* Every doctest example is evaluated in a usual [GHCi](http://downloads.haskell.org/~ghc/latest/docs/html/users_guide/ghci.html) session. Therefore, it should be followed by a line containing the expected evaluation result.
+* Every doctest example should be followed by a line containing the expected result of evaluating the expression.
 
+You can find additional info on doctest markup in the [readme](https://github.com/sol/doctest#writing-examples-and-properties) of the `doctest` library.
 
-You can find the rest of the markup rules, best detailed and covered, [where it all started](https://github.com/sol/doctest#writing-examples-and-properties).
-
-Next, we'll create a demo project and go over libraries that you can use to run the doctest examples.
-We'll pay special attention to the brand new [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md)
-library.
+Next, we'll create a demo project and go over Haskell libraries that you can use to run doctests.
 
 ## Creating a demo project containing doctests
 
-To illustrate doctests clearly, we need a Haskell project to use them in.
-So let's create one with short and concise doctest examples.
+To work with doctest libraries, we need to create a Haskell project with doctests. 
 
-After that, we'll launch these examples using [doctest](https://github.com/sol/doctest) and [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md) libraries in the following sections.
+After that, we'll launch our doctest examples using the [doctest](https://github.com/sol/doctest) and [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md) libraries.
 
-1. Bootstrap a project using [`stack`](https://docs.haskellstack.org/en/stable/README/) first:
+First, bootstrap a project using [`stack`](https://docs.haskellstack.org/en/stable/README/):
 
 `stack new doctests-demo`
 
-2. Go to the project's root directory and create a [Haskell module](https://www.haskell.org/tutorial/modules.html):
+After that, go to the project's root directory and create a [Haskell module](https://www.haskell.org/tutorial/modules.html):
 
 `cd doctests-demo`
 
 `touch src/Sample.hs`
 
-3. Add some dummy functions with doctests to the newly created `Sample.hs` module:
+Add some dummy functions with doctests to the newly created `Sample.hs` module:
 
 ```haskell
 
@@ -82,11 +106,18 @@ bar = "bar"
 
 ```
 
+Our project is now ready for running doctests.
+
 ## Doctest libraries in Haskell
+
+There are two main doctest libraries in the Haskell ecosystem: `doctest` and `cabal-docspec`. The first one is older and more widely used, the second one is more performant and solves some of the issues of the first. In this article, we'll look at them both. 
 
 ### `doctest`
 
-[doctest](https://github.com/sol/doctest) is one of the most commonly used and actively maintained libraries.
+[doctest](https://github.com/sol/doctest) is one of the most commonly used and actively maintained doctest libraries.
+At the same time, it has some drawbacks such as bad performance for large-scale projects and dependency on GHC as a library. 
+
+#### How to use `doctest`
 
 To launch our doctest examples with it, follow the steps below:
 
@@ -121,6 +152,8 @@ break down when you switch the project to a new compiler version.
 
 Second, when used via [`stack`](https://docs.haskellstack.org/en/stable/README/), you might need to create an additional test suite to bring project
 dependencies into the scope.
+
+<details><summary>Illustration of the dependency drawback</summary>
 
 Let's illustrate this by editing our doctest examples a little (don't forget to add `aeson` and `text` packages to the list of dependencies):
 
@@ -201,27 +234,14 @@ main = doctest ["src"]
 
 Finally, run the doctests using the following command:
 
-`stack test :doctests`
+`stack test :doctests`   
+ 
+ </details>
 
 ### `cabal-docspec`
 
 [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md) library has fewer contributors
-and less overall community attention, but there already are a bunch of people using it in real projects.
-
-#### Pros of using `cabal-docspec`
-
-Here are the reasons why you might want to use `cabal-docspec` for your project. 
-
-* The library is a lot faster than the alternatives because it uses the compiled code.
-
-* The library doesn't depend on GHC as a library, so it's much more resilient to GHC version changes.
-
-* The library doesn't require recompiling the source code if it's only about writing doctests – this saves additional time for developers and
-makes writing documentation pleasant.
-
-All of the above makes it more than a viable alternative.
-
-However, the library seems to be closely bound to [`cabal-install`](https://wiki.haskell.org/Cabal) since it uses `cabal-install` generated metadata – the `plan.json` file.
+and less overall community attention, but a bunch of people already use it in real projects.
 
 #### How to use `cabal-docspec` 
 
@@ -273,17 +293,32 @@ Let's edit our doctests a little to make `cabal-docspec` work:
 
 ```
 
-Now, the `cabal-docspec` command should succeed:
+Now the `cabal-docspec` command should succeed:
 
 ```none
 Total:         2; Tried:    2; Skipped:    0; Success:    2; Errors:    0; Failures    0
 Examples:      2; Tried:    2; Skipped:    0; Success:    2; Errors:    0; Failures    0
 ```
 
-<hr>
+#### Why you should use `cabal-docspec`
 
-Thanks for reading!
+Here are the reasons why you might want to use `cabal-docspec` for your project. 
 
-In the next part of this series, we will post about the configuration and internals of `cabal-docspec`. To keep updated, follow us on [Twitter](https://twitter.com/serokell) or subscribe to the newsletter via the form below. 
+* The library is a lot faster than the alternatives because it uses compiled code.
 
+* The library doesn't depend on GHC as a library, so it's much more resilient to GHC version changes.
 
+* The library doesn't require recompiling the source code if it's only about writing doctests – this saves additional time for developers and
+makes writing documentation pleasant.
+
+All of the above makes it more than a viable alternative.
+
+However, note that the library seems to be closely bound to [`cabal-install`](https://wiki.haskell.org/Cabal) since it uses `cabal-install` generated metadata – the `plan.json` file.
+
+## Conclusions 
+
+Thanks for reading! In the article, we looked at the concept of doctests, learned how to define them in Haskell, 
+and gave a brief overview of two libraries that can help us verify them: `doctest` and `cabal-docspec`.
+
+In the next part of this series, we'll cover the configuration and internals of `cabal-docspec` in more detail. 
+To keep updated, follow us on [Twitter](https://twitter.com/serokell) or subscribe to the newsletter via the form below. 
