@@ -318,7 +318,7 @@ Here are the reasons why you might want to use `cabal-docspec` for your project:
 
 * The library doesn't depend on GHC as a library, so it's much more resilient to GHC version changes.
 
-* The library doesn't require recompiling the source code if it's only about writing doctests – this saves additional time for developers and
+* The library doesn't require recompiling the source code if you only change the doctests – this saves additional time for developers and
 makes writing documentation pleasant.
 
 All of the above makes it more than a viable alternative.
