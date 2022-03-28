@@ -2,7 +2,7 @@
 
 Documenting software can be challenging, but it doesn't always need to be so.
 
-In this article, we'll introduce a concept – doctests – that makes the documentation process pleasant and effective.
+In this article, we'll introduce doctests: a concept that makes the documentation process pleasant and effective.
 
 By putting tests inside module docs, doctests allow functions 
 to speak for themselves and help you get the most out of your testing efforts.
