@@ -3,7 +3,7 @@
 Web apps are a mandatory part of every modern application nowadays, no matter how small or complex it is.
 From one-click apps that convert pictures to Photoshop, everyone wants fast and easy access to the app, and the web is one of the easiest ways to do that.
 
-In Serokell, we use [TypeScript](https://serokell.io/blog/why-typescript) for writing web applications.
+At Serokell, we use [TypeScript](https://serokell.io/blog/why-typescript) for writing web applications.
 But our main programming language is Haskell. And in this article, we want to show how Haskell knowledge can help you write TypeScript code.
 
 We won't cover all the similarities or differences.
@@ -14,34 +14,33 @@ Our main goal is to show how you can use types in TypeScript like a Haskeller.
 
 Historically, any new language that allows you to write web applications translates its code to JavaScript.
 And there are a lot of such languages and language extensions: TypeScript, Kotlin JS, CoffeeScript, Scala JS, Babel, ClojureScript, etc.
-Generally, you can write web applications in almost every language.
+Generally, you can write web applications in almost any language.
 
 Because we like Haskell, we could write our web applications in a functional language (or even in Haskell).
 There are a lot of options: 
 
 * [PureScript](https://www.purescript.org/), which has Haskell-like syntax;
 * [Elm](https://elm-lang.org/);
-* Haskell (via [Reflex](https://reflex-frp.org/) & [GHCJS](https://github.com/ghcjs/ghcjs));
-* F# (via [Fable](https://fable.io/)).
+* [Haskell](https://www.haskell.org/) (via [Reflex](https://reflex-frp.org/) & [GHCJS](https://github.com/ghcjs/ghcjs));
+* [F#](https://fsharp.org/) (via [Fable](https://fable.io/)).
 
 Unfortunately, these don't give us proper flexibility in working with JS libraries (whose numbers are enormous), and when problems related to library management appear, it takes more time to fix those.
 Additionally, customers will be locked in when they need to maintain such applications.
 
-Meanwhile TypeScript, which has a vast community and provides modern technologies out of the box, is a great decision.
+Meanwhile, TypeScript, which has a vast community and provides modern technologies out of the box, is a great decision.
 
 ## Basic concepts
 
 In this part, we will introduce you to simple built-in concepts familiar to most Haskellers that do not require any overhead when writing code.
 Nevertheless, we will also leave links to some more complex libraries and articles to help you investigate further.
 
-If you are not familiar with some TypeScript syntax, we'll try to explain it in the course of the article.
-But you can also find a table in the [appendix](#appendix) with links for each piece of syntax used in the article.
-In addition, there is also a table with comparisons between the Haskell and TypeScript syntax.
+We'll try to explain the TypeScript syntax used, but you can also find a table in the [appendix](#appendix) with links for each piece of syntax used in the article.
+In addition, there is also a table there with comparisons between the Haskell and TypeScript syntax.
 
 ### Strictness
 
 Unlike Haskell, TypeScript does not focus on types.
-They are just there to help programmers write stricter and more understandable code, making their life easier.
+They are just there to help you write stricter and more understandable code, making your life easier.
 You can use types like [`any`](https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#any), and nobody pushes you into strict frameworks.
 
 Nevertheless, with a bunch of compiler options, you can make TypeScript more strict in types and other things.
@@ -83,7 +82,7 @@ type City = string & { readonly __tag: unique symbol };
 
 Here's how all this magic works:
 
-* With [intersection types](https://www.typescriptlang.org/docs/handbook/unions-and-intersections.html#intersection-types) (and syntax), you can add a `tag` field to your type.
+* With [intersection types](https://www.typescriptlang.org/docs/handbook/2/objects.html#intersection-types) (via `&` operator), you can add a `tag` field to your type.
 * `symbol` lets you declare const-named properties on types.
 * `unique` means that the type is unique – your type is tagged with a unique symbol.
 
@@ -104,7 +103,7 @@ For a better (but more complex) one, check this [comment](https://github.com/Mic
 
 ### Algebraic data types
 
-In Haskell, [algebraic data types (ADTs)](https://www.youtube.com/watch?v=UqwLn2OyQ_E) are a commonly used functionality of the language.
+In Haskell, [algebraic data types (ADTs)](https://serokell.io/blog/algebraic-data-types-in-haskell) are a commonly used functionality of the language.
 They allow you to build your own types from small blocks.
 And with pattern matching, it is easy to access this data.
 
@@ -122,12 +121,11 @@ type Result = string | number | (() => string);
 
 If you fail to match a type in the union, the compiler knows that it will not be present in the future.
 
-In the first `if`, we pass `typeof result === "number"`, so we know that it may be only `function` or `string` in the code below.
+Look at the code below.
+In the first `if`, we pass `typeof result === "number"`, so we know that it may be only `function` or `string`.
 And we can run `length.toString()` on this value (even if `number` doesn't have such a property) since both `function` and `string` have the property `length`.
 But we can't `call` this value because `string` is not callable. 
-We can do it only after failing to match `string`.
-However, if your type consists of two callable parts you are able to `call` it and the resulting type will be just union of function result types.
-You are also able to combine this checks using `||` to expand restrictions.
+We can do it only after we fail to match `string`.
 
 ```typescript
 const resultInterpreter = (result: Result): string | undefined => {
@@ -146,6 +144,8 @@ const resultInterpreter = (result: Result): string | undefined => {
 };
 ```
 
+However, if your type consists of two callable parts, you are able to `call` it, and the resulting type will be just a union of function result types.
+You are also able to combine these checks using `||` to expand restrictions.
 
 #### Unit types
 
@@ -171,9 +171,9 @@ const resultInterpreter = (result: Result): string => {
 };
 ```
 
-#### Discriminated unions, or a data type analogue
+#### Discriminated unions (analogue of data types)
 
-By storing a unique property in each member of an union that we can switch on, we can make an analogue of Haskell data types. 
+By storing a unique property in each member of a union that we can switch on, we can make an analogue of Haskell data types. 
 Unions like these are called [discriminated unions](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html#discriminated-unions). 
 
 ```typescript
@@ -302,8 +302,6 @@ a.x = 2; // Error: Index signature in type 'A' only permits reading.
 a.y = 1; // Error: Index signature in type 'A' only permits reading.
 ```
 
-Now you have a more flexible way to make things read-only.
-
 #### Working with immutable objects
 
 Although you can now make immutable objects, usually you don't need them as they are.
@@ -414,7 +412,7 @@ Let's start with the first one.
 
 #### Parametric polymorphism
 
-Parametric polymorphism allows us to write abstract functions that, for instance, don't depend on concrete types of particular arguments, and types that can abstract out parts of itself as type parameters.
+Parametric polymorphism allows us to write abstract functions that, for instance, don't depend on concrete types of particular arguments and types that can abstract out parts of themselves as type parameters.
 In TypeScript, we call those generics.
 
 ```typescript
@@ -437,7 +435,6 @@ Ad-hoc polymorphism allows you to implement abstract functions, the logic of whi
 Let's define an `Eq` interface: 
 
 ```typescript
-
 interface Eq<T> {
   equal: (f: T, s: T) => boolean;
 }
@@ -729,9 +726,9 @@ type Kind2<F extends URIS2, A, B> = URItoKind2<A, B>[F];
 ```
 
 And now we can return to our theoretical `Collection` above and implement it using kinds.
-Three dots `...` syntax here is array/object spread operator.
-Here in array we simply copy the array `c` and add value `v` to it.
-And in object you are able to copy all property values from the old object and change some of them by specifying only the ones you need.
+The three dots `...` operator here is the array/object spread operator.
+Here, in array, we simply copy the array `c` and add value `v` to it.
+And in object, you are able to copy all property values from the old object and change some of them by specifying only the ones you need.
 
 ```typescript
 type Collection<F extends URIS> = {
@@ -745,14 +742,14 @@ const collectionArray: Collection<"Array"> = {
 };
 ```
 
-And it is how type classes will look in TypeScript.
+And this is how type classes look in TypeScript.
 We represent them as a dictionary of related methods carried in a mere type.
-Our `Collection` is effectively a type class which work with one arity constructors which we defined in `URItoKind`.
+Our `Collection` is effectively a type class that works with 1-arity constructors that we defined in `URItoKind`.
 And `collectionArray` is an instance of this type class for `"Array"` which is `Array<A>` in `URItoKind`.
 
 Let's see how it works in practice.
 
-We implement a new `Collection` instance for `Set`, and then write a generic function `f` over `Collection`.
+We implement a new `Collection` instance for `Set` and then write a generic function `f` over `Collection`.
 The last thing we need to do is to pass the implementation as a function argument like a type class function context.
 
 ```typescript
@@ -771,7 +768,7 @@ f(collectionSet, 2, 2); // Set(1) { 2 }
 ```
 
 Of course, this is a tiny subset of what you can do with kinds.
-Most of this part is inspired by [`fp-ts`](https://gcanti.github.io/fp-ts/) library and [Yuriy Bogomolov's](https://ybogomolov.me/) blog.
+Most of this part is inspired by the [`fp-ts`](https://gcanti.github.io/fp-ts/) library and [Yuriy Bogomolov's](https://ybogomolov.me/) blog.
 `fp-ts` contains a ton of things that you may know from Haskell, and in the blog, you can find excellent explanations of how the library works.
 
 There are also a lot of other libraries based on `fp-ts`: 
@@ -1048,23 +1045,22 @@ TypeScript also contains different concepts not only from Haskell but also from 
 So, feel free to study those as well and use them with the already received knowledge.
 Nevertheless, this article may help you understand what kind of things you can do with types in TypeScript.
 
-Hopefully, you can use things you learned here, develop your own solutions based on them, and dive into the extraordinary world of TypeScript.
+Hopefully, you can use things you've learned here, develop your own solutions based on them, and dive into the extraordinary world of TypeScript.
 
-If you would like to read more TypeScript articles, follow us on [Twitter](https://twitter.com/serokell) and [DEV](https://dev.to/serokell), or subscribe to our newsletter below.
+If you would like to read more TypeScript articles, follow us on [Twitter](https://twitter.com/serokell) and [DEV](https://dev.to/serokell).
 
 
 ## Appendix
 
-After all these descriptions of the possibilities of TypeScript, we want to present a summary of all the syntax and TypeScript features that were discussed here.
-It also contains comparisons between Haskell and TypeScript syntax.
+After all these descriptions of the possibilities of TypeScript, we want to present a summary of all the syntax and TypeScript features that were discussed here. Below the summary, you can find a comparison between Haskell and TypeScript syntax.
 
 ### Syntax cheat sheet
 
 <table>
 
 <tr>
-<th>Syntax</th>	
-<th>Comments and Links</th>
+<th style="text-align:left;">Syntax</th>	
+<th style="text-align:left;">Name & link to docs</th>
 </tr>
 
 <tr>
@@ -1279,127 +1275,80 @@ declare module "someModule" {
 </tr>
 </table>
 
-### Comparison with Haskell
-
-<table>
-
-<tr>
-<th>Haskell</th>	
-<th>TypeScript</th>
-<th>Comments and Links</th>
-</tr>
-
-<tr>
-<td>
-
+### Comparison between Haskell and TypeScript
+	
+#### Type aliases
+	
+**Haskell** 
+	
 ```haskell
 type Email = String
 ```
 
-</td>
-
-<td>
-
+**TypeScript**
+	
 ```typescript
 type Email = string;
 ```
+---
 
-</td>
-
-<td>
-
-[Type aliases](#type-aliases)
-
-</td>
-</tr>
-
-<tr>
-<td>
+#### Newtypes
+	
+**Haskell**
 
 ```haskell
 newtype Email = Email String
 ```
+	
 
-</td>
+**TypeScript**
 
-<td>
 
 ```typescript
 type Email = string & { readonly __tag: unique symbol };
 ```
+---
+	
+#### Unit types
 
-</td>
-
-<td>
-
-[Newtype](#newtype)
-<br>
-[More complex and pretty solution](https://github.com/Microsoft/TypeScript/issues/4895#issuecomment-401067935)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
+**Haskell**
+	
 ```haskell
 data Result = Error | Success
 ```
 
-</td>
-
-<td>
+**TypeScript**
 
 ```typescript
 type Result = "Error" | "Success";
 ```
 
-</td>
-
-<td>
-
-[Unit types](#unit-types)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
+---
+	
+#### Discriminated unions
+	
+**Haskell**
+	
 ```haskell
 data Result = Error String | Success Int
 ```
 
-</td>
-
-<td>
+**TypeScript**
 
 ```typescript
 type Result = 
   | { type: "Error"; message: string } 
   | { type: "Success"; n: number };
 ```
+---
+#### Immutability
 
-</td>
+**Haskell** 
+	
+On by default. 
 
-<td>
-
-[Discriminated unions, or a data type analogue](#discriminated-unions-or-a-data-type-analogue)
-<br>
-[ts-pattern](https://github.com/gvergnaud/ts-pattern) for pattern matching
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-Immutability
-
-</td>
-
-<td>
-
+**TypeScript**
+	
 ```typescript
 const a = 1;
 type A = { readonly x: number };
@@ -1407,115 +1356,65 @@ type ImmutableA = Readonly<A>;
 const arr: ReadonlyArray<number> = [1, 2, 3];
 type A = { readonly [x: string]: number };
 ```
+---
+#### Currying
 
-</td>
+**Haskell**	
+	
+On by default.
 
-<td>
-
-[Immutability](#immutability)
-<br>
-[immer](https://immerjs.github.io/immer/) for immutable state flow
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-Currying
-
-</td>
-
-<td>
-
+**TypeScript** 
+	
 ```typescript
 type addT = (_: number) => (_: number) => number;
 const add: addT = (l) => (r) => l + r;
 add(5)(3);
 ```
-
-</td>
-
-<td>
-
-[Higher-order functions and currying](#higher-order-functions-and-currying)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
+---
+#### Parametric polymorphism
+	
+**Haskell**
+	
 ```haskell
 length :: [a] -> Int
 ```
 
-</td>
-
-<td>
-
+**TypeScript**
+	
 ```typescript
 type length = <T>(_: T[]) => number;
 ```
-
-</td>
-
-<td>
-
-[Parametric polymorphism](#parametric-polymorphism)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
+---
+#### Ad-hoc polymorphism
+	
+**Haskell**
+	
 ```haskell
 lookup :: Eq a => a -> [(a,b)] -> Maybe b;
 ```
 
-</td>
-
-<td>
-
+**TypeScript**
+	
 ```typescript
 type lookup = <T, K extends Eq<T>, V>(cmp: K, k: T, mp: [T, V][]) => V | undefined;
 ```
+---
+#### Row polymorphism
+	
+**Haskell**
+	
+On by default. 
 
-</td>
-
-<td>
-
-[Ad-hoc polymorphism](#ad-hoc-polymorphism)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-Row polymorphism
-
-</td>
-
-<td>
-
+**TypeScript**
+	
 ```typescript
 type fnT = <T>(v: T & { x: number }) => T & { x: number };
 ```
-
-</td>
-
-<td>
-
-[Row polymorphism](#row-polymorphism)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
+---
+#### Conditional types
+	
+**Haskell**
+	
 ```haskell
 type family G a where 
   G Int = Bool
@@ -1526,57 +1425,43 @@ type family H a where
   G String = [Int]
 ```
 
-</td>
-
-<td>
+**TypeScript**
 
 ```typescript
 type G<A> = A extends number ? boolean : string;
 
 type H<A extends number | string> = A extends number ? boolean : number[];
 ```
+---
+#### Mapped types
+	
+**Haskell**
+	
+Mapped types don't realy have an analogue in Haskell. 
 
-</td>
-
-<td>
-
-[Conditional types](#conditional-types)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-</td>
-
-<td>
-
+**TypeScript**
+	
 ```typescript
 type Partial<T> = { [P in keyof T]?: T[P] };
 ```
+	
+---	
+#### HKTs
 
-</td>
-
-<td>
-
-[Mapped types](#mapped-types)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
+**Haskell**
+	
 ```haskell
 class Collection (t :: * -> *) where
   create :: t a
 ```
+	
+```haskell
+withCollection :: Collection t => t a
+```
 
-</td>
 
-<td>
-
+**TypeScript**	
+	
 ```typescript
 type URItoKind<A> = { Array: Array<A> };
 type URIS = keyof URItoKind<unknown>;
@@ -1585,73 +1470,22 @@ type Kind<F extends URIS, A> = URItoKind<A>[F];
 type Collection<F extends URIS> = { create: <A>() => Kind<F, A> };
 ```
 
-</td>
-
-<td>
-
-[HKTs](#hkts)
-<br>
-[`fp-ts`](https://gcanti.github.io/fp-ts/)
-<br>
-Yuriy Bogomolov's [blog](https://ybogomolov.me/)
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-```haskell
-withCollection :: Collection t => t a
-```
-
-</td>
-
-<td>
-
 ```typescript
 type withCollection = <F extends URIS, A>(C: Collection<F>) => Kind<F, A>;
 ```
 
-</td>
-
-<td>
-
-[HKTs](#hkts)
-<br>
-[`fp-ts`](https://gcanti.github.io/fp-ts/)
-<br>
-Yuriy Bogomolov's [blog](https://ybogomolov.me/)
-
-</td>
-</tr>
-
-<tr>
-<td>
+---
+#### Peano numbers
+	
+**Haskell**	
 
 ```haskell
 data Peano = Zero | Succ Peano
 ```
 
-</td>
-
-<td>
-
+**TypeScript** 
+	
 ```typescript
 type Zero = "zero";
 type Nat = Zero | { n: Nat };
 ```
-
-</td>
-
-<td>
-
-[Peano numbers](#peano-numbers)
-<br>
-[type-level Fibonacci](https://mjj.io/2021/03/29/type-level-programming-in-typescript/)
-
-</td>
-</tr>
-
-</table>
-
