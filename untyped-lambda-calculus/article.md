@@ -13,9 +13,10 @@ It doesn't have the logical paradox that plagues the untyped kind and can serve 
 
 The list of languages based on lambda calculus includes:
 
-- Haskell
-- Most languages in the ML family, like OCaml and F#
-- Cardano blockchain's Plutus Core
+- Haskell,
+- Most languages in the ML family, like OCaml and F#,
+- Most dependently typed languages, like Agda, Coq, F*, Idris,
+- Cardano blockchain's Plutus Core.
 
 There's a rumor that John McCarthy based Lisp on lambda calculus, but this seems to be, broadly speaking, false.
 The original Lisp used different name resolution semantics, and as much was stated by John himself:
