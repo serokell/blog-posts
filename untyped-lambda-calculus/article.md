@@ -5,7 +5,7 @@ It is a theoretical framework used to define the meaning of "computation" in man
 Understanding lambda calculus can be very helpful when talking about Haskell programs.
 It is also used extensively in programming language theory research and functional language design.
 
-There are two broad kinds of lambda calculus, _typed_, and _untyped_.
+There are two broad kinds of lambda calculus: _untyped_ and _typed_.
 The _untyped_ kind, discussed in this article, expresses an unrestricted computation.
 However, as a system of logic, it is self-contradictory.
 The _typed_ kind, which we intend to discuss in a follow-up article, is a restricted version.
