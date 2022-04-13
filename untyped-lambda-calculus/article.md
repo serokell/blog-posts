@@ -43,12 +43,13 @@ See, for instance, [Translating Lambda Calculus into C++ Templates by Vít Šefl
 [brief-incomplete-history]: http://james-iry.blogspot.com/2009/05/brief-incomplete-and-mostly-wrong.html
 
 Lambda calculus, initially envisioned as a formal logic system, was developed by Alonzo Church around the 1930s to explore the foundations of mathematics.
-The initial formulation had a logical inconsistency known as [Kleene–Rosser paradox].
+The initial formulation had a logical inconsistency known as [Kleene–Rosser paradox] (for a more comprehensive overview, refer to, e.g. [Paradoxes and Contemporary Logic][paradoxes-contemporary-logic]).
 To sidestep this issue, Church isolated the part of lambda calculus relevant only to computation in 1936.
 This isolate is now known as the untyped lambda calculus.
-Later, In 1940, a typed version of lambda calculus was introduced, which has weaker expressive power but is logically consistent.
+Later, In 1940, a typed version of lambda calculus, based on Russel's type theory, was introduced, which has weaker expressive power but is logically consistent.
 
 [Kleene–Rosser paradox]: https://en.wikipedia.org/wiki/Kleene%E2%80%93Rosser_paradox
+[paradoxes-contemporary-logic]: https://plato.stanford.edu/entries/paradoxes-contemporary-logic/#IncoCertFormLogi
 
 The lambda symbol used in the standard notation, from which lambda calculus derives its name, most likely was chosen arbitrarily.
 However, there's an apocryphal story the notation was derived from $\hat x$, morphing first into $\Lambda x$, and later into $\lambda x$.
@@ -58,8 +59,8 @@ This insight arguably kickstarted the research on functional programming languag
 
 ## The pure untyped lambda calculus
 
-The untyped lambda calculus is, first and foremost, a consistent equational theory of functions.
-Calculus that only contains functions and variables is called the pure untyped lambda calculus.
+The untyped lambda calculus is, first and foremost, a consistent expression rewriting system.
+Calculus that only contains functions and variables is called the pure untyped lambda calculus, "pure" meaning it doesn't have anything beyond what's strictly necessary.
 
 We can formally define the pure untyped lambda calculus in terms of _abstractions_ and _applications_.
 
@@ -122,11 +123,10 @@ Then we can do the rest of the steps with no fear of confusion: $\lambda z. (\la
 
 In the last example, you might wonder if we should also apply beta-reduction inside the abstraction body.
 It brings us to the discussion of evaluation strategies.
-Different evaluation strategies correspond to different computation semantics.
 
-A rule that defines which redexes are reduced in what order is called an evaluation strategy.
+Evaluation strategy is a rule that defines which redexes are reduced and in what order.
 The most straightforward evaluation strategy is called _full beta-reduction._
-It allows us to reduce any redex with no order limitations.
+It allows us to reduce any redex at any point, with no limitations.
 Full beta-reduction does have some issues, however.
 For instance, you might get different results depending on the reduction order.
 Two common strategies define the order: _normal order strategy_ and _applicative order strategy_.
@@ -144,7 +144,7 @@ Call-by-value is a little stricter and only allows reduction if the argument is 
 It's interesting to note that the call-by-value strategy corresponds to eager evaluation.
 In eager evaluation, arguments are evaluated before the function call.
 Call-by-name, on the other hand, corresponds to lazy evaluation.
-In lazy evaluation, the arguments potentially are never evaluated at all.
+In lazy evaluation, the arguments are potentially never evaluated at all.
 
 A practically significant variation on call-by-name is _call-by-need_, which is, at least in theory, used in Haskell.
 Call-by-need behaves exactly like call-by-name, except that reduction steps that would duplicate computations, don't.
@@ -188,7 +188,7 @@ We can represent all of that using only abstractions and applications!
 ### Multivariate functions
 
 Any multivariate function is the same as multiple nested functions returning other functions.
-If you're familiar with functional programming, you might know such functions are called curried functions, named in honor of Haskell Curry.
+If you're familiar with functional programming, you might know such functions are called curried functions, named after Haskell Curry.
 In pure lambda calculus, then, all functions are curried.
 
 To simplify the notation, we will now introduce a shorthand syntax.
@@ -347,7 +347,7 @@ The simplest diverging expression is the application of the so-called omega comb
 
 $$\Omega = \lambda x. x\;x.$$
 
-Using any typical evaluation strategy, one stem of beta-reduction of $\Omega\;\Omega$ gives us $\Omega\;\Omega$ again.
+Using any typical evaluation strategy, one step of beta-reduction of $\Omega\;\Omega$ gives us $\Omega\;\Omega$ again.
 
 The omega combinator is somewhat useless on its own.
 However, we can extend it to be a little more useful.
@@ -360,7 +360,7 @@ A shorter equivalent form is sometimes cited:
 $$X = \lambda f. \Omega\; (\lambda x. f\;(x\;x)).$$
 
 We should note that it's not the only fixed-point combinator.
-For instance, another famous one is
+For instance, another famous one, called the Turing's combinator (named after its discoverer), is
 
 $$\Theta = (\lambda x\;y.y\; (x\; x\; y))\; (\lambda x\;y.y\; (x\; x\; y)).$$
 
