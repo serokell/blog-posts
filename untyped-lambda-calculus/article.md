@@ -144,7 +144,34 @@ Call-by-value is a little stricter and only allows reduction if the argument is 
 It's interesting to note that the call-by-value strategy corresponds to eager evaluation.
 In eager evaluation, arguments are evaluated before the function call.
 Call-by-name, on the other hand, corresponds to lazy evaluation.
-In lazy evaluation, the arguments are potentially never evaluated at all.
+In lazy evaluation, some arguments are potentially never evaluated at all.
+
+To get a feel for how the weak strategies work, let's consider a small example:
+
+$(\lambda x. \lambda y. \lambda z. x\; x\; y)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$
+
+Under call-by-value strategy, we evaluate arguments before application:
+
+$(\lambda x. \lambda y. \lambda z. x\; x\; y)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$ \
+$\to (\lambda x. \lambda y. \lambda z. x\; x\; y)\; a\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$ \
+$\to (\lambda y. \lambda z. a\; a\; y)\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$ \
+$\to (\lambda y. \lambda z. a\; a\; y)\; b\; ((\lambda p. p)\; c)$ \
+$\to (\lambda z. a\; a\; b)\; ((\lambda p. p)\; c)$ \
+$\to (\lambda z. a\; a\; b)\; c$ \
+$\to a\; a\; b$
+
+Under call-by-name strategy, we first evaluate applications, instead:
+
+$(\lambda x. \lambda y. \lambda z. x\; x\; y)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b) ((\lambda p. p)\; c)$ \
+$\to (\lambda y. \lambda z. ((\lambda z. z)\; a)\; ((\lambda z. z)\; a)\; y)\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$ \
+$\to (\lambda z. ((\lambda z. z)\; a)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b))\; ((\lambda p. p)\; c)$ \
+$\to ((\lambda z. z)\; a)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b)$ \
+$\to a\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b)$ \
+$\to a\; a\; ((\lambda w. w)\; b)$ \
+$\to a\; a\; b$
+
+Note how in call-by-name we didn't have to compute $((\lambda p. p)\; c)$ argument, because it disappeared when applying.
+On the other hand, we had to compute $((\lambda z. z)\; a)$ twice.
 
 A practically significant variation on call-by-name is _call-by-need_, which is, at least in theory, used in Haskell.
 Call-by-need behaves exactly like call-by-name, except that reduction steps that would duplicate computations, don't.
@@ -164,6 +191,10 @@ The reason is simple -- the optimizer can make non-obvious transformations, whic
 </p>
 
 Expressions that are not reducible using the chosen evaluation strategy are said to be in the _normal form_.
+
+All of the strategies described here, except full beta-reduction, are normalizing, i.e. if a term has a normal form, it will eventually reduce to it.
+Furthermore, each term that has a normal form, has the same normal form under both strong evaluation strategies.
+Likewise for the weak evaluation strategies.
 
 Speaking of reductions, we'll also mention _eta_-reduction ($\eta$-reduction).
 The rule of eta-reduction says that $\lambda x. f\;x = f,$ if $x$ does not appear free in $f$.
