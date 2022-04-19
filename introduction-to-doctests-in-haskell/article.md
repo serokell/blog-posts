@@ -26,7 +26,7 @@ In Haskell, doctests are GHCi sessions within [Haddock comments](https://www.has
 
 If you ever had to skim through the Haskell source code documentation, you might have noticed those lines with fancy `>>>` symbols at the beginning.
 
-```haskell
+```none
 -- | @const x@ is a unary function which evaluates to @x@ for all inputs.
 --
 -- >>> const 42 "hello"
@@ -42,7 +42,7 @@ As you might have guessed, those are doctests.
 
 Let's look at an example of a basic doctest. 
 
-```haskell
+```none
 -- | 1 + 2 is 3.                          
 -- >>> 1 + 2                 
 -- 3
@@ -66,17 +66,17 @@ To work with doctest libraries, we need to create a Haskell project with doctest
 
 First, bootstrap a project using [`stack`](https://docs.haskellstack.org/en/stable/README/):
 
-```
+```none
 stack new doctests-demo
 ```
 
 After that, go to the project's root directory and create a [Haskell module](https://www.haskell.org/tutorial/modules.html):
 
-```
+```none
 cd doctests-demo
 ```
 
-```
+```none
 touch src/Sample.hs
 ```
 
@@ -98,41 +98,40 @@ foo = 42
 -- "bar"
 bar :: String
 bar = "bar"
-
 ```
 
 The project is now ready for running doctests.
 
 ## Doctest libraries in Haskell
 
-We'll cover two doctest libraries in the Haskell ecosystem: [doctest](https://github.com/sol/doctest) and [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md). The first one is older and more popular, the second one is less popular but solves some of `doctest`'s issues. 
+We'll cover two doctest libraries in the Haskell ecosystem: [`doctest`](https://github.com/sol/doctest) and [`cabal-docspec`](https://github.com/phadej/cabal-extras/blob/master/cabal-docspec/MANUAL.md). The first one is older and more popular, the second one is less popular but solves some of `doctest`'s issues. 
 
 ### `doctest`
 
-[doctest](https://github.com/sol/doctest) is one of the most commonly used and actively maintained doctest libraries.
+[`doctest`](https://github.com/sol/doctest) is one of the most commonly used and actively maintained doctest libraries.
 At the same time, it has drawbacks like bad performance for large-scale projects and dependency on GHC as a library. 
 
 #### How to use `doctest`
 
 First, install the library via `stack`:
 
-```
+```none
 stack install doctest
 ```
 
 After that, go to the project's root directory and use the library's executable:
 
-```
+```none
 cd doctests-demo
 ```
 
-```
+```none
 doctest src
 ```
 
 The command above should output something like this:
 
-```
+```none
 Examples: 2  Tried: 2  Errors: 0  Failures: 0
 ```
 
@@ -186,7 +185,7 @@ favourite = Anime "One-Punch Man" 8.9
 
 Now, if we try to run the doctests using `doctest src`, we'll fail with the following message:
 
-```
+```none
 src/Sample.hs:9:1: error:
     Could not find module ‘Data.Aeson’
     Perhaps you meant Data.Version (from base-4.14.3.0)
@@ -198,7 +197,7 @@ src/Sample.hs:9:1: error:
 
 The workaround is to create an additional test suite.
 
-```
+```none
 tests:
 
     doctests:
@@ -217,11 +216,11 @@ tests:
 
 After that, you need to add the test suite directory and `Main.hs` executable:
 
-```
+```none
 mkdir doctests
 ```
 
-```
+```none
 touch doctests/Main.hs
 ```
 
@@ -237,7 +236,7 @@ main = doctest ["src"]
 
 Finally, run the doctests using the following command:
 
-```
+```nine
 stack test :doctests
 ```   
 <hr>
@@ -259,13 +258,13 @@ We suggest using [ghcup](https://www.haskell.org/ghcup/) to achieve this.
 
 After that, build the project with Cabal:
 
-```
+```none
 cabal v2-build
 ```
 
 Then download `cabal-docspec` binaries from the [release page](https://github.com/phadej/cabal-extras/releases):
 
-```
+```none
 curl -sL https://github.com/phadej/cabal-extras/releases/download/cabal-docspec-0.0.0.20211114/cabal-docspec-0.0.0.20211114.xz > cabal-docspec.xz
 xz -d < cabal-docspec.xz > "$HOME"/.local/bin/cabal-docspec
 rm -f cabal-docspec.xz
@@ -274,13 +273,13 @@ chmod a+x "$HOME"/.local/bin/cabal-docspec
 
 Now, run the doctest examples:
 
-```
+```none
 cabal-docspec
 ```
 
 The command above should fail with the following error:
 
-```
+```none
 expected: "{\"title\":\"One-Punch Man\",\"rating\":8.9}"
 but got:
             ^
@@ -333,4 +332,4 @@ In the article, we looked at the concept of doctests, learned how to define them
 and gave a brief overview of two libraries that can help us verify them: `doctest` and `cabal-docspec`.
 
 In the next part of this series, we'll cover the configuration and internals of `cabal-docspec` in more detail. 
-To stay updated, follow us on [Twitter](https://twitter.com/serokell) or subscribe to the newsletter via the form below. 
+To stay updated, follow us on [Twitter](https://twitter.com/serokell) or subscribe to the newsletter via the form below.
