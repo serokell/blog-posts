@@ -84,7 +84,7 @@ example x rest = pair ++ rest
     pair = [x, x]
 ```
 
-This will cause an error without `ScopedTypeVariables`, because compiler thinks that `a` in `example`'s signature and `a` in `double`'s are two different types.
+This will cause an error without `ScopedTypeVariables`, because compiler thinks that `a` in `example`'s signature and `a` in `pair`'s are two different types.
 To fix it, you also need to use extension and add a `forall` quantifier to `example` function, as extension won't work without it.
 
 ```haskell
@@ -168,7 +168,8 @@ Since it somehow logs both `String` and `Int`:
 ```haskell
 log :: Show a => a -> IO ()
 ```
-However, if we add this signature to `func` and try to call it with different arguments:
+So, one might think, that adding a function with signature `a -> IO` and a constraint `Show a` would be enough to implement it.
+However, if we try:
 
 ```haskell
 func :: Show a => (a -> IO ()) -> IO ()
@@ -232,7 +233,9 @@ This is a heterogeneous list that contains values of different types.
 You can't do that with an universally quantified list because every element in that list would need to have the same type.
 But, there are not many things you can do with elements of this list.
 Since the type of elements is unknown at the use-site, you can't address it, nor can you pass it to functions that expect values of concrete type.
-However, adding constraints to the `a` variable may improve the situation:
+`Data.Typeable` module's functionality can help to circumvent this restriction. It allows you to cast one type (even unknown) to another one.
+
+Adding constraints to the `a` variable may also improve the situation:
 
 ```haskell
 -- You need to enable either `ExistentialQuantification` or `GADTs` extension to use this syntax
@@ -281,7 +284,7 @@ myFromException :: SomeException -> MyException
 myFromException (SomeException (ex :: MyException)) = ex
 ```
 
-Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract inner variable and cast to specified type. How it is done on the inside, is a topic of a different article.
+Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract inner value and cast to specified type. How it is done on the inside, is a topic of a different article.
 
 ## Summary
 
