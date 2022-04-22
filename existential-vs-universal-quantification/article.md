@@ -1,31 +1,20 @@
 # Existential and Universal Quantification in Haskell
 
-This article gives a brief introduction into one of the most common Haskell extensions – `ExplicitForAll` – and syntax constructions that this extension brings to language.
+In this article I give a brief introduction into one of the most common Haskell extensions – `ExplicitForAll` – and syntax constructions that this extension brings to language.
 It is used in about all big haskell projects, so it is very nice to either become acquainted with it or to refresh it in your memory if you already know about it.
 
 Stay tuned if you want to know how to create lists of differently typed variables, how to add complex constraints, and more!
 
-
 ## Introduction
 
-By default quantification in Haskell is implicit. Without special extension - `ExplicitForAll`, quantifiers will stay hidden. However, enabling it allows us to see the true functions types, like for example, the type of `id`.
-
-```haskell
-id :: forall a. a -> a
-id x = x
-```
-
-This quantifier comes from predicate logic.
-From there we also know about existence of the `exists` quantifier.
-While, there were some attempts to use it [in the past](https://web.archive.org/web/20060304191310/https://hackage.haskell.org/trac/haskell-prime/wiki/ExistentialQuantification#Syntaxofexistentials), it was removed from the compiler, in favor of using only `forall` one.
-
+By default, quantification in Haskell is implicit.
+Without the `ExplicitForAll` extension, you can't write quantifiers. Moreover, all variables are universally quantified, and existential quantification is off.
 The key point of both universal and existential quantification is choosing where, we are going to instantiate a type variable - where it is defined, or where it is used.
 
 ## Universal quantification and `ExplicitForAll`
 
 By default, all type variables are considered universally quantified.
-It means that what type variable means is chosen, when you call a function.
-For example, every time you call `id` in other functions, type variable `a` is specified with concrete type.
+This means that every time you use a function like `id`, you can _instantiate_ the universally quantified type variable `a` to (i.e., replace it with) any type.
 
 ### Usage
 
@@ -43,7 +32,7 @@ All type variables that you introduce in your definition should belong to one `f
 func :: forall a b c.   a -> b -> m c -- Error, type variable `m` is not introduced
 ```
 
-Lets add some constraints.
+Let's add some constraints.
 For example, we might want to specify the `m` variable here as an instance of `Monad` typeclass.
 
 ```Haskell
@@ -59,8 +48,7 @@ However, it allows us to use new tricks.
 
 First of all, you can now change the order of type variables.
 Let's imagine you want to define a function with 10 type variables (yeah, there are real-life [examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions), and you know that when you use it, you want to specify type of the last argument explicitly.
-To pass a type as a parameter to a function, we will use the `TypeApplication` extension.
-Few notes about passing types to functions. Using `TypeApplication` extension you can pass types as function arguments, using `@` sign (If specifying concrete type is unnecessary you can use type wildcard `@_`).
+Here, and in the future examples we will use the `TypeApplication` extension, which allows you to pass types as function arguments, using `@` sign (If specifying concrete type is unnecessary you can use type wildcard `@_`).
 By default, the order of type variables, which you assign types to, is the same as the order in which they are introduced in the function definition.
 Without `forall`, you would write something like this:
 
@@ -92,11 +80,12 @@ The most common one is `ScopedTypeVariables`, which allows you to pass a type va
 example :: a -> [a] -> [a]
 example x rest = pair ++ rest
   where
-    pair :: a -> [a]
-    pair x = [x, x]
+    pair :: [a]
+    pair = [x, x]
 ```
+
 This will cause an error without `ScopedTypeVariables`, because compiler thinks that `a` in `example`'s signature and `a` in `double`'s are two different types.
-To fix it, you also need to use extension and add a `forall` quantifier, as extension won't work without it.
+To fix it, you also need to use extension and add a `forall` quantifier to `example` function, as extension won't work without it.
 
 ```haskell
 example :: forall a. a -> [a] -> [a]
@@ -116,10 +105,13 @@ In order to proceed further, we'll have to enable the `RankNTypes` extension. Th
 
 By default, all types are rank-1. In a rank-1 type, a `forall` cannot appear on the left of an arrow (keep in mind that the `->` operator has precedence over `.`)
 
-For example, this function have rank-1 types:
+For example, this function has a rank-1 type:
 
 ```haskell
 f :: forall a b. a -> b -> a
+
+-- Or, to make the precedence explicit:
+f :: forall a b. (a -> b -> a)
 ```
 
 With the `RankNTypes` extension, we can write rank-2 types - types where a `forall` appears to the left of one arrow:
@@ -128,7 +120,7 @@ With the `RankNTypes` extension, we can write rank-2 types - types where a `fora
 f :: (forall a. Show a => a -> IO ()) -> IO ()
 ```
 
-Because forall a appears to the left of one arrow, `a` is said to be existentially quantified.
+Because `forall a` appears to the left of one arrow, `a` is said to be existentially quantified.
 It is also true for every `forall` that is introduced to the left of an odd number of functional arrows.
 But what does this mean?
 
@@ -146,7 +138,7 @@ There are a few things to mention here.
 
 * In the type signature, `a` and `c` are universally quantified variables, and `b` is existentially quantified.
 * The same variable can't be quantified more than once.
-* You can see that constraints for `b` are added in the middle of the declaration of the function type (because `b` was introduced in the middle of the function).
+* You can see that constraints for `b` are declared _after_ `b` has been introduced with the `forall` quantifier
 * You can choose type for `b` only inside `func` definition, and you can't do it when you call `func` (we will discuss it further below).
 
 Here's a real-life example of using existential types in functions.
@@ -191,11 +183,16 @@ main = do
   func (appendFile "logfile.log" . show)
 ```
 We will see some nasty compiler errors:
-```
+```haskell
+  log username
+      ^^^^^^^^
 Couldn't match expected type `a` with actual type `String`...
 ```
-It is happening, because inside of `func`, `a` is not known yet. I will be known, only when you call `func` somewhere.
-The only solution here is to add constraints and `forall` quantifier to the log function signature:
+
+We're getting this error because:
+1. `func`'s type variable `a` is universally quantified, therefore it can only be instantiated at the use-site.
+2. We're trying to instantiate it at `func`'s definition-site (`log username` is trying to instantiate the type variable `a` with `String` and `log userCount` is trying to instantiate the type variable `b` with `Int`).
+Because we want `a` to be instantiated at `func`'s definition-site (rather than its use-site), we need `a` to be existentially quantified instead.
 
 ```haskell
 {-# LANGUAGE RankNTypes #-}
@@ -203,8 +200,6 @@ The only solution here is to add constraints and `forall` quantifier to the log 
 func :: (forall a. Show a => a -> IO ()) -> IO ()
 ```
 Now the compiler knows, that whatever function we pass to `func`, type variable `a` should be instantiated here, not outside.
-After this change, we can specify.
-
 With this change we can instantiate `a` when we call log.
 
 ```haskell
@@ -220,31 +215,11 @@ func log = do
 Note, that this type applications is unnecessary.
 Compiler is smart enough to choose appropriate types.
 
-#### Hiding type variables
-
-Let's turn to datatypes now.
-You can introduce existentially quantified type variable in the datatype, by using `forall` on the left side of equality sign.
-
-```haskell
-data MyData a = forall b. MkMyData b a
--- You need to enable either `ExistentialQuantification` or `GADTs` extension to use this syntax
-```
-
-The first thing you might have noticed is that we don't have a type variable for `b` on the left side of the expression.
-However, we still can use it on the right side.
-This is because `b` is existentially quantified.
-The compiler will instantiate the type of the variable itself, and you can't specify it.
-
-```haskell
-func :: MyData Integer -> IO ()
-func (MkMyData (x :: Double) y) = print x -- compiler error - can't match type of x with Double
-```
-
 #### Heterogeneous lists
 
 Now we understand that existential types allow you to introduce type variables without the necessity to specify them.
-
-This might be useful when building a multi-typed list:
+Let's take a look how this is done in datatypes.
+You can introduce existentially quantified type variable in the datatype, by using `forall` on the left side of the constructor name. Existential types in datatypes allow you to have field in the datatype, without necessity to specify its type.
 
 ```haskell
 data Elem = forall a. Elem a
@@ -252,13 +227,15 @@ data Elem = forall a. Elem a
 multitypedList :: [Elem]
 multitypedList = [Elem "a", Elem 1, Elem (Just 5)]
 ```
+
 This is a heterogeneous list that contains values of different types.
-You can't do that with an universally quantified list because every element in that list would need to have the same type.w
+You can't do that with an universally quantified list because every element in that list would need to have the same type.
 But, there are not many things you can do with elements of this list.
-Since the type of elements is unknown, you can't address it, nor can you pass it to functions that expect values of concrete type.
+Since the type of elements is unknown at the use-site, you can't address it, nor can you pass it to functions that expect values of concrete type.
 However, adding constraints to the `a` variable may improve the situation:
 
 ```haskell
+-- You need to enable either `ExistentialQuantification` or `GADTs` extension to use this syntax
 data Elem = forall a. (Show a) => Elem a
 
 multitypedList :: [Elem]
@@ -275,7 +252,6 @@ main = fmap printElem multitypedList
 λ> 1
 λ> Just 5
 ```
-
 Note that since type variable `a` is hidden with a quantifier, you can't add constraints to it besides those added to the constructor.
 
 ```haskell
@@ -283,7 +259,7 @@ showFunc :: Show ??? => [Elem] -> String -- There is no type variable, that you 
 showFunc (x:xs) => (show x) ++ (showFunc xs)
 ```
 
-We hide exception type in the same way in the well-known `SomeException` wrapper:
+Other useful example of hiding type variables is `SomeException` wrapper
 
 ```haskell
 data SomeException = forall a. Exception a => SomeException a
@@ -291,8 +267,21 @@ data SomeException = forall a. Exception a => SomeException a
 
 It allows you to catch exceptions of any type.
 As long, as you hadn't specified its type, (and it is not obvious to the compiler, from the handler for example), all exceptions will be caught, wrapped in `SomeException` datatype.
-After that, you can use `fromException` function, to check, that you caught something you wanted to catch.
 
+However, again, there is a limitation.
+We know nothing about inner exception.
+Yes, we can for example print it, but sometimes we need more information.
+We can't use type inheritance to describe, what type we want to get
+
+```haskell
+-- Something like that won't work.
+-- we know to little about type inside,
+-- to be sure that it is 'MyException'
+myFromException :: SomeException -> MyException
+myFromException (SomeException (ex :: MyException)) = ex
+```
+
+Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract inner variable and cast to specified type. How it is done on the inside, is a topic of a different article.
 
 ## Summary
 
