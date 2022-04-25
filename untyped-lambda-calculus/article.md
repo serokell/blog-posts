@@ -1,7 +1,7 @@
 # Untyped Lambda Calculus
 
 When talking about Haskell, the term "lambda calculus" often crops up.
-It is a theoretical framework used to define the meaning of "computation" in many functional languages.
+It is a theoretical framework used to define the meaning of computation in many functional languages.
 Understanding lambda calculus can be very helpful when talking about Haskell programs.
 It is also used extensively in programming language theory research and functional language design.
 
@@ -43,18 +43,20 @@ See, for instance, [Translating Lambda Calculus into C++ Templates by Vít Šefl
 [brief-incomplete-history]: http://james-iry.blogspot.com/2009/05/brief-incomplete-and-mostly-wrong.html
 
 Lambda calculus, initially envisioned as a formal logic system, was developed by Alonzo Church around the 1930s to explore the foundations of mathematics.
-The initial formulation had a logical inconsistency known as [Kleene–Rosser paradox] (for a more comprehensive overview, refer to, e.g. [Paradoxes and Contemporary Logic][paradoxes-contemporary-logic]).
+The initial formulation had a logical inconsistency known as [Kleene–Rosser paradox] (for a more comprehensive overview, refer to [Paradoxes and Contemporary Logic][paradoxes-contemporary-logic]).
 To sidestep this issue, Church isolated the part of lambda calculus relevant only to computation in 1936.
 This isolate is now known as the untyped lambda calculus.
-Later, In 1940, a typed version of lambda calculus, based on Russel's type theory, was introduced, which has weaker expressive power but is logically consistent.
+
+Later, In 1940, a typed version of lambda calculus based on Russel's type theory was introduced. 
+It has weaker expressive power but it's logically consistent.
 
 [Kleene–Rosser paradox]: https://en.wikipedia.org/wiki/Kleene%E2%80%93Rosser_paradox
 [paradoxes-contemporary-logic]: https://plato.stanford.edu/entries/paradoxes-contemporary-logic/#IncoCertFormLogi
 
 The lambda symbol used in the standard notation, from which lambda calculus derives its name, most likely was chosen arbitrarily.
-However, there's an apocryphal story the notation was derived from $\hat x$, morphing first into $\Lambda x$, and later into $\lambda x$.
+However, there's an apocryphal story the notation was derived from $\hat x$ morphing first into $\Lambda x$ and later into $\lambda x$.
 
-In the mid-1960s, Peter Landin has shown that lambda calculus models arbitrarily complex programming languages.
+In the mid-1960s, Peter Landin showed that lambda calculus models arbitrarily complex programming languages.
 This insight arguably kickstarted the research on functional programming languages.
 
 ## The pure untyped lambda calculus
@@ -72,14 +74,16 @@ The abstraction consists of the _head_ and the _body_, separated by the dot ($.$
 The _head_ contains the $\lambda$ symbol and the parameter name.
 The _body_ is an arbitrary expression.
 For example, $\lambda x. x$ is an abstraction.
+
 As usual in abstract mathematics, we can assign a name to an expression.
-Here we'll be using the equals sign ($=$) for that, for example, $id = \lambda x. x.$
+Here we'll be using the equals sign ($=$) for that.
+For example: $id = \lambda x. x.$
 
 _Application_ is the operation of substituting a specific value for the parameter in the abstraction.
 It is the only operation defined in the pure untyped lambda calculus.
 In the standard notation, the application is denoted simply by whitespace.
 For example, $f\; x$ is the application of $f$ to $x$.
-Since all abstractions are univariate by definition, there isn't a special syntax for multivariate application.
+Since all abstractions are univariate by definition, there's no special syntax for multivariate application.
 
 You might notice that using whitespace can lead to ambiguity.
 We'll use parentheses where necessary to avoid it.
@@ -94,7 +98,7 @@ Other variables are called _free variables_.
 
 An expression without free variables is called a _closed term_ or a _combinator_.
 
-The choice of names of bound variables is arbitrary.
+The choice of bound variable names is arbitrary.
 Expressions that differ only in the names of bound variables are called _alpha-equivalent_.
 For example, $\lambda x. x$ and $\lambda y. y$ are alpha-equivalent, but $\lambda x. y$ and $\lambda y. z$ are not.
 
@@ -125,10 +129,13 @@ In the last example, you might wonder if we should also apply beta-reduction ins
 It brings us to the discussion of evaluation strategies.
 
 Evaluation strategy is a rule that defines which redexes are reduced and in what order.
+
 The most straightforward evaluation strategy is called _full beta-reduction._
 It allows us to reduce any redex at any point, with no limitations.
+
 Full beta-reduction does have some issues, however.
 For instance, you might get different results depending on the reduction order.
+
 Two common strategies define the order: _normal order strategy_ and _applicative order strategy_.
 The former says that we must first reduce the leftmost _outermost_ redex.
 In other words, we substitute arguments into the abstraction body before beta-reducing them.
@@ -137,6 +144,7 @@ That is, we reduce the arguments before substitution.
 
 Those are the common _strong_ evaluation strategies.
 We call them strong because they go inside the abstraction bodies.
+
 The corresponding _weak_ evaluation strategies are called _call-by-name_ and _call-by-value_.
 Call-by-name is a weak version of the normal order strategy.
 Call-by-value is a little stricter and only allows reduction if the argument is a "value" -- that is, in pure lambda calculus, either a variable or an abstraction.
@@ -207,20 +215,20 @@ It boils down to the statement that two functions are the same if and only if th
 >
 > -- Russell Hoban, Pilgermann, Pan, London, 1984.
 
-Now that we defined both syntax and semantics, we can talk about expressing various computations in the language of lambda calculus.
+Now that we have defined the syntax and semantics of lambda calculus, we can talk about expressing various computations in the language.
 It is not that different from using any other programming language.
 
 We run into a small issue, however.
 We don't have much to work with yet.
-We don't have booleans, numbers, tuples, or multivariate functions.
-No worries, though!
-We can represent all of that using only abstractions and applications!
+There are no booleans, numbers, tuples, or multivariate functions.
+
+No worries, though: we can represent all of that using only abstractions and applications!
 
 ### Multivariate functions
 
 Any multivariate function is the same as multiple nested functions returning other functions.
 If you're familiar with functional programming, you might know such functions are called curried functions, named after Haskell Curry.
-In pure lambda calculus, then, all functions are curried.
+In pure lambda calculus, all functions are curried.
 
 To simplify the notation, we will now introduce a shorthand syntax.
 A multivariate abstraction of $n$ parameters, declared as $\lambda x_1\;x_2\;\ldots\;x_n. t,$ is the same as $n$ nested abstractions $\lambda x_1. \lambda x_2. \ldots \lambda x_n. t.$
@@ -232,17 +240,17 @@ Multivariate abstractions, naturally, can be partially applied, e.g. $(\lambda x
 Let us now introduce booleans.
 We will follow Church here.
 However, it's not the only way.
-Arguably there are infinitely many ways to encode values as functions.
+Arguably, there are infinitely many ways to encode values as functions.
 
-So, let us declare two combinators,
+So, let us declare two combinators:
 $tru = \lambda x\; y. x,$ and $fls = \lambda x\;y. y.$
 We're calling these $tru$ and $fls$ to disambiguate them from atomic boolean values.
 
 Now, the structure of these definitions is rather curious.
-$tru$ is a two-argument function that returns its first argument, ignoring the second, and $fls$ returns its second argument.
+$tru$ is a two-argument function that returns its first argument and ignores the second, while $fls$ returns the second and ignores the first.
 If you squint a bit, you might see this encodes a branching computation.
 
-Indeed, we can define a combinator that would behave exactly like `if ... then ... else ...` construct: $ifThenElse = \lambda c\;t\;f. c\;t\;f.$
+Indeed, we can define a combinator that would behave exactly like the `if ... then ... else ...` construct: $ifThenElse = \lambda c\;t\;f. c\;t\;f.$
 Since Church boolean values themselves encode the behavior, this function doesn't do much.
 It's nice to see we can have familiar branching constructs almost right away.
 
@@ -260,8 +268,8 @@ We will rename the bound variables to avoid ambiguity:
 $(\lambda x\;y. x\;y\;fls)\;(\lambda a\; b. a)\;(\lambda c\; d. c)$
 
 Now we can reduce the expression.
-Let's use call by value strategy here.
-The arrow $\to$ represents one evaluation step:
+Let's use the call-by-value strategy here.
+The arrow $\to$ represents one evaluation step.
 
 $(\lambda x\;y. x\;y\;fls)\;(\lambda a\; b. a)\;(\lambda c\; d. c)$
 $\to (\lambda y. (\lambda a\; b. a)\;y\;fls)\;(\lambda c\; d. c)$
@@ -280,6 +288,7 @@ $\to (\lambda b. b)\;fls$
 $\to fls.$
 
 That also works.
+
 The remaining two cases are left as an exercise for the reader, but it should be rather obvious that the combinator works as intended.
 Indeed, since $tru$ essentially chooses its first argument and $fls$ its second, $x\;y\;fls$ essentially means "if $x$ is $tru$, the result is $y$, otherwise $fls$".
 
@@ -301,7 +310,8 @@ $fst = \lambda p. p\;tru,$\
 $snd = \lambda p. p\;fls.$
 
 It's reasonably straightforward to show that these definitions work as intended.
-Consider, for instance,
+
+Consider, for instance:
 
 $fst\;(pair\;x\;y)$
 $= (\lambda p. p\;tru)\;((\lambda f\;s\;b. b\;f\;s)\;x\;y)$
@@ -316,7 +326,8 @@ Here, double arrow $\Rightarrow$ signifies more than one step of beta-reduction.
 ### Church naturals
 
 Since we encoded both pairs and booleans, we already can encode naturals simply as sequences of booleans, that is, as binary numbers.
-In practice, this turns out to be cumbersome, however, so instead, we'll define naturals similar to the Peano construction.
+In practice, this turns out to be cumbersome, however.
+Instead, we'll define naturals similar to the Peano construction.
 Essentially, we'll be choosing an encoding for zero and then encoding other numbers as some successor function applied to zero.
 
 Church used the following definitions:
@@ -326,10 +337,10 @@ $c_1 = \lambda s\;z. s\;z,$\
 $c_2 = \lambda s\;z. s\;(s\;z),$\
 etc.
 
-The beautiful thing about this encoding is that it naturally encodes the concept of "counting".
+The beautiful thing about this encoding is that it naturally encodes the concept of counting.
 Each Church natural takes a "next" combinator $s$ and a "starting value" $z,$ and then "counts" the corresponding "nexts" from $z.$
 
-Now we can define a successor function, taking a natural and returning the next natural.
+Now we can define a successor function that takes a natural and returns the next natural.
 Since we defined naturals as functions of two arguments, we expect the successor function to be a function of three arguments (i.e. three nested abstractions).
 The body should apply the "next" argument to the natural one more time:
 
@@ -339,10 +350,11 @@ It might be easier to see what's going on if we explicitly note the outer abstra
 
 $succ = \lambda n. \lambda s\; z. s\;(n\;s\;z).$
 
-In the same manner, we can define addition
-$$plus = \lambda m\; n. \lambda s\; z. m\;s\;(n\;s\;z),$$
-and multiplication
-$$mul = \lambda m\; n. \lambda s\; z. m\;(n\;s)\;z.$$
+In the same manner, we can define addition and multiplication:
+
+$plus = \lambda m\; n. \lambda s\; z. m\;s\;(n\;s\;z),$
+$mul = \lambda m\; n. \lambda s\; z. m\;(n\;s)\;z.$
+
 The former counts $m$ starting from $n$, and the latter counts $m$ times $n$ starting from $z.$
 
 We can also easily test whether a value corresponds to zero (i.e. $c_0$) or not:
@@ -391,7 +403,7 @@ A shorter equivalent form is sometimes cited:
 $$X = \lambda f. \Omega\; (\lambda x. f\;(x\;x)).$$
 
 We should note that it's not the only fixed-point combinator.
-For instance, another famous one, called the Turing's combinator (named after its discoverer), is
+For instance, another famous one is the Turing's combinator (named after its discoverer):
 
 $$\Theta = (\lambda x\;y.y\; (x\; x\; y))\; (\lambda x\;y.y\; (x\; x\; y)).$$
 
@@ -421,10 +433,10 @@ $\Rightarrow c_0$
 
 For illustrative purposes, we used full beta-reduction, carefully choosing which terms to reduce first.
 We could also have used call-by-name at the cost of intermediate expressions getting rather long-winded.
-However, if we tried to apply call by value, we would get stuck pretty quickly trying to evaluate $((\lambda x. cdown\;(x\;x))\;(\lambda x. cdown\;(x\;x))),$ which under call by value diverges.
+However, if we tried to apply call-by-value, we would get stuck pretty quickly trying to evaluate $((\lambda x. cdown\;(x\;x))\;(\lambda x. cdown\;(x\;x))),$ which diverges under call-by-value.
 
 There are fixed-point combinators that work with call-by-value as well.
-One particular example is
+One particular example is:
 
 $$Y_v = \lambda f. (\lambda x. f\;(\lambda y. x\;x\;y)) \;(\lambda x. f\;(\lambda y. x\;x\;y)),$$
 which is basically the $Y$ combinator with additional abstractions inserted in the middle.
@@ -449,7 +461,7 @@ So, let us summarize:
 - we can represent any computable function in pure untyped lambda calculus;
 - various encodings can be used to represent booleans, naturals, tuples, etc.
 
-The last three points are somewhat profound if you think about it: we only defined a single operation (two if you count the lambda abstraction definition), and that got us to anything theoretically computable.
+The last three points are somewhat profound if you think about it: we only defined a single operation (two if you count the definition of lambda abstraction), and that got us to anything theoretically computable.
 There are other constructions of the universal computer: Turing and Post machines, the Markov algorithm, and general recursive functions.
 But, arguably, nothing beats the simplicity of lambda calculus.
 One has to appreciate the elegance at least.
