@@ -335,8 +335,7 @@ $succ = \lambda n. \lambda s\; z. s\;(n\;s\;z).$
 
 In the same manner, we can define addition and multiplication:
 
-$plus = \lambda m\; n. \lambda s\; z. m\;s\;(n\;s\;z),$
-
+$plus = \lambda m\; n. \lambda s\; z. m\;s\;(n\;s\;z),$\
 $mul = \lambda m\; n. \lambda s\; z. m\;(n\;s)\;z.$
 
 The former counts $m$ starting from $n$, and the latter counts $m$ times $n$ starting from $z.$
