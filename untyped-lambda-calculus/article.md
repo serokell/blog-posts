@@ -47,27 +47,28 @@ The initial formulation had a logical inconsistency known as [Kleene–Rosser pa
 To sidestep this issue, Church isolated the part of lambda calculus relevant only to computation in 1936.
 This isolate is now known as the untyped lambda calculus.
 
-Later, In 1940, a typed version of lambda calculus based on Russel's type theory was introduced. 
+Later, in 1940, a typed version of lambda calculus based on Russel's type theory was introduced.
 It has weaker expressive power but it's logically consistent.
 
 [Kleene–Rosser paradox]: https://en.wikipedia.org/wiki/Kleene%E2%80%93Rosser_paradox
 [paradoxes-contemporary-logic]: https://plato.stanford.edu/entries/paradoxes-contemporary-logic/#IncoCertFormLogi
-
-The lambda symbol used in the standard notation, from which lambda calculus derives its name, most likely was chosen arbitrarily.
-However, there's an apocryphal story the notation was derived from $\hat x$ morphing first into $\Lambda x$ and later into $\lambda x$.
 
 In the mid-1960s, Peter Landin showed that lambda calculus models arbitrarily complex programming languages.
 This insight arguably kickstarted the research on functional programming languages.
 
 ## The pure untyped lambda calculus
 
-The untyped lambda calculus is, first and foremost, a consistent expression rewriting system.
-Calculus that only contains functions and variables is called the pure untyped lambda calculus, "pure" meaning it doesn't have anything beyond what's strictly necessary.
+The simplest, smallest type of lambda calculus is the pure untyped lambda calculus, so we'll start with it.
+
+The untyped lambda calculus is, first and foremost, a consistent system for rewriting expressions.
+Lambda calculus that only contains functions and variables is called pure, meaning it doesn't have anything beyond what's strictly necessary.
 
 We can formally define the pure untyped lambda calculus in terms of _abstractions_ and _applications_.
 
-_Abstraction_, or functional abstraction, is a definition of a parametric expression, that is to say, a function.
-Lambda calculus only defines univariate functions, but that's easily extended to multivariate, as we'll see later.
+### Abstraction
+
+An _abstraction_, or a functional abstraction, is a parametric expression, that is to say, a function.
+Lambda calculus only defines univariate functions, but we can easily extend it to include multivariate functions too, as we'll see later.
 
 We introduce new abstractions using the $\lambda$ symbol.
 The abstraction consists of the _head_ and the _body_, separated by the dot ($.$) symbol.
@@ -78,6 +79,21 @@ For example, $\lambda x. x$ is an abstraction.
 As usual in abstract mathematics, we can assign a name to an expression.
 Here we'll be using the equals sign ($=$) for that.
 For example: $id = \lambda x. x.$
+
+Lambda calculus derives its name from the $\lambda$ symbol used in this notation.
+The symbol was most likely chosen arbitrarily.
+However, there's an apocryphal story the notation was derived from $\hat x$ morphing first into $\Lambda x$ and later into $\lambda x$.
+
+Variables in the body of an abstraction that are parameters of said abstraction are called _bound variables_.
+Other variables are called _free variables_.
+
+An expression without free variables is called a _closed term_ or a _combinator_.
+
+The choice of bound variable names is arbitrary.
+Expressions that differ only in the names of bound variables are called _alpha-equivalent_.
+For example, $\lambda x. x$ and $\lambda y. y$ are alpha-equivalent, but $\lambda x. y$ and $\lambda y. z$ are not.
+
+### Application
 
 _Application_ is the operation of substituting a specific value for the parameter in the abstraction.
 It is the only operation defined in the pure untyped lambda calculus.
@@ -93,18 +109,9 @@ Since application binds more tightly, we don't need parentheses around the body 
 However, we might need parenthesis around the whole abstraction itself.
 We will also eschew parentheses for nested abstractions, e.g. $\lambda x. \lambda y. x\;y$ is $\lambda x. (\lambda y. (x\;y)).$
 
-Variables in the body of an abstraction that are parameters of said abstraction are called _bound variables_.
-Other variables are called _free variables_.
+## Defining computation
 
-An expression without free variables is called a _closed term_ or a _combinator_.
-
-The choice of bound variable names is arbitrary.
-Expressions that differ only in the names of bound variables are called _alpha-equivalent_.
-For example, $\lambda x. x$ and $\lambda y. y$ are alpha-equivalent, but $\lambda x. y$ and $\lambda y. z$ are not.
-
-## Defining the computation
-
-The step of the computation is called beta-reduction.
+A step of computation in lambda calculus is called beta reduction.
 It is a single application of one expression to another.
 Formally, beta-reduction uses the following rules.
 Given an expression of the form $(\lambda x. t_1)\; t_2$ (i.e. an application of some abstraction to some expression $t_2$):
@@ -127,6 +134,8 @@ Then we can do the rest of the steps with no fear of confusion: $\lambda z. (\la
 
 In the last example, you might wonder if we should also apply beta-reduction inside the abstraction body.
 It brings us to the discussion of evaluation strategies.
+
+### Evaluation strategies
 
 Evaluation strategy is a rule that defines which redexes are reduced and in what order.
 
@@ -153,33 +162,6 @@ It's interesting to note that the call-by-value strategy corresponds to eager ev
 In eager evaluation, arguments are evaluated before the function call.
 Call-by-name, on the other hand, corresponds to lazy evaluation.
 In lazy evaluation, some arguments are potentially never evaluated at all.
-
-To get a feel for how the weak strategies work, let's consider a small example:
-
-$(\lambda x. \lambda y. \lambda z. x\; x\; y)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$
-
-Under call-by-value strategy, we evaluate arguments before application:
-
-$(\lambda x. \lambda y. \lambda z. x\; x\; y)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$ \
-$\to (\lambda x. \lambda y. \lambda z. x\; x\; y)\; a\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$ \
-$\to (\lambda y. \lambda z. a\; a\; y)\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$ \
-$\to (\lambda y. \lambda z. a\; a\; y)\; b\; ((\lambda p. p)\; c)$ \
-$\to (\lambda z. a\; a\; b)\; ((\lambda p. p)\; c)$ \
-$\to (\lambda z. a\; a\; b)\; c$ \
-$\to a\; a\; b$
-
-Under call-by-name strategy, we first evaluate applications, instead:
-
-$(\lambda x. \lambda y. \lambda z. x\; x\; y)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b) ((\lambda p. p)\; c)$ \
-$\to (\lambda y. \lambda z. ((\lambda z. z)\; a)\; ((\lambda z. z)\; a)\; y)\; ((\lambda w. w)\; b)\; ((\lambda p. p)\; c)$ \
-$\to (\lambda z. ((\lambda z. z)\; a)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b))\; ((\lambda p. p)\; c)$ \
-$\to ((\lambda z. z)\; a)\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b)$ \
-$\to a\; ((\lambda z. z)\; a)\; ((\lambda w. w)\; b)$ \
-$\to a\; a\; ((\lambda w. w)\; b)$ \
-$\to a\; a\; b$
-
-Note how in call-by-name we didn't have to compute $((\lambda p. p)\; c)$ argument, because it disappeared when applying.
-On the other hand, we had to compute $((\lambda z. z)\; a)$ twice.
 
 A practically significant variation on call-by-name is _call-by-need_, which is, at least in theory, used in Haskell.
 Call-by-need behaves exactly like call-by-name, except that reduction steps that would duplicate computations, don't.
@@ -238,13 +220,14 @@ Multivariate abstractions, naturally, can be partially applied, e.g. $(\lambda x
 ### Church booleans
 
 Let us now introduce booleans.
-We will follow Church here.
-However, it's not the only way.
+We will do it in the same way Church did in his original paper.
+However, that's not the only way.
 Arguably, there are infinitely many ways to encode values as functions.
 
 So, let us declare two combinators:
 $tru = \lambda x\; y. x,$ and $fls = \lambda x\;y. y.$
-We're calling these $tru$ and $fls$ to disambiguate them from atomic boolean values.
+We're calling these $tru$ and $fls$ to disambiguate them from actual boolean values $true$ and $false$ that aren't actually abstractions.
+$true$ and $false$ are, hopefully obviously, not a part of the pure lambda calculus, but we can introduce them as terms in an impure lambda calculus.
 
 Now, the structure of these definitions is rather curious.
 $tru$ is a two-argument function that returns its first argument and ignores the second, while $fls$ returns the second and ignores the first.
@@ -296,7 +279,7 @@ Defining other boolean combinators is reasonably straightforward by analogy.
 
 ### Church pairs
 
-Since we have booleans now, we can also encode pairs (and by extension, tuples as trees or right combs) as functions, returning one value when given $tru$ as an argument, and another when given $fls$.
+Since we have booleans now, we can also encode pairs (and by extension, tuples) as functions, returning one value when given $tru$ as an argument, and another when given $fls$.
 
 First of all, let us define a pair constructor combinator:
 
@@ -321,13 +304,13 @@ $\to tru\;x\;y$
 $= (\lambda a\; b. a)\;x\;y$
 $\Rightarrow x.$
 
-Here, double arrow $\Rightarrow$ signifies more than one step of beta-reduction.
+Here, double arrow $\Rightarrow$ signifies multiple steps of beta-reduction.
 
 ### Church naturals
 
 Since we encoded both pairs and booleans, we already can encode naturals simply as sequences of booleans, that is, as binary numbers.
 In practice, this turns out to be cumbersome, however.
-Instead, we'll define naturals similar to the Peano construction.
+Instead, we'll define naturals similar to the [Peano construction](https://wiki.haskell.org/Peano_numbers).
 Essentially, we'll be choosing an encoding for zero and then encoding other numbers as some successor function applied to zero.
 
 Church used the following definitions:
@@ -353,28 +336,30 @@ $succ = \lambda n. \lambda s\; z. s\;(n\;s\;z).$
 In the same manner, we can define addition and multiplication:
 
 $plus = \lambda m\; n. \lambda s\; z. m\;s\;(n\;s\;z),$
+
 $mul = \lambda m\; n. \lambda s\; z. m\;(n\;s)\;z.$
 
 The former counts $m$ starting from $n$, and the latter counts $m$ times $n$ starting from $z.$
 
 We can also easily test whether a value corresponds to zero (i.e. $c_0$) or not:
-$$isZero = \lambda n. n\;(\lambda x. fls)\;tru.$$
+
+$isZero = \lambda n. n\;(\lambda x. fls)\;tru.$
 
 We run into a bit of an issue when trying to define subtraction or a predecessor function.
 Turns out it's doable but neither pretty nor efficient.
 We'll use pairs of values containing two subsequent naturals.
-That way, we can stagger the counter by one.
+That way, we can have a counter that's lagging by one.
 To simplify the notation, we'll introduce two named helper abstractions:
 
 $zz = pair\;c_0\;c_0$\
 $ss = \lambda nn. pair\;(snd\; nn)\;(succ\;(snd\;nn)).$\
 
 The first element of the pair here is the predecessor, and the second is the successor.
-$zz$ encodes the starting point, and $ss$ is the staggered successor.
+$zz$ encodes the starting point, and $ss$ is the lagging successor.
 
 Now we can define the predecessor function:
 
-$$pred = \lambda n. fst\; (n\; ss\; zz).$$
+$pred = \lambda n. fst\; (n\; ss\; zz).$
 
 With this definition, $pred\;c_0 = c_0,$ which isn't ideal.
 However, we don't have an encoding for negative numbers, so we don't have much of a choice.
@@ -388,7 +373,7 @@ Such expressions don't have a normal form, and we call those _diverging_.
 
 The simplest diverging expression is the application of the so-called omega combinator to itself:
 
-$$\Omega = \lambda x. x\;x.$$
+$\Omega = \lambda x. x\;x.$
 
 Using any typical evaluation strategy, one step of beta-reduction of $\Omega\;\Omega$ gives us $\Omega\;\Omega$ again.
 
@@ -396,16 +381,16 @@ The omega combinator is somewhat useless on its own.
 However, we can extend it to be a little more useful.
 In particular, we can encode recursion using the fixed point combinator, also known as $Y$ combinator:
 
-$$Y = \lambda f. (\lambda x. f\;(x\;x))\;(\lambda x. f\;(x\;x)).$$
+$Y = \lambda f. (\lambda x. f\;(x\;x))\;(\lambda x. f\;(x\;x)).$
 
 A shorter equivalent form is sometimes cited:
 
-$$X = \lambda f. \Omega\; (\lambda x. f\;(x\;x)).$$
+$X = \lambda f. \Omega\; (\lambda x. f\;(x\;x)).$
 
 We should note that it's not the only fixed-point combinator.
 For instance, another famous one is the Turing's combinator (named after its discoverer):
 
-$$\Theta = (\lambda x\;y.y\; (x\; x\; y))\; (\lambda x\;y.y\; (x\; x\; y)).$$
+$\Theta = (\lambda x\;y.y\; (x\; x\; y))\; (\lambda x\;y.y\; (x\; x\; y)).$
 
 The idea here is to give us the ability to express recursion by passing the function as its first argument.
 The omega combinator infinitely replicates itself.
@@ -438,7 +423,8 @@ However, if we tried to apply call-by-value, we would get stuck pretty quickly t
 There are fixed-point combinators that work with call-by-value as well.
 One particular example is:
 
-$$Y_v = \lambda f. (\lambda x. f\;(\lambda y. x\;x\;y)) \;(\lambda x. f\;(\lambda y. x\;x\;y)),$$
+$Y_v = \lambda f. (\lambda x. f\;(\lambda y. x\;x\;y)) \;(\lambda x. f\;(\lambda y. x\;x\;y)),$
+
 which is basically the $Y$ combinator with additional abstractions inserted in the middle.
 
 ## Conclusions
@@ -484,22 +470,35 @@ One has to appreciate the elegance at least.
 
 6. Implement a pure untyped lambda calculus interpreter in your favorite programming language.
 
-    One question you might have is how to handle name collisions and encode alpha-equivalence.
-    There can be many approaches to this problem, but one of the more common ones is using the de Bruijn encoding.
-    The idea is to represent variables without naming them.
-    Instead, we can encode variables by their de Bruijn indexes, i.e. a reference to the binding abstraction represented as a natural.
-    The natural number is the "nesting level" of the variable relative to its binding abstraction, starting at $0$.
-    For example, $\lambda x. x$ can be encoded as $\lambda. 0,$ and $\lambda x\; y. x\;x\;y$ as $\lambda.\lambda. 1\;1\;0.$
-    Two terms are alpha-equivalent if and only if their de Bruijn representation is the same.
-    We should note that, during beta-reduction, de Bruijn indexes of free variables will change, but they will change predictably.
-    Consider, for example, the following term:
-    $$\lambda. (\lambda. \lambda.\lambda. 1\;(2\;1\;0))\; 0$$
-    (this is $\lambda x.succ\;x$).
-    It is quite apparent that $\lambda. \lambda.\lambda. 1\;(0\;1\;0)$ is not equivalent (injecting variable names back gives $\lambda x. \lambda s.\lambda z. s\;(z\;s\;z),$ when it should be $s\;(x\;s\;z)$).
-    But, you might notice that $\lambda. \lambda.\lambda. 1\;(2\;1\;0)$ is (by the rule of eta-reduction).
-    This line of reasoning gives us the intuition for the general rule.
-    When an expression is substituted, de Bruijn indexes of its free variables must increase by the de Bruijn index of the variable the expression replaces.
-    It should also be noted that when the left term contains free variables, those must be reduced by one, because application "strips" one level of $\lambda$, e.g.
-    $$\lambda. (\lambda. \lambda.\lambda. 1\;(2\;3\;0))\; 0$$
-    is $\lambda. \lambda.\lambda. 1\;(2\;2\;0),$
-    not $\lambda. \lambda.\lambda. 1\;(2\;3\;0)$ (indeed in this example $3$ references a nonexistent abstraction).
+<p>
+<details>
+<summary>Tips on handling name collisions</summary>
+
+One question you might have is how to handle name collisions and encode alpha-equivalence.
+There can be many approaches to this problem, but one of the more common ones is using the de Bruijn encoding.
+The idea is to represent variables without naming them.
+Instead, we can encode variables by their de Bruijn indexes, i.e. a reference to the binding abstraction represented as a natural.
+The natural number is the "nesting level" of the variable relative to its binding abstraction, starting at $0$.
+For example, $\lambda x. x$ can be encoded as $\lambda. 0,$ and $\lambda x\; y. x\;x\;y$ as $\lambda.\lambda. 1\;1\;0.$
+Two terms are alpha-equivalent if and only if their de Bruijn representation is the same.
+We should note that, during beta-reduction, de Bruijn indexes of free variables will change, but they will change predictably.
+Consider, for example, the following term:
+
+$\lambda. (\lambda. \lambda.\lambda. 1\;(2\;1\;0))\; 0$
+
+(this is $\lambda x.succ\;x$).
+It is quite apparent that $\lambda. \lambda.\lambda. 1\;(0\;1\;0)$ is not equivalent (injecting variable names back gives $\lambda x. \lambda s.\lambda z. s\;(z\;s\;z),$ when it should be $s\;(x\;s\;z)$).
+But, you might notice that $\lambda. \lambda.\lambda. 1\;(2\;1\;0)$ is (by the rule of eta-reduction).
+This line of reasoning gives us the intuition for the general rule.
+When an expression is substituted, de Bruijn indexes of its free variables must increase by the de Bruijn index of the variable the expression replaces.
+It should also be noted that when the left term contains free variables, those must be reduced by one, because application "strips" one level of $\lambda$, e.g.
+
+$\lambda. (\lambda. \lambda.\lambda. 1\;(2\;3\;0))\; 0$
+
+is $\lambda. \lambda.\lambda. 1\;(2\;2\;0),$
+not $\lambda. \lambda.\lambda. 1\;(2\;3\;0)$ (indeed in this example $3$ references a nonexistent abstraction).
+
+***
+
+</details>
+</p>
