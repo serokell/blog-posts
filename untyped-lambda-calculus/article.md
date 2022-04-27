@@ -9,6 +9,8 @@ Lambda calculus is also used extensively in programming language theory research
 There are two broad kinds of lambda calculus: _untyped_ and _typed_.
 The _untyped_ kind, discussed in this article, expresses an unrestricted computation.
 
+While untyped lambda calculus doesn't find much use outside of computability theory, it is necessary to understand it to meaningfully discuss the typed variety (strictly speaking, varieties).
+
 ## A bit of history
 
 > 1936 - Alan Turing invents every programming language that will ever be but is shanghaied by British Intelligence to be 007 before he can patent them.
