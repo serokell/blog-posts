@@ -2,33 +2,12 @@
 
 When talking about Haskell, the term "lambda calculus" often crops up.
 It is a theoretical framework used to define the meaning of computation in many functional languages.
-Understanding lambda calculus can be very helpful when talking about Haskell programs.
-It is also used extensively in programming language theory research and functional language design.
+Understanding lambda calculus can be very helpful when talking about functional programs, e.g. those written in Haskell, Agda, Idris, etc.
+Perhaps surprisingly, understanding lambda calculus can be also helpful in understanding C++ template metalanguage, because it's a functional language in its own right (although not, strictly speaking, based on lambda calculus).
+Lambda calculus is also used extensively in programming language theory research and functional language design.
 
 There are two broad kinds of lambda calculus: _untyped_ and _typed_.
 The _untyped_ kind, discussed in this article, expresses an unrestricted computation.
-However, as a system of logic, it is self-contradictory.
-The _typed_ kind, which we intend to discuss in a follow-up article, is a restricted version.
-It doesn't have the logical paradox that plagues the untyped kind and can serve as a logic system.
-
-The list of languages based on lambda calculus includes:
-
-- Haskell,
-- Most languages in the ML family, like OCaml and F#,
-- Most dependently typed languages, like Agda, Coq, F*, Idris,
-- Cardano blockchain's Plutus Core.
-
-There's a rumor that John McCarthy based Lisp on lambda calculus, but this seems to be, broadly speaking, false.
-The original Lisp used different name resolution semantics, and as much was stated by John himself:
-
-> ... one of the myths concerning LISP that people think up or invent for themselves becomes apparent, and that is that LISP is somehow a realization of the lambda calculus, or that was the intention.
-> The truth is that I didn't understand the lambda calculus, really.
->
-> -- John McCarthy, Lisp session, History of Programming Languages
-
-Also, while not strictly speaking based on lambda calculus, C++ template metalanguage is a functional language in its own right, so much of what we discuss below happens to be applicable.
-In fact, one could either embed lambda calculus into C++ template metalanguage or write a transpiler from a lambda calculus-based language into C++ template metalanguage.
-See, for instance, [Translating Lambda Calculus into C++ Templates by Vít Šefl](https://dx.doi.org/10.1007/978-3-030-83978-9_5).
 
 ## A bit of history
 
@@ -244,11 +223,11 @@ For example $and = \lambda x\;y. x\;y\;fls.$
 The $and$ function must return $tru$ if and only if both its arguments are $tru.$
 Let us make sure it does what we expect it to.
 
-$and\;tru\;tru = (\lambda x\;y. x\;y\;fls)\;(\lambda x\; y. x)\;(\lambda x\; y. x)$
+$and\;tru\;tru = (\lambda x\;y. x\;y\;fls)\;(\lambda x\; y. x)\;(\lambda x\; y. x).$
 
 We will rename the bound variables to avoid ambiguity:
 
-$(\lambda x\;y. x\;y\;fls)\;(\lambda a\; b. a)\;(\lambda c\; d. c)$
+$(\lambda x\;y. x\;y\;fls)\;(\lambda a\; b. a)\;(\lambda c\; d. c).$
 
 Now we can reduce the expression.
 Let's use the call-by-value strategy here.
@@ -413,7 +392,7 @@ $\to cdown\;((\lambda x. cdown\;(x\;x))\;(\lambda x. cdown\;(x\;x)))\;c_1$
 $\Rightarrow (\lambda x. cdown\;(x\;x))\;(\lambda x. cdown\;(x\;x))\;(pred\;c_1)$
 $\Rightarrow (\lambda x. cdown\;(x\;x))\;(\lambda x. cdown\;(x\;x))\;c_0$
 $\to cdown\;((\lambda x. cdown\;(x\;x))\;(\lambda x. cdown\;(x\;x)))\;c_0$
-$\Rightarrow c_0$
+$\Rightarrow c_0.$
 
 For illustrative purposes, we used full beta-reduction, carefully choosing which terms to reduce first.
 We could also have used call-by-name at the cost of intermediate expressions getting rather long-winded.
@@ -450,6 +429,13 @@ The last three points are somewhat profound if you think about it: we only defin
 There are other constructions of the universal computer: Turing and Post machines, the Markov algorithm, and general recursive functions.
 But, arguably, nothing beats the simplicity of lambda calculus.
 One has to appreciate the elegance at least.
+
+As for more practical applications, to name a few languages based on lambda calculus:
+
+- Haskell,
+- Most languages in the ML family, like OCaml and F#,
+- Most dependently typed languages, like Agda, Coq, F*, Idris,
+- Cardano blockchain's Plutus Core.
 
 ## Exercises
 
