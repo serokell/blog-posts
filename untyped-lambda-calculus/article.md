@@ -41,8 +41,8 @@ This insight arguably kickstarted the research on functional programming languag
 
 The simplest, smallest type of lambda calculus is the pure untyped lambda calculus, so we'll start with it.
 
-The untyped lambda calculus is, first and foremost, a consistent system for rewriting expressions.
-Lambda calculus that only contains functions and variables is called pure, meaning it doesn't have anything beyond what's strictly necessary.
+Like any untyped lambda calculus, it is first and foremost a consistent system for rewriting expressions.
+And it is called pure because it doesn't have anything beyond what's strictly necessary – it only contains functions and variables.
 
 We can formally define the pure untyped lambda calculus in terms of _abstractions_ and _applications_.
 
@@ -67,8 +67,19 @@ However, there's an apocryphal story the notation was derived from $\hat x$ morp
 
 Variables in the body of an abstraction that are parameters of said abstraction are called _bound variables_.
 Other variables are called _free variables_.
+For example, consider the expression
+
+$\lambda y. (\lambda z. x\;y\;z)\;z.$
+
+Variables $y,$ $z$ in the body of the inner abstraction $(x\;y\;z)$ are bound in this expression.
+Variable $x$ is free everywhere.
+The last variable $z$ in the outer abstraction $\lambda y. \ldots\;z$ is also free, because no abstraction binds (i.e. introduces) it before it is used.
+All bindings are local.
 
 An expression without free variables is called a _closed term_ or a _combinator_.
+For example, consider the expression $\lambda x.\lambda y.\lambda z. x\;y\;z.$
+This expression is a combinator, because $x$, $y$, $z$ are bound in one of the outer (relative to their use) abstractions.
+However, say, the sub-exrpession $\lambda y.\lambda z. x\;y\;z$ _by itself_ is not.
 
 The choice of bound variable names is arbitrary.
 Expressions that differ only in the names of bound variables are called _alpha-equivalent_.
@@ -118,7 +129,7 @@ For example, $(\lambda x. \lambda y. x\;y)\;(\lambda x. x\;y)$ is a redex.
 However, the $y$ identifier is ambiguous.
 In the left term, it refers to the bound variable; in the right one, it refers to a free variable.
 
-To avoid ambiguity, we can rename $y$ in the first expression to, say, $z$: 
+To avoid ambiguity, we can rename $y$ in the first expression to, say, $z$:
 
 $(\lambda x. \lambda z. x\;z)\;(\lambda x. x\;y).$
 
