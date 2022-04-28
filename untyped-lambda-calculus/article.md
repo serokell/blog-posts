@@ -2,7 +2,7 @@
 
 When talking about Haskell, the term "lambda calculus" often crops up.
 It's a theoretical framework used to define the meaning of computation in many functional languages, such as Haskell, Agda, Idris, etc.
-Understanding lambda calculus can be very helpful when talking about programs written in these languages. 
+Understanding lambda calculus can be very helpful when talking about programs written in these languages.
 
 Perhaps surprisingly, understanding lambda calculus can also be helpful in understanding the C++ template metalanguage since it's a functional language in its own right (although it's not, strictly speaking, based on lambda calculus).
 It's also used extensively in programming language theory research and functional language design.
@@ -131,7 +131,7 @@ For example, $(\lambda x. \lambda y. x\;y)\;(\lambda x. x\;y)$ is a redex.
 However, the $y$ identifier is ambiguous.
 In the left term, it refers to the bound variable; in the right one, it refers to a free variable.
 
-To avoid ambiguity, we can rename $y$ in the first expression to, say, $z$: 
+To avoid ambiguity, we can rename $y$ in the first expression to, say, $z$:
 
 $(\lambda x. \lambda z. x\;z)\;(\lambda x. x\;y).$
 
@@ -474,35 +474,35 @@ As for more practical applications, here's a few languages based on lambda calcu
 
 6. Implement a pure untyped lambda calculus interpreter in your favorite programming language.
 
-<p>
-<details>
-<summary>Tips on handling name collisions</summary>
+    <p>
+    <details>
+    <summary>Tips on handling name collisions</summary>
 
-One question you might have is how to handle name collisions and encode alpha-equivalence.
-There can be many approaches to this problem, but one of the more common ones is using the de Bruijn encoding.
-The idea is to represent variables without naming them.
-Instead, we can encode variables by their de Bruijn indexes, i.e. a reference to the binding abstraction represented as a natural.
-The natural number is the "nesting level" of the variable relative to its binding abstraction, starting at $0$.
-For example, $\lambda x. x$ can be encoded as $\lambda. 0,$ and $\lambda x\; y. x\;x\;y$ as $\lambda.\lambda. 1\;1\;0.$
-Two terms are alpha-equivalent if and only if their de Bruijn representation is the same.
-We should note that, during beta-reduction, de Bruijn indexes of free variables will change, but they will change predictably.
-Consider, for example, the following term:
+    One question you might have is how to handle name collisions and encode alpha-equivalence.
+    There can be many approaches to this problem, but one of the more common ones is using the de Bruijn encoding.
+    The idea is to represent variables without naming them.
+    Instead, we can encode variables by their de Bruijn indexes, i.e. a reference to the binding abstraction represented as a natural.
+    The natural number is the "nesting level" of the variable relative to its binding abstraction, starting at $0$.
+    For example, $\lambda x. x$ can be encoded as $\lambda. 0,$ and $\lambda x\; y. x\;x\;y$ as $\lambda.\lambda. 1\;1\;0.$
+    Two terms are alpha-equivalent if and only if their de Bruijn representation is the same.
+    We should note that, during beta-reduction, de Bruijn indexes of free variables will change, but they will change predictably.
+    Consider, for example, the following term:
 
-$\lambda. (\lambda. \lambda.\lambda. 1\;(2\;1\;0))\; 0$
+    $\lambda. (\lambda. \lambda.\lambda. 1\;(2\;1\;0))\; 0$
 
-(this is $\lambda x.succ\;x$).
-It is quite apparent that $\lambda. \lambda.\lambda. 1\;(0\;1\;0)$ is not equivalent (injecting variable names back gives $\lambda x. \lambda s.\lambda z. s\;(z\;s\;z),$ when it should be $s\;(x\;s\;z)$).
-But, you might notice that $\lambda. \lambda.\lambda. 1\;(2\;1\;0)$ is (by the rule of eta-reduction).
-This line of reasoning gives us the intuition for the general rule.
-When an expression is substituted, de Bruijn indexes of its free variables must increase by the de Bruijn index of the variable the expression replaces.
-It should also be noted that when the left term contains free variables, those must be reduced by one, because application "strips" one level of $\lambda$, e.g.
+    (this is $\lambda x.succ\;x$).
+    It is quite apparent that $\lambda. \lambda.\lambda. 1\;(0\;1\;0)$ is not equivalent (injecting variable names back gives $\lambda x. \lambda s.\lambda z. s\;(z\;s\;z),$ when it should be $s\;(x\;s\;z)$).
+    But, you might notice that $\lambda. \lambda.\lambda. 1\;(2\;1\;0)$ is (by the rule of eta-reduction).
+    This line of reasoning gives us the intuition for the general rule.
+    When an expression is substituted, de Bruijn indexes of its free variables must increase by the de Bruijn index of the variable the expression replaces.
+    It should also be noted that when the left term contains free variables, those must be reduced by one, because application "strips" one level of $\lambda$, e.g.
 
-$\lambda. (\lambda. \lambda.\lambda. 1\;(2\;3\;0))\; 0$
+    $\lambda. (\lambda. \lambda.\lambda. 1\;(2\;3\;0))\; 0$
 
-is $\lambda. \lambda.\lambda. 1\;(2\;2\;0),$
-not $\lambda. \lambda.\lambda. 1\;(2\;3\;0)$ (indeed in this example $3$ references a nonexistent abstraction).
+    is $\lambda. \lambda.\lambda. 1\;(2\;2\;0),$
+    not $\lambda. \lambda.\lambda. 1\;(2\;3\;0)$ (indeed in this example $3$ references a nonexistent abstraction).
 
-***
+    ***
 
-</details>
-</p>
+    </details>
+    </p>
