@@ -1,14 +1,14 @@
-# Untyped Lambda Calculus
+# A Brief Look at Untyped Lambda Calculus
 
 When talking about Haskell, the term "lambda calculus" often crops up.
-It's a theoretical framework used to define the meaning of computation in many functional languages.
-Understanding lambda calculus can be very helpful when talking about programs written in languages like Haskell, Agda, Idris, etc.
+It's a theoretical framework used to define the meaning of computation in many functional languages, such as Haskell, Agda, Idris, etc.
+Understanding lambda calculus can be very helpful when talking about programs written in these languages. 
 
 Perhaps surprisingly, understanding lambda calculus can also be helpful in understanding the C++ template metalanguage since it's a functional language in its own right (although it's not, strictly speaking, based on lambda calculus).
-Lambda calculus is also used extensively in programming language theory research and functional language design.
+It's also used extensively in programming language theory research and functional language design.
 
 There are two broad kinds of lambda calculus: _untyped_ and _typed_.
-The untyped kind, discussed in this article, expresses an unrestricted computation.
+The untyped lambda calculus, discussed in this article, expresses an unrestricted computation.
 While it doesn't find much use outside of computability theory, it's necessary to understand it to meaningfully discuss the typed varieties.
 
 ## A bit of history
@@ -23,32 +23,32 @@ While it doesn't find much use outside of computability theory, it's necessary t
 
 [brief-incomplete-history]: http://james-iry.blogspot.com/2009/05/brief-incomplete-and-mostly-wrong.html
 
-Lambda calculus, initially envisioned as a formal logic system, was developed by Alonzo Church around the 1930s to explore the foundations of mathematics.
-The initial formulation had a logical inconsistency known as [Kleene–Rosser paradox] (for a more comprehensive overview, refer to [Paradoxes and Contemporary Logic][paradoxes-contemporary-logic]).
+Lambda calculus, initially envisioned as a formal logic system, was developed by [Alonzo Church](https://en.wikipedia.org/wiki/Alonzo_Church) around the 1930s to explore the foundations of mathematics.
+
+The initial formulation had a logical inconsistency known as the [Kleene–Rosser paradox].
 To sidestep this issue, Church isolated the part of lambda calculus relevant only to computation in 1936.
 This isolate is now known as the untyped lambda calculus.
 
 Later, in 1940, a typed version of lambda calculus based on Russel's type theory was introduced.
-It has weaker expressive power but it's logically consistent.
+It has weaker expressive power, but it's logically consistent.
 
 [Kleene–Rosser paradox]: https://en.wikipedia.org/wiki/Kleene%E2%80%93Rosser_paradox
-[paradoxes-contemporary-logic]: https://plato.stanford.edu/entries/paradoxes-contemporary-logic/#IncoCertFormLogi
 
 In the mid-1960s, Peter Landin showed that lambda calculus models arbitrarily complex programming languages.
-This insight arguably kickstarted the research on functional programming languages.
+Arguably, this insight kickstarted the research on functional programming languages.
 
 ## The pure untyped lambda calculus
 
 The simplest, smallest type of lambda calculus is the pure untyped lambda calculus, so we'll start with it.
 
 Like any untyped lambda calculus, it is first and foremost a consistent system for rewriting expressions.
-And it is called pure because it doesn't have anything beyond what's strictly necessary – it only contains functions and variables.
+And it's called pure because it doesn't have anything beyond what's strictly necessary – it only contains functions and variables.
 
 We can formally define the pure untyped lambda calculus in terms of _abstractions_ and _applications_.
 
 ### Abstractions
 
-An _abstraction_, or a functional abstraction, is a parametric expression, that is to say, a function.
+An abstraction, or a functional abstraction, is a parametric expression, that is to say, a function.
 Lambda calculus only defines univariate (single-variable) functions, but we can easily extend it to include multivariate functions too, as we'll see later.
 
 We introduce new abstractions using the $\lambda$ symbol.
@@ -57,17 +57,14 @@ The head contains the $\lambda$ symbol and the parameter name.
 The body is an arbitrary expression.
 For example, $\lambda x. x$ is an abstraction.
 
-As usual in abstract mathematics, we can assign a name to an expression.
-Here we'll be using the equals sign ($=$) for that.
-For example: $id = \lambda x. x.$
-
 Lambda calculus derives its name from the $\lambda$ symbol used in this notation.
 The symbol was most likely chosen arbitrarily.
-However, there's an apocryphal story the notation was derived from $\hat x$ morphing first into $\Lambda x$ and later into $\lambda x$.
+However, there's an apocryphal story that the notation was derived from $\hat x$ morphing first into $\Lambda x$ and later into $\lambda x$.
 
 Variables in the body of an abstraction that are parameters of said abstraction are called _bound variables_.
 Other variables are called _free variables_.
-For example, consider the expression
+
+For example, consider the expression:
 
 $\lambda y. (\lambda z. x\;y\;z)\;z.$
 
@@ -77,19 +74,24 @@ The last variable $z$ in the outer abstraction $\lambda y. \ldots\;z$ is also fr
 All bindings are local.
 
 An expression without free variables is called a _closed term_ or a _combinator_.
-For example, consider the expression $\lambda x.\lambda y.\lambda z. x\;y\;z.$
-This expression is a combinator, because $x$, $y$, $z$ are bound in one of the outer (relative to their use) abstractions.
-However, say, the sub-exrpession $\lambda y.\lambda z. x\;y\;z$ _by itself_ is not.
+
+For example, the expression $\lambda x.\lambda y.\lambda z. x\;y\;z.$ is a combinator because $x$, $y$, and $z$ are bound in one of the outer (relative to their use) abstractions.
+However, the sub-expression $\lambda y.\lambda z. x\;y\;z$ _by itself_ is not.
 
 The choice of bound variable names is arbitrary.
 Expressions that differ only in the names of bound variables are called _alpha-equivalent_.
 For example, $\lambda x. x$ and $\lambda y. y$ are alpha-equivalent, but $\lambda x. y$ and $\lambda y. z$ are not.
 
+And, as usual in abstract mathematics, we can assign a name to an expression.
+Here we'll be using the equals sign ($=$) for that.
+For example: $id = \lambda x. x.$
+
 ### Applications
 
-_Application_ is the operation of substituting a specific value for the parameter in the abstraction.
-It is the only operation defined in the pure untyped lambda calculus.
-In the standard notation, the application is denoted simply by whitespace.
+Application is the operation of substituting a specific value for the parameter in the abstraction.
+It's the only operation defined in the pure untyped lambda calculus.
+
+In the standard notation, application is denoted simply by whitespace.
 For example, $f\; x$ is the application of $f$ to $x$.
 Since all abstractions are univariate by definition, there's no special syntax for multivariate application.
 
@@ -124,12 +126,12 @@ Any expression where beta-reduction can be applied, we'll call a redex (short fo
 
 For example, the expression $(\lambda x. x) y$ is a redex, and one step of beta-reduction transforms it to just $y$.
 
-Per rule 1, we rename bound variables if there might be ambiguity.
+According to the rule, we rename bound variables if there might be ambiguity.
 For example, $(\lambda x. \lambda y. x\;y)\;(\lambda x. x\;y)$ is a redex.
 However, the $y$ identifier is ambiguous.
 In the left term, it refers to the bound variable; in the right one, it refers to a free variable.
 
-To avoid ambiguity, we can rename $y$ in the first expression to, say, $z$:
+To avoid ambiguity, we can rename $y$ in the first expression to, say, $z$: 
 
 $(\lambda x. \lambda z. x\;z)\;(\lambda x. x\;y).$
 
@@ -142,7 +144,7 @@ This brings us to the discussion of evaluation strategies.
 
 ### Evaluation strategies
 
-Evaluation strategy is a rule that defines which redexes are reduced and in what order.
+An evaluation strategy is a rule that defines which redexes are reduced and in what order.
 
 The most straightforward evaluation strategy is called _full beta-reduction._
 It allows us to reduce any redex at any point, with no limitations.
@@ -161,7 +163,7 @@ Those are the common _strong_ evaluation strategies.
 We call them strong because they go inside the abstraction bodies.
 
 The corresponding _weak_ evaluation strategies are called _call-by-name_ and _call-by-value_.
-Call-by-name is a weak version of the normal order strategy.
+Call-by-name is the weak version of the normal order strategy.
 Call-by-value is a little stricter and only allows reduction if the argument is a "value" -- that is, in pure lambda calculus, either a variable or an abstraction.
 
 It's interesting to note that the call-by-value strategy corresponds to eager evaluation.
@@ -212,12 +214,12 @@ Multivariate abstractions, naturally, can be partially applied, e.g. $(\lambda x
 
 ### Church booleans
 
-Let us now introduce booleans.
-We will do it in the same way Church did in his original paper.
+Let's introduce booleans now.
+We'll do it the same way as Church did in his original paper.
 However, that's not the only way.
 Arguably, there are infinitely many ways to encode values as functions.
 
-So, let us declare two combinators:
+So, let's declare two combinators:
 $tru = \lambda x\; y. x,$ and $fls = \lambda x\;y. y.$
 We're calling these $tru$ and $fls$ to disambiguate them from actual boolean values $true$ and $false$ that aren't actually abstractions.
 $true$ and $false$ are not a part of the pure lambda calculus, but we can introduce them as terms in an impure lambda calculus.
@@ -274,11 +276,11 @@ Defining other boolean combinators is reasonably straightforward by analogy.
 
 Since we have booleans now, we can also encode pairs (and, by extension, tuples) as functions that return one value when given $tru$ as an argument, and another when given $fls$.
 
-First of all, let us define a pair constructor combinator:
+First of all, let's define a pair constructor combinator:
 
 $pair = \lambda f\;s\;b. b\;f\;s.$
 
-It looks suspiciously similar to our $ifThenElse$ combinator, the only difference being that condition is now the last argument.
+It looks suspiciously similar to our $ifThenElse$ combinator, the only difference being that the condition is now the last argument.
 
 Now we can define two combinators for deconstructing a pair:
 
@@ -297,13 +299,14 @@ $\to tru\;x\;y$
 $= (\lambda a\; b. a)\;x\;y$
 $\Rightarrow x.$
 
-Here, double arrow $\Rightarrow$ signifies multiple steps of beta-reduction.
+Here, double arrow ($\Rightarrow$) signifies multiple steps of beta-reduction.
 
 ### Church naturals
 
 Since we encoded both pairs and booleans, we already can encode naturals simply as sequences of booleans, that is, as binary numbers.
 In practice, this turns out to be cumbersome, however.
-Instead, we'll define naturals similar to the [Peano construction](https://wiki.haskell.org/Peano_numbers).
+
+Instead, we'll define naturals similarly to the [Peano construction](https://wiki.haskell.org/Peano_numbers).
 Essentially, we'll be choosing an encoding for zero and then encoding other numbers as some successor function applied to zero.
 
 Church used the following definitions:
@@ -337,14 +340,15 @@ We can also easily test whether a value corresponds to zero (i.e. $c_0$) or not:
 
 $isZero = \lambda n. n\;(\lambda x. fls)\;tru.$
 
-We run into a bit of an issue when trying to define subtraction or a predecessor function.
-Turns out it's doable but neither pretty nor efficient.
+But we run into a bit of an issue when trying to define subtraction or a predecessor function.
+Turns out, it's doable but neither pretty nor efficient.
 We'll use pairs of values containing two subsequent naturals.
 That way, we can have a counter that's lagging by one.
+
 To simplify the notation, we'll introduce two named helper abstractions:
 
 $zz = pair\;c_0\;c_0$\
-$ss = \lambda nn. pair\;(snd\; nn)\;(succ\;(snd\;nn)).$\
+$ss = \lambda nn. pair\;(snd\; nn)\;(succ\;(snd\;nn)).$
 
 The first element of the pair here is the predecessor, and the second is the successor.
 $zz$ encodes the starting point, and $ss$ is the lagging successor.
@@ -359,9 +363,9 @@ If we need to, we can use any other value as the first element of $zz$ to signif
 
 ### Recursion
 
-While we're on the topic of signifying failure, there's a curious case of expressions for which beta-reduction never stops.
+While we're on the topic of signifying failure, there's the curious case of expressions for which beta-reduction never stops.
 
-Such expressions don't have a normal form, and we call those _diverging_.
+Such expressions don't have a normal form, and we call them _diverging_.
 
 The simplest diverging expression is the application of the so-called omega combinator to itself:
 
@@ -371,7 +375,7 @@ Using any typical evaluation strategy, one step of beta-reduction of $\Omega\;\O
 
 The omega combinator is somewhat useless on its own.
 However, we can extend it to be a little more useful.
-In particular, we can encode recursion using the fixed point combinator, also known as $Y$ combinator:
+In particular, we can encode recursion using the fixed point combinator, also known as the Y combinator:
 
 $Y = \lambda f. (\lambda x. f\;(x\;x))\;(\lambda x. f\;(x\;x)).$
 
@@ -386,10 +390,10 @@ $\Theta = (\lambda x\;y.y\; (x\; x\; y))\; (\lambda x\;y.y\; (x\; x\; y)).$
 
 The idea here is to give us the ability to express recursion by passing the function as its first argument.
 The omega combinator infinitely replicates itself.
-The $Y$ combinator exploits the same potentially infinitely replicating structure to encode recursion.
+The Y combinator exploits the same potentially infinitely replicating structure to encode recursion.
 
-Let us see how it works in practice.
-Consider a function that counts down to zero using the $pred$ combinator, defined in the previous section, and returns zero once the argument is zero.
+Let's see how it works in practice.
+Consider a function that counts down to zero using the $pred$ combinator defined in the previous section, and returns zero once the argument is zero.
 To define it, we will add a recursive call as its first argument:
 
 $cdown = \lambda f. \lambda n. ifThenElse\;(isZero\;n)\;c_0\;(f\;(pred\;n)).$
@@ -417,7 +421,7 @@ One particular example is:
 
 $Y_v = \lambda f. (\lambda x. f\;(\lambda y. x\;x\;y)) \;(\lambda x. f\;(\lambda y. x\;x\;y)),$
 
-which is basically the $Y$ combinator with additional abstractions inserted in the middle.
+It's basically the Y combinator with additional abstractions inserted in the middle.
 
 ## Conclusions
 
@@ -427,28 +431,29 @@ which is basically the $Y$ combinator with additional abstractions inserted in t
 >  -- Felice Cardone, J. Roger Hindley, History of Lambda-calculus and Combinatory Logic
 
 After this, admittedly, a very brief look at the untyped lambda calculus, you hopefully have a bit of a feel for how it works.
-The primary point of interest is, of course, not as much in the calculus itself, but in its applications, of which there are many.
-However, the untyped kind doesn't find much use beyond the computability theory.
-Still, it's necessary to understand the untyped lambda calculus to meaningfully discuss the typed variety (or, more accurately, varieties).
 
-So, let us summarize:
+To summarize:
 
-- lambda calculus is a theoretical framework on which functional programming languages are built;
-- lambda-calculus has two kinds, untyped and typed;
-- the pure untyped lambda calculus only consists of variables, abstractions (i.e. univariate functions), and function applications;
-- we can represent any computable function in pure untyped lambda calculus;
-- various encodings can be used to represent booleans, naturals, tuples, etc.
+- Lambda calculus is a theoretical framework on which functional programming languages are built.
+- Lambda calculus has two kinds: untyped and typed.
+- The pure untyped lambda calculus only consists of variables, abstractions (i.e. univariate functions), and function applications.
+- We can represent any computable function in pure untyped lambda calculus.
+- Various encodings can be used to represent booleans, naturals, tuples, etc.
 
 The last three points are somewhat profound if you think about it: we only defined a single operation (two if you count the definition of lambda abstraction), and that got us to anything theoretically computable.
 There are other constructions of the universal computer: Turing and Post machines, the Markov algorithm, and general recursive functions.
 But, arguably, nothing beats the simplicity of lambda calculus.
 One has to appreciate the elegance at least.
 
-As for more practical applications, to name a few languages based on lambda calculus:
+The primary point of interest is, of course, not so much the calculus itself but its applications, of which there are many.
+The untyped kind, however, doesn't find much use beyond the computability theory.
+Still, it's necessary to understand the untyped lambda calculus to meaningfully discuss the typed variety (or, more accurately, varieties).
 
-- Haskell,
-- Most languages in the ML family, like OCaml and F#,
-- Most dependently typed languages, like Agda, Coq, F*, Idris,
+As for more practical applications, here's a few languages based on lambda calculus:
+
+- Haskell;
+- most languages in the ML family, like OCaml and F#;
+- most dependently typed languages, like Agda, Coq, F*, Idris;
 - Cardano blockchain's Plutus Core.
 
 ## Exercises
@@ -465,7 +470,7 @@ As for more practical applications, to name a few languages based on lambda calc
 4. Define subtraction of Church-encoded naturals using the predecessor function `pred`.
     For the case when the difference is undefined in naturals, i.e. when the subtrahend is bigger than minuend, feel free to return $c_0$ or $\Omega\;\Omega$.
 
-5. Define a function taking two Church-encoded naturals and returning `tru` if those are equal and `fls` otherwise.
+5. Define a function that takes two Church-encoded naturals and returns `tru` if those are equal and `fls` otherwise.
 
 6. Implement a pure untyped lambda calculus interpreter in your favorite programming language.
 
