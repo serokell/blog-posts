@@ -1,15 +1,15 @@
 # Untyped Lambda Calculus
 
 When talking about Haskell, the term "lambda calculus" often crops up.
-It is a theoretical framework used to define the meaning of computation in many functional languages.
-Understanding lambda calculus can be very helpful when talking about functional programs, e.g. those written in Haskell, Agda, Idris, etc.
-Perhaps surprisingly, understanding lambda calculus can be also helpful in understanding C++ template metalanguage, because it's a functional language in its own right (although not, strictly speaking, based on lambda calculus).
+It's a theoretical framework used to define the meaning of computation in many functional languages.
+Understanding lambda calculus can be very helpful when talking about programs written in languages like Haskell, Agda, Idris, etc.
+
+Perhaps surprisingly, understanding lambda calculus can also be helpful in understanding the C++ template metalanguage since it's a functional language in its own right (although it's not, strictly speaking, based on lambda calculus).
 Lambda calculus is also used extensively in programming language theory research and functional language design.
 
 There are two broad kinds of lambda calculus: _untyped_ and _typed_.
-The _untyped_ kind, discussed in this article, expresses an unrestricted computation.
-
-While untyped lambda calculus doesn't find much use outside of computability theory, it is necessary to understand it to meaningfully discuss the typed variety (strictly speaking, varieties).
+The untyped kind, discussed in this article, expresses an unrestricted computation.
+While it doesn't find much use outside of computability theory, it's necessary to understand it to meaningfully discuss the typed varieties.
 
 ## A bit of history
 
@@ -46,15 +46,15 @@ Lambda calculus that only contains functions and variables is called pure, meani
 
 We can formally define the pure untyped lambda calculus in terms of _abstractions_ and _applications_.
 
-### Abstraction
+### Abstractions
 
 An _abstraction_, or a functional abstraction, is a parametric expression, that is to say, a function.
-Lambda calculus only defines univariate functions, but we can easily extend it to include multivariate functions too, as we'll see later.
+Lambda calculus only defines univariate (single-variable) functions, but we can easily extend it to include multivariate functions too, as we'll see later.
 
 We introduce new abstractions using the $\lambda$ symbol.
-The abstraction consists of the _head_ and the _body_, separated by the dot ($.$) symbol.
-The _head_ contains the $\lambda$ symbol and the parameter name.
-The _body_ is an arbitrary expression.
+An abstraction consists of a _head_ and a _body_, separated by the dot ($.$) symbol.
+The head contains the $\lambda$ symbol and the parameter name.
+The body is an arbitrary expression.
 For example, $\lambda x. x$ is an abstraction.
 
 As usual in abstract mathematics, we can assign a name to an expression.
@@ -74,7 +74,7 @@ The choice of bound variable names is arbitrary.
 Expressions that differ only in the names of bound variables are called _alpha-equivalent_.
 For example, $\lambda x. x$ and $\lambda y. y$ are alpha-equivalent, but $\lambda x. y$ and $\lambda y. z$ are not.
 
-### Application
+### Applications
 
 _Application_ is the operation of substituting a specific value for the parameter in the abstraction.
 It is the only operation defined in the pure untyped lambda calculus.
@@ -92,17 +92,24 @@ We will also eschew parentheses for nested abstractions, e.g. $\lambda x. \lambd
 
 ## Defining computation
 
-A step of computation in lambda calculus is called beta reduction.
-It is a single application of one expression to another.
-Formally, beta-reduction uses the following rules.
+A step of computation in lambda calculus is called beta-reduction.
+It's a single application of one expression to another.
+Formally, beta-reduction uses the following rule.
+
+<hr>
+
+**Beta-reduction**
+
 Given an expression of the form $(\lambda x. t_1)\; t_2$ (i.e. an application of some abstraction to some expression $t_2$):
 
-1. Rename bound variables in $t_1$ and $t_2$ to avoid ambiguity.
+1. Rename the bound variables in $t_1$ and $t_2$ to avoid ambiguity.
     The new expressions, $t_1'$ and $t_2',$ must be alpha-equivalent to $t_1$ and $t_2,$ respectively.
 2. Replace all the instances of the bound variable $x$ in $t_1'$ with $t_2'.$
     That is the result of the computation.
 
-Any expression where beta-reduction can be applied, we'll call a redex (**red**ucible **ex**pression).
+<hr>
+
+Any expression where beta-reduction can be applied, we'll call a redex (short for reducible expression).
 
 For example, the expression $(\lambda x. x) y$ is a redex, and one step of beta-reduction transforms it to just $y$.
 
@@ -110,11 +117,17 @@ Per rule 1, we rename bound variables if there might be ambiguity.
 For example, $(\lambda x. \lambda y. x\;y)\;(\lambda x. x\;y)$ is a redex.
 However, the $y$ identifier is ambiguous.
 In the left term, it refers to the bound variable; in the right one, it refers to a free variable.
-To avoid ambiguity, we can rename $y$ in the first expression to, say, $z$: $(\lambda x. \lambda z. x\;z)\;(\lambda x. x\;y).$
-Then we can do the rest of the steps with no fear of confusion: $\lambda z. (\lambda x. x\;y)\;z.$
+
+To avoid ambiguity, we can rename $y$ in the first expression to, say, $z$: 
+
+$(\lambda x. \lambda z. x\;z)\;(\lambda x. x\;y).$
+
+Then we can do the rest of the steps with no fear of confusion:
+
+$\lambda z. (\lambda x. x\;y)\;z.$
 
 In the last example, you might wonder if we should also apply beta-reduction inside the abstraction body.
-It brings us to the discussion of evaluation strategies.
+This brings us to the discussion of evaluation strategies.
 
 ### Evaluation strategies
 
@@ -126,7 +139,8 @@ It allows us to reduce any redex at any point, with no limitations.
 Full beta-reduction does have some issues, however.
 For instance, you might get different results depending on the reduction order.
 
-Two common strategies define the order: _normal order strategy_ and _applicative order strategy_.
+Two common strategies define the order of reduction: _normal order strategy_ and _applicative order strategy_.
+
 The former says that we must first reduce the leftmost _outermost_ redex.
 In other words, we substitute arguments into the abstraction body before beta-reducing them.
 The latter says that we must start with the leftmost _innermost_ redex.
@@ -147,19 +161,6 @@ In lazy evaluation, some arguments are potentially never evaluated at all.
 A practically significant variation on call-by-name is _call-by-need_, which is, at least in theory, used in Haskell.
 Call-by-need behaves exactly like call-by-name, except that reduction steps that would duplicate computations, don't.
 This is achieved by sharing the computation corresponding to an argument in all places where it is used.
-
-<p>
-<details>
-<summary>Haskell and call by need</summary>
-
-In theory, Haskell strives to implement call-by-need.
-In practice, it is a little more complicated.
-The reason is simple -- the optimizer can make non-obvious transformations, which could either remove some duplicated computations or vice versa.
-
-***
-
-</details>
-</p>
 
 Expressions that are not reducible using the chosen evaluation strategy are said to be in the _normal form_.
 
@@ -190,7 +191,7 @@ No worries, though: we can represent all of that using only abstractions and app
 ### Multivariate functions
 
 Any multivariate function is the same as multiple nested functions returning other functions.
-If you're familiar with functional programming, you might know such functions are called curried functions, named after Haskell Curry.
+If you're familiar with functional programming, you might know such functions are called curried functions, named after [Haskell Curry](https://en.wikipedia.org/wiki/Haskell_Curry).
 In pure lambda calculus, all functions are curried.
 
 To simplify the notation, we will now introduce a shorthand syntax.
@@ -208,22 +209,22 @@ Arguably, there are infinitely many ways to encode values as functions.
 So, let us declare two combinators:
 $tru = \lambda x\; y. x,$ and $fls = \lambda x\;y. y.$
 We're calling these $tru$ and $fls$ to disambiguate them from actual boolean values $true$ and $false$ that aren't actually abstractions.
-$true$ and $false$ are, hopefully obviously, not a part of the pure lambda calculus, but we can introduce them as terms in an impure lambda calculus.
+$true$ and $false$ are not a part of the pure lambda calculus, but we can introduce them as terms in an impure lambda calculus.
 
 Now, the structure of these definitions is rather curious.
 $tru$ is a two-argument function that returns its first argument and ignores the second, while $fls$ returns the second and ignores the first.
-If you squint a bit, you might see this encodes a branching computation.
+If you squint a bit, you might see that this encodes a branching computation.
 
 Indeed, we can define a combinator that would behave exactly like the `if ... then ... else ...` construct: $ifThenElse = \lambda c\;t\;f. c\;t\;f.$
 Since Church boolean values themselves encode the behavior, this function doesn't do much.
-It's nice to see we can have familiar branching constructs almost right away.
+But it's nice to see we can have familiar branching constructs almost right away.
 
 Now that we have booleans, we can define operations on booleans, i.e. a boolean algebra.
 We can define all the usual boolean functions in terms of Church booleans.
 
 For example $and = \lambda x\;y. x\;y\;fls.$
 The $and$ function must return $tru$ if and only if both its arguments are $tru.$
-Let us make sure it does what we expect it to.
+Let's make sure it does what we expect it to.
 
 $and\;tru\;tru = (\lambda x\;y. x\;y\;fls)\;(\lambda x\; y. x)\;(\lambda x\; y. x).$
 
@@ -260,7 +261,7 @@ Defining other boolean combinators is reasonably straightforward by analogy.
 
 ### Church pairs
 
-Since we have booleans now, we can also encode pairs (and by extension, tuples) as functions, returning one value when given $tru$ as an argument, and another when given $fls$.
+Since we have booleans now, we can also encode pairs (and, by extension, tuples) as functions that return one value when given $tru$ as an argument, and another when given $fls$.
 
 First of all, let us define a pair constructor combinator:
 
