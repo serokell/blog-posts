@@ -146,42 +146,61 @@ This brings us to the discussion of evaluation strategies.
 
 An evaluation strategy is a rule that defines which redexes are reduced and in what order.
 
-The most straightforward evaluation strategy is called _full beta-reduction._
-It allows us to reduce any redex at any point, with no limitations.
-
-Full beta-reduction does have some issues, however.
+The simplest approach would be to not care about the order, just reduce any random redex until there's nothing left.
+This approach is called _full beta-reduction._
+It does have some issues, however.
 For instance, you might get different results depending on the reduction order.
 
-Two common strategies define the order of reduction: _normal order strategy_ and _applicative order strategy_.
+So it stands to reason to specify the reduction order.
+There are multiple ways we can do that.
 
-The former says that we must first reduce the leftmost _outermost_ redex.
-In other words, we substitute arguments into the abstraction body before beta-reducing them.
-The latter says that we must start with the leftmost _innermost_ redex.
-That is, we reduce the arguments before substitution.
+First, we need to decide whether we're going left-to-right or right-to-left.
+This decision happens to be easy: going right-to-left is strictly less powerful, i.e. the process doesn't terminate on some terms whereas going left-to-right does.
 
-Those are the common _strong_ evaluation strategies.
-We call them strong because they go inside the abstraction bodies.
+Second, we'll decide whether we're first reducing the outermost or the innermost redex.
+To see what is meant by outermost and innermost, consider the following expression:
 
-The corresponding _weak_ evaluation strategies are called _call-by-name_ and _call-by-value_.
-Call-by-name is the weak version of the normal order strategy.
-Call-by-value is a little stricter and only allows reduction if the argument is a "value" -- that is, in pure lambda calculus, either a variable or an abstraction.
+$(\lambda x. x)\;((\lambda y. y)\;z).$
+
+This expression contains  two redexes, itself and $(\lambda y. y)\;z.$
+Since the former contains the latter, we say that the former is the outer of the two, and the latter is the inner.
+Hence, the outermost redex is a redex not contained within any other redex, and the innermost redex is a redex that does not contain any redexes.
+
+Reducing the leftmost outermost redex first is called the _normal order strategy_, and the leftmost innermost first is the _applicative order strategy_.
+
+In other words, the applicative order strategy first reduces all of the arguments (left to right) and then applies the abstraction, and normal order does the inverse.
+
+These two strategies are free to go inside abstractions to find redexes.
+We call them _strong_.
+
+Since we have strong strategies, it's reasonable to expect we also have weak ones.
+Weak strategies can't go inside abstraction bodies.
+The weak strategy corresponding to the normal order is called _call-by-name_, and the one corresponding to the applicative order is _call-by-value_.
+
+When we're talking about programming languages, we can't necessarily inspect function bodies, so the weak strategies are considered more practical.
 
 It's interesting to note that the call-by-value strategy corresponds to eager evaluation.
-In eager evaluation, arguments are evaluated before the function call.
 Call-by-name, on the other hand, corresponds to lazy evaluation.
-In lazy evaluation, some arguments are potentially never evaluated at all.
+In eager evaluation, arguments are always evaluated before the function call.
+Most programming languages follow this strategy by default.
+In lazy evaluation, some arguments are potentially never evaluated at all, but some computations may be duplicated.
+Very few programming languages implement lazy evaluation this way (the only real example that comes to mind is Algol 60).
 
 A practically significant variation on call-by-name is _call-by-need_, which is, at least in theory, used in Haskell.
 Call-by-need behaves exactly like call-by-name, except that reduction steps that would duplicate computations, don't.
-This is achieved by sharing the computation corresponding to an argument in all places where it is used.
+The trick is to share the computation corresponding to an argument everywhere it appears, such that the shared computation is performed at most once.
 
 Expressions that are not reducible using the chosen evaluation strategy are said to be in the _normal form_.
 
-All of the strategies described here, except full beta-reduction, are normalizing, i.e. if a term has a normal form, it will eventually reduce to it.
-Furthermore, each term that has a normal form, has the same normal form under both strong evaluation strategies.
-Likewise for the weak evaluation strategies.
+If a given term has a normal form under both strong strategies, it's the same for both.
+Note that applicative order strategy is strictly weaker than normal order strategy.
+Some terms that normalize under normal order don't under applicative order.
+Likewise for the weak strategies.
 
-Speaking of reductions, we'll also mention _eta_-reduction ($\eta$-reduction).
+Furthermore, if a given term has a normal form at all, then reduction under the normal order strategy will always reach it.
+We will discuss terms that do not have a normal form a little later.
+
+Speaking of reductions, let's also mention _eta_-reduction ($\eta$-reduction).
 The rule of eta-reduction says that $\lambda x. f\;x = f,$ if $x$ does not appear free in $f$.
 It boils down to the statement that two functions are the same if and only if they give the same result for all possible arguments.
 
