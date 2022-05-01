@@ -16,7 +16,7 @@ Here’s our proven process for quickly chugging out amazing articles. It is foc
 
 Of course, this is just a suggestion – if you have your own way that “works”, you can write like that. We just need the articles. 😅 
 
-**Step 1: Imagine your reader & focus your topic.**
+**Step 1: Imagine your reader.**
 
 You are writing to help a person. Imagine a person, and where they encounter your article. What do they want to accomplish? What do they already know about the topic? What do they need to know? 
 
@@ -44,6 +44,7 @@ Make sure everything makes sense for the reader, the sentences and definitions a
 
 _In other words: make it beautiful._
 
+[This video](https://www.youtube.com/watch?v=vtIzMaLkCaM) is very valuable for engineers that want to improve their writing skills. 
 
 ## Style guide 
 
