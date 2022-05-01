@@ -159,10 +159,10 @@ Our decision points are:
 * to start with the outermost or the innermost redex;
 * to reduce redexes inside abstraction bodies or not.
 
-#### Direction of reducing
+#### Direction of reduction
 
 We can reduce an expression left-to-right or right-to-left.
-This decision is easy: going right-to-left is strictly less powerful because the process doesn't terminate on some terms whereas going left-to-right does.
+This decision is easy: going left-to-right is strictly more powerful because the process terminates on all terms for which going right-to-left does and then some. 
 
 #### Reducing outside-in or inside-out
 
@@ -181,6 +181,11 @@ Reducing the leftmost outermost redex first is called the _normal order strategy
 
 In other words, the applicative order strategy first reduces all of the arguments (from left to right) and then applies the abstraction, while normal order does the inverse.
 
+Expressions that are not reducible using the chosen evaluation strategy are said to be in the _normal form_.
+
+If a given term has a normal form under both of these strategies, it is the same for both.
+But the applicative order strategy is strictly weaker than the normal order strategy: some terms that normalize under normal order don't normalize under applicative order.
+
 #### Reducing abstraction bodies or not
 
 The two strategies above are free to go inside abstractions to find redexes.
@@ -190,11 +195,8 @@ But there are also strategies that can't go inside abstraction bodies, which we 
 When we're talking about programming languages, we can't necessarily inspect function bodies, so the weak strategies are considered more practical there.
 
 The weak strategy corresponding to the normal order is called _call-by-name_, and the one corresponding to the applicative order is _call-by-value_.
-Call-by-value corresponds to eager evaluation.
-Call-by-name, on the other hand, corresponds to lazy evaluation.
 
-In eager evaluation, arguments are always evaluated before the function call.
-Most programming languages follow this strategy by default.
+Call-by-name corresponds to lazy evaluation.
 In lazy evaluation, some arguments are potentially never evaluated at all, but some computations may be duplicated.
 Very few programming languages implement lazy evaluation this way (the only real example that comes to mind is Algol 60).
 
@@ -202,17 +204,27 @@ A more practical variation of call-by-name is _call-by-need_, which is, at least
 Call-by-need behaves exactly like call-by-name, except that reduction steps that would duplicate computations, don't.
 It does that by sharing the computation corresponding to an argument everywhere it appears, so any shared computation is performed at most once.
 
-To sum up, here's a table with all the mentioned strategies and their characteristics:
+Call-by-value, on the other hand, corresponds to eager evaluation.
+In eager evaluation, arguments are always evaluated before the function call.
+Most programming languages follow this strategy by default.
 
-| Name                 | Outermost- or innermost- first? | Strong or weak? |
-|----------------------|---------------------------------|-----------------|
-| Normal order         | Outermost                       | Strong          |
-| Applicative order    | Innermost                       | Strong          |
-| Call-by-name (eager) | Outermost                       | Weak            |
-| Call-by-value (lazy) | Innermost                       | Weak            |
-| Call-by-name         | Innermost                       | Weak            |
+To sum up, here's a table with the strategies mentioned and their characteristics:
 
-Expressions that are not reducible using the chosen evaluation strategy are said to be in the _normal form_.
+| Name                   | Outermost- or innermost- redex first? | Strong or weak? |
+|------------------------|---------------------------------------|-----------------|
+| Normal order           | Outermost                             | Strong          |
+| Applicative order      | Innermost                             | Strong          |
+| Call-by-name (lazy)    | Outermost                             | Weak            |
+| Call-by-value (eager)  | Innermost                             | Weak            |
+
+### Eta-reduction
+
+Speaking of reductions, let's also briefly mention _eta_-reduction ($\eta$-reduction).
+
+The rule of eta-reduction says that $\lambda x. f\;x = f$ if $x$ does not appear free in $f$.
+It boils down to the statement that two functions are the same if and only if they give the same result for all possible arguments.
+
+Eta-reduction is connected to the point-free style of writing Haskell since it enables to reduce functions like `id x = x` to `id`. 
 
 ## Programming in pure untyped lambda calculus
 
