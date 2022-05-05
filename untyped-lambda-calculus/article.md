@@ -152,9 +152,9 @@ But it has some issues.
 For instance, you might get different results depending on the reduction order.
 
 So it's better to reduce in a specific order.
-There are multiple ways to approach this. 
+There are multiple ways to approach this.
 
-Our decision points are: 
+Our decision points are:
 * to start with the left or right side of the expression;
 * to start with the outermost or the innermost redex;
 * to reduce redexes inside abstraction bodies or not.
@@ -162,7 +162,7 @@ Our decision points are:
 #### Direction of reduction
 
 We can reduce an expression left-to-right or right-to-left.
-This decision is easy: going left-to-right is strictly more powerful because the process terminates on all terms for which going right-to-left does and then some. 
+This decision is easy: going left-to-right is strictly more powerful because the process terminates on all terms for which going right-to-left does and then some.
 
 #### Reducing outside-in or inside-out
 
@@ -208,6 +208,8 @@ Call-by-value, on the other hand, corresponds to eager evaluation.
 In eager evaluation, arguments are always evaluated before the function call.
 Most programming languages follow this strategy by default.
 
+Similar to how applicative order strategy is strictly less powerful than normal order strategy, call-by-value is strictly less powerful than call-by-name.
+
 To sum up, here's a table with the strategies mentioned and their characteristics:
 
 | Name                   | Outermost- or innermost- redex first? | Strong or weak? |
@@ -224,7 +226,8 @@ Speaking of reductions, let's also briefly mention _eta_-reduction ($\eta$-reduc
 The rule of eta-reduction says that $\lambda x. f\;x = f$ if $x$ does not appear free in $f$.
 It boils down to the statement that two functions are the same if and only if they give the same result for all possible arguments.
 
-Eta-reduction is connected to the point-free style of writing Haskell since it enables to reduce functions like `id x = x` to `id`. 
+Eta-reduction is connected to the point-free style of functional programming.
+It enables us to define functions without explicitly listing all the arguments, e.g. we can shorten `g x y z = f (h x) y z` to simply `g = f . h`.
 
 ## Programming in pure untyped lambda calculus
 
@@ -352,7 +355,7 @@ Essentially, we'll be choosing an encoding for zero and then encoding other numb
 
 Church used the following definitions:
 
-$c_0 = \lambda s\;z. z\;$\
+$c_0 = \lambda s\;z. z,$\
 $c_1 = \lambda s\;z. s\;z,$\
 $c_2 = \lambda s\;z. s\;(s\;z),$\
 etc.
@@ -406,7 +409,7 @@ If we need to, we can use any other value as the first element of $zz$ to signif
 
 While we're on the topic of signifying failure, there's the curious case of expressions for which beta-reduction never stops.
 
-Such expressions don't have a normal form, and we call them _diverging_.
+Such expressions don't have a normal form, and are said to _diverge_.
 
 The simplest diverging expression is the application of the so-called omega combinator to itself:
 
@@ -462,7 +465,7 @@ One particular example is:
 
 $Y_v = \lambda f. (\lambda x. f\;(\lambda y. x\;x\;y)) \;(\lambda x. f\;(\lambda y. x\;x\;y)),$
 
-It's basically the Y combinator with additional abstractions inserted in the middle.
+It's basically the Y combinator with additional abstractions inserted in the middle (which makes it less eager).
 
 ## Conclusions
 
