@@ -25,7 +25,7 @@ While it doesn't find much use outside of computability theory, it's necessary t
 
 Lambda calculus, initially envisioned as a formal logic system, was developed by [Alonzo Church](https://en.wikipedia.org/wiki/Alonzo_Church) around the 1930s to explore the foundations of mathematics.
 
-The initial formulation had a logical inconsistency known as the [Kleene–Rosser paradox].
+The initial formulation had a logical inconsistency known as the [Kleene–Rosser paradox] (Cantini, 2007).
 To sidestep this issue, Church isolated the part of lambda calculus relevant only to computation in 1936.
 This isolate is now known as the untyped lambda calculus.
 
@@ -58,8 +58,8 @@ The body is an arbitrary expression.
 For example, $\lambda x. x$ is an abstraction.
 
 Lambda calculus derives its name from the $\lambda$ symbol used in this notation.
-The symbol was most likely chosen arbitrarily.
-However, there's an apocryphal story that the notation was derived from $\hat x$ morphing first into $\Lambda x$ and later into $\lambda x$.
+Church has stated a couple times the symbol was chosen arbitrarily.
+However, there's some evidence (Cardone, 2006) that the notation was derived from $\hat x$ used for class abstraction by Whitehead and Russell in Principia Mathematica, morphing first into $\Lambda x$ and later into $\lambda x$.
 
 Variables in the body of an abstraction that are parameters of said abstraction are called _bound variables_.
 Other variables are called _free variables_.
@@ -550,3 +550,8 @@ As for more practical applications, here's a few languages based on lambda calcu
 
     </details>
     </p>
+
+## References
+
+- (Cardone, 2006): [Cardone, Felice, and J. Roger Hindley. "History of lambda-calculus and combinatory logic." Handbook of the History of Logic 5 (2006): page 7.](https://hope.simons-rock.edu/~pshields/cs/cmpt312/cardone-hindley.pdf)
+- (Cantini, 2007): [Cantini, Andrea, and Riccardo Bruni. "Paradoxes and contemporary logic." (2007).](https://plato.stanford.edu/entries/paradoxes-contemporary-logic/#IncoCertFormLogi)
