@@ -124,7 +124,7 @@ Given an expression of the form $(\lambda x. t_1)\; t_2$ (i.e. an application of
 
 Any expression where beta-reduction can be applied, we'll call a redex (short for reducible expression).
 
-For example, the expression $(\lambda x. x) y$ is a redex, and one step of beta-reduction transforms it to just $y$.
+For example, the expression $(\lambda x. x)\;y$ is a redex, and one step of beta-reduction transforms it to just $y$.
 
 According to the rule, we rename bound variables if there might be ambiguity.
 For example, $(\lambda x. \lambda y. x\;y)\;(\lambda x. x\;y)$ is a redex.
