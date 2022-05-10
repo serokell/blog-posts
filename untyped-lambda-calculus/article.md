@@ -53,7 +53,7 @@ Lambda calculus only defines univariate (single-variable) functions, but we can 
 
 We introduce new abstractions using the $\lambda$ symbol.
 An abstraction consists of a _head_ and a _body_, separated by the dot ($.$) symbol.
-The head contains the $\lambda$ symbol and the parameter name.
+The head contains the $\lambda$ symbol and the argument name.
 The body is an arbitrary expression.
 For example, $\lambda x. x$ is an abstraction.
 
