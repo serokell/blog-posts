@@ -132,7 +132,7 @@ With the `RankNTypes` extension, we can write rank-2 types – types where `fora
 f :: (forall a. Show a => a -> IO ()) -> IO ()
 ```
 
-</hr>
+<hr>
 
 Because `forall a` appears to the left of one arrow, `a` is said to be existentially quantified.
 It is also true for every `forall` that is introduced to the left of an odd number of functional arrows.
@@ -150,8 +150,8 @@ func :: forall a c. a -> (forall b. (Show b) => b -> IO ()) -> IO c
 ```
 There are a few things to mention here.
 
-* In the type signature, `a` and `c` are universally quantified variables, and `b` is existentially quantified.
 * The same variable can't be quantified more than once.
+* In the type signature, `a` and `c` are universally quantified variables, and `b` is existentially quantified.
 * You can see that constraints for `b` are declared _after_ `b` has been introduced with the `forall` quantifier
 * You can choose type for `b` only inside `func` definition, and you can't do it when you call `func` (we will discuss it further below).
 
@@ -182,8 +182,9 @@ Since it somehow logs both `String` and `Int`:
 ```haskell
 log :: Show a => a -> IO ()
 ```
-So, one might think, that adding a function with signature `a -> IO` and a constraint `Show a` would be enough to implement it.
-However, if we try:
+So one might think that adding a function with signature `a -> IO` and a constraint `Show a` would be enough to implement it.
+
+However, if we try this:
 
 ```haskell
 func :: Show a => (a -> IO ()) -> IO ()
@@ -197,16 +198,20 @@ main = do
   -- log to a logfile
   func (appendFile "logfile.log" . show)
 ```
-We will see some nasty compiler errors:
-```haskell
+
+We will see some nasty compiler errors.
+
+```none
   log username
       ^^^^^^^^
 Couldn't match expected type `a` with actual type `String`...
 ```
 
 We're getting this error because:
+
 1. `func`'s type variable `a` is universally quantified, therefore it can only be instantiated at the use-site.
 2. We're trying to instantiate it at `func`'s definition-site (`log username` is trying to instantiate the type variable `a` with `String` and `log userCount` is trying to instantiate the type variable `b` with `Int`).
+
 Because we want `a` to be instantiated at `func`'s definition-site (rather than its use-site), we need `a` to be existentially quantified instead.
 
 ```haskell
@@ -214,8 +219,9 @@ Because we want `a` to be instantiated at `func`'s definition-site (rather than 
 
 func :: (forall a. Show a => a -> IO ()) -> IO ()
 ```
-Now the compiler knows, that whatever function we pass to `func`, type variable `a` should be instantiated here, not outside.
-With this change we can instantiate `a` when we call log.
+Now the compiler knows that no matter which function we pass to `func`, type variable `a` should be instantiated here, not outside.
+
+With this change, we can instantiate `a` when we call log.
 
 ```haskell
 func :: (forall a. Show a => a -> IO ()) -> IO ()
@@ -234,7 +240,9 @@ Compiler is smart enough to choose appropriate types.
 
 Now we understand that existential types allow you to introduce type variables without the necessity to specify them.
 Let's take a look how this is done in datatypes.
-You can introduce existentially quantified type variable in the datatype, by using `forall` on the left side of the constructor name. Existential types in datatypes allow you to have field in the datatype, without necessity to specify its type.
+
+You can introduce existentially quantified type variable in a datatype by using `forall` on the left side of the constructor name. 
+Existential types in datatypes allow you to have field in a datatype without specifying its type.
 
 ```haskell
 data Elem = forall a. Elem a
@@ -245,6 +253,7 @@ multitypedList = [Elem "a", Elem 1, Elem (Just 5)]
 
 This is a heterogeneous list that contains values of different types.
 You can't do that with an universally quantified list because every element in that list would need to have the same type.
+
 But, there are not many things you can do with elements of this list.
 Since the type of elements is unknown at the use-site, you can't address it, nor can you pass it to functions that expect values of concrete type.
 `Data.Typeable` module's functionality can help to circumvent this restriction. It allows you to cast one type (even unknown) to another one.
@@ -276,7 +285,7 @@ showFunc :: Show ??? => [Elem] -> String -- There is no type variable, that you 
 showFunc (x:xs) => (show x) ++ (showFunc xs)
 ```
 
-Other useful example of hiding type variables is `SomeException` wrapper
+Another useful example of hiding type variables is the `SomeException` wrapper.
 
 ```haskell
 data SomeException = forall a. Exception a => SomeException a
@@ -286,19 +295,19 @@ It allows you to catch exceptions of any type.
 As long, as you hadn't specified its type, (and it is not obvious to the compiler, from the handler for example), all exceptions will be caught, wrapped in `SomeException` datatype.
 
 However, again, there is a limitation.
-We know nothing about inner exception.
-Yes, we can for example print it, but sometimes we need more information.
-We can't use type inheritance to describe, what type we want to get
+We know nothing about the inner exception.
+We can, for example, print it, but sometimes we need more information.
+And we can't use type inheritance to describe what type we want to get.
 
 ```haskell
 -- Something like that won't work.
--- we know to little about type inside,
--- to be sure that it is 'MyException'
+-- We know too little about type inside,
+-- to be sure that it is 'MyException'.
 myFromException :: SomeException -> MyException
 myFromException (SomeException (ex :: MyException)) = ex
 ```
 
-Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract inner value and cast to specified type. How it is done on the inside, is a topic of a different article.
+Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract the inner value and cast to a specified type. How it is done is a topic for a different article.
 
 ## Summary
 
