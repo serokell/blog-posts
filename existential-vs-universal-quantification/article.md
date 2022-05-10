@@ -1,14 +1,16 @@
-# Existential and Universal Quantification in Haskell
+# Existential and Universal Quantification with ExplicitForAll
 
-In this article I give a brief introduction into one of the most common Haskell extensions – `ExplicitForAll` – and syntax constructions that this extension brings to language.
-It is used in about all big haskell projects, so it is very nice to either become acquainted with it or to refresh it in your memory if you already know about it.
+In this article, I give a brief introduction to one of the most common Haskell extensions – `ExplicitForAll` – and syntax constructions that this extension brings to language.
+
+This extension is used in most large Haskell projects, so you'll need to become acquainted with it at one point or another.
 
 Stay tuned if you want to know how to create lists of differently typed variables, how to add complex constraints, and more!
 
 ## Introduction
 
 By default, quantification in Haskell is implicit.
-Without the `ExplicitForAll` extension, you can't write quantifiers. Moreover, all variables are universally quantified, and existential quantification is off.
+
+Without the `ExplicitForAll` extension, you can't write quantifiers. Moreover, all variables are universally quantified, and existential quantification is turned off.
 The key point of both universal and existential quantification is choosing where, we are going to instantiate a type variable - where it is defined, or where it is used.
 
 ## Universal quantification and `ExplicitForAll`
@@ -39,17 +41,20 @@ For example, we might want to specify the `m` variable here as an instance of `M
 func :: forall a b c m. Monad m => a -> b -> m c
 ```
 You might want to ask, what's so special about this syntax?
-Nothing changed since we added the quantifier because it was already there!
-However, it allows us to use new tricks.
+Nothing changed when we added the quantifier because it was already there (although implicit).
+However, making it explicit allows us to do some new things.
 
 ### Examples
 
 #### Order of type variables
 
 First of all, you can now change the order of type variables.
-Let's imagine you want to define a function with 10 type variables (yeah, there are real-life [examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions), and you know that when you use it, you want to specify type of the last argument explicitly.
-Here, and in the future examples we will use the `TypeApplication` extension, which allows you to pass types as function arguments, using `@` sign (If specifying concrete type is unnecessary you can use type wildcard `@_`).
-By default, the order of type variables, which you assign types to, is the same as the order in which they are introduced in the function definition.
+Let's imagine you want to define a function with 10 type variables (yes, there are real-life [examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions), and you know that when you use it, you want to specify the type of the last argument explicitly.
+
+Here and in the future examples, we will use the `TypeApplication` extension, which allows you to pass types as function arguments via the `@` sign. (If specifying concrete type is unnecessary, you can use the type wildcard `@_`.)
+
+By default, the order of type variables that you assign types to is the same as the order in which they are introduced in the function definition.
+
 Without `forall`, you would write something like this:
 
 ```Haskell
@@ -59,7 +64,7 @@ veryLongFunction = ...
 func = veryLongFunction @_ @_ @_ @_ @_ @_ @_ @_ @_ @Integer ...
 ```
 Quite long, right?
-However, by using explicit `forall`, this can be simplified:
+However, this can be simplified with explicit `forall`:
 
 ```Haskell
 veryLongFunction :: forall j a b c d e f g h i. a -> b -> c -> d -> e -> f -> g -> h -> i -> j
@@ -68,13 +73,14 @@ veryLongFunction = ...
 func = veryLongFunction @Integer ...
 ```
 
-Since `j` is the first type variable in the declaration of `veryLongFunction` you can specify only it.
+Since `j` is the first type variable in the declaration of `veryLongFunction`, you can specify only it.
 This is useful not only in such big examples but also when your function requires any of its arguments to be specified on usage.
 
 ### Support of other extensions
 
-`ExplicitForAll` shines most when you need to enable other extensions – some of them just won't work without the `forall` quantifier. :)
-The most common one is `ScopedTypeVariables`, which allows you to pass a type variable from an outer function to the one defined in a where clause.
+`ExplicitForAll` shines most when you need to enable other extensions. Some of them just won't work without the `forall` quantifier. :)
+
+The most common one is `ScopedTypeVariables`, which allows you to pass a type variable from an outer function to one defined in a where clause.
 
 ```haskell
 example :: a -> [a] -> [a]
@@ -84,7 +90,7 @@ example x rest = pair ++ rest
     pair = [x, x]
 ```
 
-This will cause an error without `ScopedTypeVariables`, because compiler thinks that `a` in `example`'s signature and `a` in `pair`'s are two different types.
+This will cause an error without `ScopedTypeVariables` because compiler thinks that the `a` in `example`'s signature and the `a` in `pair`'s are two different types.
 To fix it, you also need to use extension and add a `forall` quantifier to `example` function, as extension won't work without it.
 
 ```haskell
@@ -94,14 +100,20 @@ You might also notice how it was useful with the `TypeApplication` extension.
 Other extensions that somehow benefit from the usage of `ExplicitForAll` are `LiberalTypeSynonyms`, `RankNTypes`, and many more.
 
 ## Existential quantification
+
 As I said earlier, besides universally quantified variables, Haskell also supports existential types.
-Remember, that we still use the `forall` keyword ¯\\\_(ツ)_/¯.
-Actually, it is implemented this way, because in terms of first-order predicate logic these two constructions are equivalent: `(exists x. p x) -> q` and `forall x. (p x -> q)`.
-If you want a theoretical proof of this statement, you can check this [tread](https://stackoverflow.com/questions/10753073/whats-the-theoretical-basis-for-existential-types?rq=1).
+But they also use the `forall` keyword.
+
+It can be implemented this way because these two constructions – `(exists x. p x) -> q` and `forall x. (p x -> q)` – are equivalent in terms of first-order predicate logic.
+For a theoretical proof of this statement, you can check this [thread](https://stackoverflow.com/questions/10753073/whats-the-theoretical-basis-for-existential-types?rq=1).
 
 ### Usage
 
 In order to proceed further, we'll have to enable the `RankNTypes` extension. This lets us write higher-rank types.
+
+<hr>
+
+**Higher-rank types**
 
 By default, all types are rank-1. In a rank-1 type, a `forall` cannot appear on the left of an arrow (keep in mind that the `->` operator has precedence over `.`)
 
@@ -114,11 +126,13 @@ f :: forall a b. a -> b -> a
 f :: forall a b. (a -> b -> a)
 ```
 
-With the `RankNTypes` extension, we can write rank-2 types - types where a `forall` appears to the left of one arrow:
+With the `RankNTypes` extension, we can write rank-2 types – types where `forall` appears to the left of one arrow:
 
 ```haskell
 f :: (forall a. Show a => a -> IO ()) -> IO ()
 ```
+
+</hr>
 
 Because `forall a` appears to the left of one arrow, `a` is said to be existentially quantified.
 It is also true for every `forall` that is introduced to the left of an odd number of functional arrows.
