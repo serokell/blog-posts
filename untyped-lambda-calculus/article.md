@@ -146,10 +146,10 @@ This brings us to the discussion of evaluation strategies.
 
 An evaluation strategy is a rule that defines which redexes are reduced and in what order.
 
-The simplest approach is to reduce redexes in any random order until there's nothing left.
+The simplest approach is to reduce redexes in any arbitrary order until there's nothing left.
 This approach is called _full beta-reduction._
 But it has some issues.
-For instance, you might get different results depending on the reduction order.
+For instance, you might get different intermediary results depending on the reduction order.
 
 So it's better to reduce in a specific order.
 There are multiple ways to approach this.
