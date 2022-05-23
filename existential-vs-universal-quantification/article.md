@@ -14,7 +14,7 @@ In this article, we will show how to explicitly write down both types of quantif
 
 In Haskell, all type variables are universally quantified by default. It just happens implicitly. 
 
-To give an example, look at the `id` function.
+As an example, look at the `id` function.
 
 ```haskell
 id :: a -> a
@@ -29,8 +29,6 @@ With the `ExplicitForAll` extension, we can write that down explicitly.
 
 id :: forall a. a -> a    
 ```
-
-### Examples of usage
 
 The syntax is simple – at the beginning of function or instance declaration, before any constraints or arguments are used, use
 the `forall` quantifier to introduce all type variables that you will use later.
@@ -63,7 +61,7 @@ Some of them will work better, and some of them just won't work at all without t
 
 ### Practical use cases of universal quantification
 
-#### Reordering type variables with `TypeApplications`
+#### Reordering type variables
 
 **Note:** Here and in the future examples, we will use the [`TypeApplications`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/type_applications.html extension, which allows you to pass types as function arguments via the `@` sign. (If specifying concrete type is unnecessary, you can use the type wildcard `@_`.)
 
@@ -122,15 +120,92 @@ Other extensions that somehow benefit from the usage of `ExplicitForAll` are `Li
 
 ## Existential quantification
 
-As I said earlier, besides universally quantified variables, Haskell also supports existential types.
-They are also created with the `forall` keyword.
+As I said earlier, besides universal quantification, Haskell also supports existential quantification.
+This too can be done with the `forall` keyword.
 
-They can be implemented this way because these two constructions – `(exists x. p x) -> q` and `forall x. (p x -> q)` – are equivalent in terms of first-order predicate logic.
+You can do it this way because these two constructions – `(exists x. p x) -> q` and `forall x. (p x -> q)` – are equivalent in terms of first-order predicate logic.
 For a theoretical proof of this statement, you can check this [thread](https://stackoverflow.com/questions/10753073/whats-the-theoretical-basis-for-existential-types?rq=1).
 
-### Usage
+In this article, we'll look at existential quantification in data type and function declarations.
 
-In order to proceed further, we'll have to enable the `RankNTypes` extension. This lets us write higher-rank types.
+### Existential quantification in data types
+
+First, to declare existentially quantified data types, you need to enable either the [`ExistentialQuantification`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/existential_quantification.html) or the [`GADTs`](https://downloads.haskell.org/~ghc/6.4/docs/html/users_guide/gadt.html) extension.
+
+You can introduce an existentially quantified type variable in a data type by using `forall` on the left side of the constructor name. 
+
+```haskell
+data Elem = forall a. Elem a
+```
+
+Existential types in data types allow you, for example, to have field in a data type without specifying its type.
+
+```haskell
+multitypedList :: [Elem]
+multitypedList = [Elem "a", Elem 1, Elem (Just 5)]
+```
+
+The above is a heterogeneous list that contains values of different types.
+You can't do that with an universally quantified list because every element in that list would need to have the same type.
+
+But, there are not many things you can do with elements of this list.
+Since the type of elements is unknown at the use-site, you can't address it, nor can you pass it to functions that expect values of concrete type.
+
+Adding constraints to the `a` variable may improve the situation:
+
+```haskell
+data Elem = forall a. (Show a) => Elem a
+
+multitypedList :: [Elem]
+multitypedList = [Elem "a", Elem 1, Elem (Just 5)]
+
+-- We can use 'print' here because inner types of 'Elem' has 'Show' constraint
+printElem :: Elem -> IO ()
+printElem (Elem x) = print x
+
+main :: IO ()
+main = fmap printElem multitypedList
+
+λ> "a"
+λ> 1
+λ> Just 5
+```
+Note that since type variable `a` is hidden with a quantifier, you can't add constraints to it besides those added to the constructor.
+
+```haskell
+showFunc :: Show ??? => [Elem] -> String -- There is no type variable, that you can add constraint to
+showFunc (x:xs) => (show x) ++ (showFunc xs)
+```
+
+A useful example of hiding type variables is the `SomeException` wrapper.
+
+```haskell
+data SomeException = forall a. Exception a => SomeException a
+```
+
+It allows you to catch exceptions of any type.
+As long as you haven't specified its type (and it is not obvious to the compiler, for example, from the handler), all exceptions will be caught, wrapped in `SomeException`.
+
+However, again, there is a limitation.
+We know nothing about the inner exception.
+We can, for example, print it, but sometimes we need more information.
+And we can't use type inheritance to describe what type we want to get.
+
+```haskell
+-- Something like that won't work.
+-- We know too little about type inside,
+-- to be sure that it is 'MyException'.
+myFromException :: SomeException -> MyException
+myFromException (SomeException (ex :: MyException)) = ex
+```
+
+Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract the inner value and cast to a specified type. But how that is done is a topic for a different article.
+
+### Existential quantification in functions
+
+Existential quantification can also happen in functions. 
+
+In order to proceed further, you'll have to enable the [`RankNTypes`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/rank_polymorphism.html) extension. This enables us to create higher-rank types.
 
 <hr>
 
@@ -147,34 +222,30 @@ f :: forall a b. a -> b -> a
 f :: forall a b. (a -> b -> a)
 ```
 
-With the `RankNTypes` extension, we can write rank-2 types – types where `forall` appears to the left of one arrow:
+With the [`RankNTypes`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/rank_polymorphism.html) extension, we can write rank-2 types – types where `forall` appears to the left of one arrow:
 
 ```haskell
 f :: (forall a. Show a => a -> IO ()) -> IO ()
 ```
 
+If `forall a` appears to the left of one arrow, `a` is also said to be _existentially quantified_.
+It is also true for every `forall` that is introduced to the left of an odd number of functional arrows.
+
 <hr>
 
-Because `forall a` appears to the left of one arrow, `a` is said to be existentially quantified.
-It is also true for every `forall` that is introduced to the left of an odd number of functional arrows.
-But what does this mean?
-
-In contrast to the universal quantifier, the existential one means that the function is itself responsible for instantiating what a type variable should mean. So the result type of existentially quantified variable will become known when we address it at the 'definition-site' (i.e., in the function body).
-This also means that no one can specify its type outside of function.
-
-Let's take a closer look on practical examples.
-
-We will start with functions:
+Let's look at an example.
 
 ```haskell
 func :: forall a c. a -> (forall b. (Show b) => b -> IO ()) -> IO c
 ```
-There are a few things to mention here.
 
-* The same variable can't be quantified more than once.
-* In the type signature, `a` and `c` are universally quantified variables, and `b` is existentially quantified.
-* You can see that constraints for `b` are declared _after_ `b` has been introduced with the `forall` quantifier
-* You can choose type for `b` only inside `func` definition, and you can't do it when you call `func` (we will discuss it further below).
+As before, the same variable can't be quantified more than once. In this example, `a` and `c` are universally quantified and `b` is existentially quantified.
+
+In contrast to the universal quantifier, the existential one means that the function is itself responsible for instantiating what a type variable should mean.
+You can choose the type for `b` only inside the definition of `func` and not when you call `func`.
+
+So the result type of existentially quantified variable will become known when we address it at the 'definition-site' (i.e., in the function body).
+This also means that no one can specify its type outside of the function.
 
 Here's a real-life example of using existential types in functions.
 Imagine a function that prints some logs while calculating the result.
@@ -254,86 +325,12 @@ func log = do
   log @Int userCount
 ```
 
-Note, that this type applications is unnecessary.
+Note that this type applications is unnecessary.
 Compiler is smart enough to choose appropriate types.
-
-#### Heterogeneous lists
-
-Now we understand that existential types allow you to introduce type variables without the necessity to specify them.
-Let's take a look how this is done in datatypes.
-
-You can introduce existentially quantified type variable in a datatype by using `forall` on the left side of the constructor name. 
-Existential types in datatypes allow you to have field in a datatype without specifying its type.
-
-```haskell
-data Elem = forall a. Elem a
-
-multitypedList :: [Elem]
-multitypedList = [Elem "a", Elem 1, Elem (Just 5)]
-```
-
-This is a heterogeneous list that contains values of different types.
-You can't do that with an universally quantified list because every element in that list would need to have the same type.
-
-But, there are not many things you can do with elements of this list.
-Since the type of elements is unknown at the use-site, you can't address it, nor can you pass it to functions that expect values of concrete type.
-`Data.Typeable` module's functionality can help to circumvent this restriction. It allows you to cast one type (even unknown) to another one.
-
-Adding constraints to the `a` variable may also improve the situation:
-
-```haskell
--- You need to enable either `ExistentialQuantification` or `GADTs` extension to use this syntax
-data Elem = forall a. (Show a) => Elem a
-
-multitypedList :: [Elem]
-multitypedList = [Elem "a", Elem 1, Elem (Just 5)]
-
--- We can use 'print' here because inner types of 'Elem' has 'Show' constraint
-printElem :: Elem -> IO ()
-printElem (Elem x) = print x
-
-main :: IO ()
-main = fmap printElem multitypedList
-
-λ> "a"
-λ> 1
-λ> Just 5
-```
-Note that since type variable `a` is hidden with a quantifier, you can't add constraints to it besides those added to the constructor.
-
-```haskell
-showFunc :: Show ??? => [Elem] -> String -- There is no type variable, that you can add constraint to
-showFunc (x:xs) => (show x) ++ (showFunc xs)
-```
-
-Another useful example of hiding type variables is the `SomeException` wrapper.
-
-```haskell
-data SomeException = forall a. Exception a => SomeException a
-```
-
-It allows you to catch exceptions of any type.
-As long, as you hadn't specified its type, (and it is not obvious to the compiler, from the handler for example), all exceptions will be caught, wrapped in `SomeException` datatype.
-
-However, again, there is a limitation.
-We know nothing about the inner exception.
-We can, for example, print it, but sometimes we need more information.
-And we can't use type inheritance to describe what type we want to get.
-
-```haskell
--- Something like that won't work.
--- We know too little about type inside,
--- to be sure that it is 'MyException'.
-myFromException :: SomeException -> MyException
-myFromException (SomeException (ex :: MyException)) = ex
-```
-
-Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract the inner value and cast to a specified type. How it is done is a topic for a different article.
 
 ## Summary
 
-We have taken a look at quantification in Haskell.
-While we didn't introduce many syntax constructions, quantification allows you to further expand the rich type system of the language
-and to create constructions that previously were impossible.
+We have taken a look at universal and existential quantification in Haskell.
+While we didn't introduce many syntax constructions, quantification allows you to further expand the rich type system of the language and to create constructions that previously were impossible.
 
 For more Haskell tutorials, you can check out our [Haskell](https://serokell.io/blog/haskell) section or follow us on [Twitter](https://twitter.com/serokell).
