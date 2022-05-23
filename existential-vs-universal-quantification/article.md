@@ -4,10 +4,11 @@ In logic, there are two common symbols: universal quantifier and existential qua
 
 You might recognize them as $\forall$ (for all) and $\exists$ (there exists). 
 
-These symbols (and the concepts they stand for) are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell. 
+The concepts these symbols stand for are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell. 
 
-In this article, we will show how to explicitly write down both types of quantification via the `ExplicitForAll` extension. We'll show 
-you how can use it for things like reordering type variables, enabling other extensions, and even creating a heteregenous list in Haskell.
+In this article, we will show how to explicitly write down both types of quantification via the `ExplicitForAll` extension.
+
+<!-- TODO: Introduce the contents of the article when reordering is finished -->
 
 ## Universal quantification
 
@@ -54,16 +55,23 @@ func :: forall a b c m. Monad m => a -> b -> m c
 ```
 So far, it might seem not very useful.
 Nothing changed when we added the quantifier because it was already there (although implicit).
+On its own, `ExplicitForAll` doesn't do a lot.
+
 However, making the quantification explicit allows us to do some new things.
+You frequently need it to work with other extensions.
+Some of them will work better, and some of them just won't work at all without the `forall` quantifier. :)
 
 ### Practical use cases of universal quantification
 
-#### Reordering type variables
+#### Reordering type variables with `TypeApplications`
 
-**Note:** Here and in the future examples, we will use the `TypeApplication` extension, which allows you to pass types as function arguments via the `@` sign. (If specifying concrete type is unnecessary, you can use the type wildcard `@_`.)
+**Note:** Here and in the future examples, we will use the [`TypeApplications`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/type_applications.html extension, which allows you to pass types as function arguments via the `@` sign. (If specifying concrete type is unnecessary, you can use the type wildcard `@_`.)
 
-First of all, you can now change the order of type variables.
-Let's imagine you want to define a function with 10 type variables (yes, there are real-life [examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions). And when you use it, you want to specify the type of the last argument explicitly.
+With `ExplicitForAll`, you can change the order of type variables.
+
+How can that be useful? 
+Let's imagine you want to define a function with 10 type variables (yes, there are real-life [examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions).
+And when you use it, you want to specify the type of the last argument explicitly.
 
 By default, the order of type variables that you assign types to is the same as the order in which they are introduced in the function definition.
 
@@ -89,13 +97,9 @@ func = veryLongFunction @Integer ...
 Since `j` is the first type variable in the declaration of `veryLongFunction`, you can specify only it.
 This is useful not only in such big examples but also when your function requires any of its arguments to be specified on usage.
 
-### Supporting other extensions
+### Supporting `ScopedTypeVariables`
 
-On its own, `ExplicitForAll` doesn't do a lot.
-
-But you frequently need it to enable other extensions. Some of them just won't work without the `forall` quantifier. :)
-
-The most common one is `ScopedTypeVariables`, which allows you to pass a type variable from an outer function to one defined in a where clause.
+A common extension that needs `ExplicitForAll` is [`ScopedTypeVariables`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/exts/scoped_type_variables.html#), which allows you to pass a type variable from an outer function to one defined in a where clause.
 
 The code below will not compile because the compiler thinks that the `a` in `example`'s signature and the `a` in `pair`'s are two different types.
 
@@ -112,7 +116,8 @@ To fix it, you need to use the `ScopedTypeVariables` extension and also add a `f
 ```haskell
 example :: forall a. a -> [a] -> [a]
 ```
-You might also notice how `forall` was useful with the `TypeApplication` extension.
+
+The above are just two of many examples where `ExplicitForAll` is useful.
 Other extensions that somehow benefit from the usage of `ExplicitForAll` are `LiberalTypeSynonyms`, `RankNTypes`, and many more.
 
 ## Existential quantification
