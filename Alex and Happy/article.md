@@ -120,7 +120,7 @@ Some of the features that this tutorial will support are:
 * Some simple types, as well as arrow types (functions).
 * Conditional expressions: if-then-else and if-then.
 * Block comments.
-* The reader will be invited in the proposed exercises to extend the language with line comments, tuples, type declarations, and pattern matching.
+* The reader will be invited in the proposed exercises to extend the language with line comments, patterns, rational numbers, list access, and pattern matching.
 
 The snippet below demonstrates a program written in MiniML:
 
@@ -767,23 +767,22 @@ You can find the complete code for the lexer until now [here](https://gist.githu
 
 #### Exercises
 
-1. Create a scanner for fractional numbers.
-Besides accepting numbers such as `3.14`, it should also accept exponents, like `12.5e-4`.
+1. We support block comments with `(* *)`. Change the scanner to accept line comments, such as `# foo`, which end when they find a newline or EOF.
 
-2. We support block comments with `(* *)`. Change the scanner to accept line comments, such as `// foo`, which end when they find a newline or EOF.
-
-3. Change the string lexer to accept the following escaped characters: `\\`, `\n`, and `\t`.
+2. Change the string lexer to accept the following escaped characters: `\\`, `\n`, and `\t`.
 Feel free to add any other escape codes that you can think about.
 
 **Hint**: Create a buffer in `AlexUserState` that adds characters as they are seen and two auxiliary `enterString` and `exitString` functions.
-Entering the string, save the current position in the state, and begin a new start code.
-For an ordinary character matched with a `.`, just add it to the current string.
-For a escape character matched with `\\n`, `\\t` or `\\`, add `\n`, `\t`, or `\` to the buffer.
-Don't forget to match `\\\"` as an escaped quote mark.
-Emit the string as a new token when you exit the string state.
+Entering the string, save the current position in the state, add `\"` to the buffer, and begin a new start code.
+For a escape character matched with `\\n`, `\\t` or `\\\\`, add `\n`, `\t`, or `\\` to the buffer with a new `emit` function.
+For an ordinary character matched with a `.`, add it to the current buffer with a new `emitCurrent` function.
+Don't forget to match `\\\"` as an escaped quote mark and add it with `emit`.
+Emit the string as a new token when you exit the string state, reseting the string state, and don't forget to add the closing quote mark. Make sure that the end position is also advanced by one character.
 Don't forget to check if there is an unclosed string like we did for the block comments.
 
 For inspiration on doing this, you can use Alex's [Tiger example](https://github.com/haskell/alex/blob/master/examples/tiger.x) as a guide.
+
+You can find the solutions to both exercises [here](https://gist.github.com/heitor-lassarote/a6ec93ae4cf5ebc218c335017140342b).
 
 ## Happy
 
@@ -1051,7 +1050,7 @@ In practice, however, we will use `a ~ Range` while parsing, but having this fie
 A few words about each new data type introduced:
 
 * A `Name` represents an identifier, such as a variable or type name. You could also define a `TypeName` in addition to `Name`, but for simplicity, we will stay only with `Name`.
-* A `Type` contains the type annotation of a declaration, the right side of a type declaration (exercise proposed to the reader). MiniML will support functions, type names, the unit type, and lists. We will start with type names and add the remaining types later.
+* A `Type` contains the type annotation of a declaration. MiniML will support functions, type names, the unit type, and lists. We will start with type names and add the remaining types later.
 * An `Argument` stores information regarding a function parameter, such as its name and its type.
 * A `Dec` represents a declaration consisting of a name, a possibly empty list of function arguments, an optional type annotation, and its body.
 * An `Exp` describes each possible expression. Likewise, we start with simple ones: integers, variables, and strings and will add new ones later.
@@ -1244,7 +1243,6 @@ The complete code for this section may be found [here](https://gist.github.com/h
 #### Parsing types
 
 Besides parsing type names, we would like to parse functions, the unit type, and lists.
-MiniML also contains sum and product types, but we will leave it as an exercise to the reader later.
 
 Parsing a unit, parenthesis, or a list is trivial. First, we extend the `Type` AST with new productions:
 
@@ -1940,61 +1938,20 @@ You can find the complete grammar [here](https://gist.github.com/heitor-lassarot
 
 #### Exercises
 
-1. Support accessing list positions with `exp.(exp)` in your parser. For example, accessing the first element of a list would look like `my_list.(0)`.
+1. Change your lexer and parser to accept fractional numbers.
+Besides accepting numbers such as `3.14`, it should also accept exponents, like `12.5e-4`.
 
-2. Change the grammar to support patterns in declarations. Patterns are mainly similar to a subset of expressions, like a few of the atoms, such as integers, parentheses (although only accepting patterns inside), lists, strings, tuples (third exercise), and type constructors (second exercise).
+**Hint**: Use the [`scientific`](https://hackage.haskell.org/package/scientific-0.3.7.0) package to read and store the number in your list of tokens and then in your abstract syntax tree. You may replace `Integer` with a new `Number` type if you prefer.
+
+2. Support accessing list positions in your lexer and parser. For example, accessing the first element of a list would look like `my_list.(0)`. Note that it may also nest, e.g., `[[1, 2], [3]].(if foo then 0 else 1).(0)`.
+
+3. Change the grammar to support patterns in declarations. Patterns are mainly similar to a subset of expressions, like a few of the atoms, such as numbers, parentheses (although only accepting patterns inside), lists, and strings.
+
+**Hint**: Rename `Argument` to `Pattern` and work from there. The case for `'(' pattern typeAnnotation ')'` may itself be an extra "annotation pattern".
 
 Bonus: Support `match...with...` in your grammar.
 
-3. Extend your lexer and parser to support the declaration of sum and product types.
-```sml
-type employee =
-  | programmer of work_hours * favorite_language
-  | manager of work_hours * [report]
-
-type report = {project_name : string, tasks_completed : [string]}
-```
-
-You should be able to instantiate these datatypes:
-
-```sml
-let alex = programmer (8, haskell)
-let happy = manager (8, [{project_name = "MiniML", tasks_completed = ["lexer", "parser"]}])
-```
-
-Access fields using the `.` operator:
-
-```sml
-type person = {name : string, year : int, height : double (* meters *)}
-let bach = {name = "Bach", year = 1685, height = 1.8}
-let bach's_age : person = 2022 - bach.age
-```
-
-4. Extend your lexer and parser to support tuples in types and expressions.
-```sml
-let example : int * int * string = 0, 1, "hello"
-```
-
-Be careful with conflicts:
-
-```sml
-let danger : int * (int * string) = 0, let x = 1 in x, "hello"
-```
-
-Should be parsed as:
-
-```sml
-let danger : int * (int * string) = (0, let x = 1 in (x, "hello"))
-```
-
-And NOT like:
-
-```sml
-let danger : int * (int * string) = (0, (let x = 1 in x), "hello")
-```
-
-Note that there are places where you should enforce the use of parenthesis. For instance, `[0, 1]` is a list with two elements, but `[(0, 1)]` is a list with one pair. Likewise, in record creations, you should enforce parenthesis.
-Alternatively, you may use a semicolon (`;`) in the list and record syntaxes.
+You can find the solutions to exercises 1, 2, and 3 [here](https://gist.github.com/heitor-lassarote/9cc4203990352f5df5f6b84da9291df9) (includes also the lexer exercises).
 
 ## Conclusion
 
