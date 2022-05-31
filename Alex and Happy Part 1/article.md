@@ -17,17 +17,6 @@ At the bottom of this tutorial, you will find links to GHC's lexer and parser if
 
 This tutorial was written using GHC version 9.0.2, Stack resolver LTS-19.8, Alex version 3.2.7.1, and Happy version 1.20.0.
 
-## Lexing
-
-Before we can start parsing, we should first write a lexer to the grammar. According to A. W. Appel in _Modern Compiler Implementation in ML_ (p. 14):
-
-> The lexical analyzer takes a stream of characters and produces a stream of names, keywords, and punctuation marks; it discards white space and comments between the tokens. It would unduly complicate the parser to have to account for possible white space and comments at every possible point; this is the main reason for separating lexical analysis from parsing.
-
-Note that using Alex is not a requirement. You could also use, for example, parser combinators such as Megaparsec for lexing and Happy for parsing if you wanted to.
-
-Making a lexer using parser combinators is pretty doable and manageable.
-Meanwhile, using Alex is a bit more involved, but it has the advantage that performance will be more predictable; besides that, it can be easily integrated with Happy to output one token at a time, which may avoid creating a massive list of tokens in the memory in the first place.
-
 ## Our grammar: MiniML
 
 <!--
@@ -57,6 +46,28 @@ let the_answer : int =
 let main (unit : ()) : () =
   print ("The answer is: " + the_answer)
 ```
+
+## Lexing
+
+Before we can start parsing, we should first write a lexer to the grammar, which is also known as _lexical analyzer_, _scanner_, and _tokenizer_.
+According to A. W. Appel in _Modern Compiler Implementation in ML_ (p. 14):
+
+> The lexical analyzer takes a stream of characters and produces a stream of names, keywords, and punctuation marks; it discards white space and comments between the tokens. It would unduly complicate the parser to have to account for possible white space and comments at every possible point; this is the main reason for separating lexical analysis from parsing.
+
+We will use Alex as a tool to generate the lexical analyzer for our grammar.
+It's the first step of the grammatical analysis for our programming language.
+It will take the input stream of characters (a `String`, or in our case, a `ByteString`) representing the program written by the user and generate a stream of tokens (a list), which will be explained more in-depth shortly.
+
+Note that we've mentioned that Alex will _generate_ a lexical analyzer and not that Alex is a lexical analyzer by itself.
+Alex will read a `.x` file created by us specifying how to match lexemes and it will in turn create a `.hs` file which is the generated lexer.
+
+In the second part of this tutorial, the token stream will be consumed by the parser generated Happy; a tool to generate syntactic analyzers.
+Happy will try to match tokens according to specific rules that we will describe, where we will produce a tree structure representing a valid MiniML program.
+
+Note that using Alex is not a requirement. You could also use, for example, parser combinators such as Megaparsec for lexing and Happy for parsing if you wanted to.
+
+Making a lexer using parser combinators is pretty doable and manageable.
+Meanwhile, using Alex is a bit more involved, but it has the advantage that performance will be more predictable; besides that, it can be easily integrated with Happy to output one token at a time, which may avoid creating a massive stream of tokens in the memory in the first place.
 
 ## Creating the project
 
@@ -114,12 +125,10 @@ You may want to remove `src/Main.hs`, as we won't need it.
 * [X] link to its user guide
 -->
 
-Alex is a Haskell tool to generate lexical analyzers (lexers).
+Alex is a Haskell tool to generate lexers.
 
 This section aims at giving an introduction to Alex and how you can use it to do useful things in conjunction with Happy (explained later).
 Although Alex and Happy are frequently used together, they are independent tools. They may be combined with other technologies, so you may, for example, use Alex and Megaparsec together if you prefer.
-
-You may also want to read the [Alex User Guide](https://haskell-alex.readthedocs.io/en/latest/).
 
 ### How it works
 
@@ -129,9 +138,11 @@ You may also want to read the [Alex User Guide](https://haskell-alex.readthedocs
 
 It will be essential to differentiate between the terms **lexeme** and **token** during this section.
 A lexeme is a valid atom of the grammar, such as a keyword (`in`, `if`, etc.), an operator (`+`, `/`, etc.), an integer literal, a string literal, a left or right parenthesis, an identifier, etc.
-Meanwhile, a token is a class that a specific lexeme belongs to, which will be represented as a Haskell constructor. For instance, `In`, `If`, `Plus`, `Divide`, `Integer 42`, `String "\"foo\""`, `LPar`, `RPar`, and `Identifier "my_function"` are all tokens generated from lexemes.
+Meanwhile, a token consists of the _token name_ and an optional _token value_.
+The token name is the name of a lexical category that the lexeme belongs to, while the token value is implemention-defined.
+We can represent tokens as Haskell constructors with optionally the scanned lexeme. For instance, `In`, `If`, `Plus`, `Divide`, `Integer 42`, `String "\"foo\""`, `LPar`, `RPar`, and `Identifier "my_function"` are all tokens generated for each lexemes.
 
-Lexers are often implemented using Deterministic Finite Automata (FDAs), which you can think of as a state machine. For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
+Lexers are often implemented using Deterministic Finite Automata (DFAs), which is a state machine. For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
 
 ```text
                  ┌─┐
@@ -159,11 +170,21 @@ Lexers are often implemented using Deterministic Finite Automata (FDAs), which y
                 └───┘
 ```
 
+To understand how to use the diagram above, imagine that this is a city where each numbered square is a place where you can drive to, and each arrow represents a one-way street.
+The arrow coming from nowhere to the square with 0 is where you start driving, and squares with another square inside are places where you can park your car. In this case, you are not allowed to park it in the square with 0.
+
+The arrows also have directions in them, guided by your GPS. Your GPS may tell you to drive straight into an `i`, then turn at an `[a-z]`, and then to stop, for example. However, your GPS may also ask you to take illegal turns, for example, to turn at an `@`, which will always lead you to a dead end, where you will be stuck.
+
+To refine the terminology, the city is the _automaton_ (plural: _automata_) represented by a _state transition graph_, each numbered square is called a _state_, and each arrow is called a _transition_.
+When a transition comes from nowhere and into a state, we say that this state is a _start state_, which is state 0 in this example.
+The places were you can park are called _accept states_, i.e., 1, 2, 3, and 4.
+
+The GPS represents the _input_ (string) of the automaton.
+The dead ends represent an implicit _error state_ present in every DFA, which you can think of like a hidden state number 5, with all invalid transitions from every state to it.
+
 To simplify matters, on ambiguous transitions such as `i` and `[a-z]`, assume that the one with a single letter takes precedence.
 
-State 0 is the initial state where the automaton begins. Suppose that the automaton can stop at states 1, 2, 3, and 4.
-
-If we want to check the expression "int", we will follow this path: 0 → 1 → 2 → 4.
+For example, to check the expression "int", we will follow this path: 0 → 1 → 2 → 4.
 
 Now, we need to attribute meanings to each state so that this automaton can be useful, and we will do so like this:
 * 0: Error.
@@ -171,15 +192,31 @@ Now, we need to attribute meanings to each state so that this automaton can be u
 * 2: In.
 * 3: If.
 * 4: Identifier.
+* 5 (implicit): Error.
 
 Since we stopped at 4, the result is that "int" is an identifier, so we get a token that is `Identifier "int"`.
-The resulting token would be 'In' if we stopped at 2 instead (for the expression "in").
+The resulting token would be `In` if we stopped at 2 instead (for the expression "in").
 
-
-What if we consumed no input and stopped at state 0, or the input was something like "Foo123" where there aren't valid transitions?
+What if we consumed no input and stopped at state 0, or the input was something like "Foo123" where we'd reach the implicit state 5?
 In such cases, we halt and indicate a lexical error.
 
-We won't write our lexical analyzer from scratch. Instead, we will use Alex to create a list of tokens, which Happy will parse.
+As started previously, we won't write our lexical analyzer from scratch. Instead, we will use Alex to generate a lexer that creates a stream of tokens, which the Happy-generated parser will parse.
+
+### Regular expressions
+
+Alex uses regular expressions (regexes) to match patterns, we'll keep it pretty simple and explain some of them which we'll use.
+
+A syntax like `[0-9]` means that any digit character between `0` and `9` (inclusive) will be matched. Likewise, `[a-zA-Z]` means that any lowercase or uppercase character can be matched.
+Characters may be excluded as well, for example, `[^\"]` reads as "anything except a double quote mark".
+
+A `*` (called _Kleene star_) means that the expression can be matched zero or more times. Similarly, `+` means that it can be matched one or more times. For instance, `[0-9]+` can match `1234`. You may also find `?`, which means that an expression may match either zero or one time (i.e., it's optional).
+
+A dot (`.`) means "match anything but a newline". You can also use common escape codes like `\n` which will match a newline.
+
+An expression between strings, such as `">="`, means that it should only match exactly that string. An escaped character like `\?` can also match exactly that character.
+
+You can group regexes with a space or a pipe (`|`) between them. A space means that Alex should match each regex successively, while the pipe means that it can alternate between choices, such as `0 (x [0-9a-fA-F]+ | o [0-7]+)`, which is a regex that can match hexadecimal or octal numbers.
+Parentheses are used to group regexes together.
 
 ### Our first lexer
 
@@ -198,8 +235,8 @@ module Lexer
   , alexMonadScan
 
   , Range (..)
+  , RangedToken (..)
   , Token (..)
-  , TokenType (..)
   ) where
 }
 
@@ -217,22 +254,22 @@ data AlexUserState = AlexUserState
 alexInitUserState :: AlexUserState
 alexInitUserState = AlexUserState
 
-alexEOF :: Alex Token
+alexEOF :: Alex RangedToken
 alexEOF = do
   (pos, _, _, _) <- alexGetInput
-  pure $ Token EOF (Range pos pos)
+  pure $ RangedToken EOF (Range pos pos)
 
 data Range = Range
   { start :: AlexPosn
   , stop :: AlexPosn
   } deriving (Eq, Show)
 
-data Token = Token
-  { tType :: TokenType
-  , tRange :: Range
+data RangedToken = RangedToken
+  { rtToken :: Token
+  , rtRange :: Range
   } deriving (Eq, Show)
 
-data TokenType
+data Token
   = EOF
   deriving (Eq, Show)
 }
@@ -260,23 +297,23 @@ For now, at the top of our file, we only declare the module name, but we will so
 In the middle section, we first declare our _wrapper_, which indicates the type of code Alex should generate for us (`monadUserState`, which allows us to save custom state) and the input type (`bytestring`, but we could use plain Haskell `String`s instead).
 Consult the Alex User Manual on [Wrappers](https://haskell-alex.readthedocs.io/en/latest/api.html#wrappers) if you want to see other wrappers.
 
-The following section is `tokens :-`, where we will list all the lexemes in our grammar and an optional action on what the lexer should do with the matched lexeme.
-The first definition we provided is `<0> $white+ ;`, which simply indicates that all whitespace should be ignored.
+The following section is `tokens :-`, where we will list all the patterns defined by regular expressions to match lexemes in our grammar plus an action on what the lexer should do with the matched lexeme.
+The first definition we provided is `<0> $white+ ;`, which simply indicates that all white space should be skipped.
 More on this later.
 
 The bottom section contains some boilerplate that Alex requires us to write. These include a data type that needs to be called `AlexUserState`, a value with the initial state called `alexInitUserState`, and a value called `alexEOF`, which instructs Alex how to build the EOF (End-Of-File) token, reached when Alex has finished lexing the input string.
 
-We add some additional datatypes: `Range`, `Token`, and `TokenType`, which we will use throughout the article to describe the tokens that we've successfully created, as well as their positions. Saving the ranges is unnecessary, but it's an excellent addition when reporting errors.
+We add some additional datatypes: `Range`, `RangedToken`, and `Token`, which we will use throughout the article to describe the tokens that we've successfully created, as well as their positions. Saving the ranges is unnecessary, but it's an excellent addition when reporting errors.
 
 Finally, for the EOF token, we use the `alexGetInput` action to retrieve the current position of the scanner and provide it to the token.
 
-We should provide one token type for each lexeme in the grammar.
-You are free to choose the available tokens. Still, for this tutorial, we will have the following: operators, keywords, literals (strings and integers), identifiers, a token representing the end-of-file (EOF), etc.
+We should provide one token name for each lexical category in the grammar.
+You are free to add new token names as you wish. Still, for this tutorial, we will have the following: operators, keywords, literals (strings and integers), identifiers, a token representing the end-of-file (EOF), etc.
 
-Our token types will be as such:
+Our token names will be as such:
 
 ```haskell
-data TokenType
+data Token
   -- Identifiers
   = Identifier ByteString
   -- Constants
@@ -352,7 +389,7 @@ For example, here's how we can match an identifier:
 $digit = [0-9]
 $alpha = [a-zA-Z]
 
-@id = ($alpha | \_) ($alpha | $digit | \_ | ' | \?)*
+@id = ($alpha | \_) ($alpha | $digit | \_ | \' | \?)*
 
 tokens :-
 ```
@@ -372,21 +409,21 @@ tokens :-
 ```
 The syntax `<START_CODE> REGEX { CODE }` means that if Alex has managed to match a token `REGEX`, and it's currently in the `START_CODE` state, it should execute the code `CODE`.
 
-Similarly, for whitespace, we can use `;` instead of giving it an action, which simply means that Alex should do nothing with it.
+Similarly, for white space, we can use `;` instead of giving it an explicit action, which simply means that Alex should do nothing interesting with it. This is the same as writing `{ skip }`.
 
 The idea of start codes is a bit more sophisticated yet valuable.
 Alex works as a state machine, and `0` indicates the initial code in which the machine starts.
-In this case, we can match whitespaces and identifiers while we are in state `0`.
-We will later create other start codes for matching specific things where we wouldn't like to match anything else arbitrarily.
+In this case, we can match white space and identifiers when we start in state `0`.
+We will later create other start codes.
 
 `CODE` may contain any Haskell expression, as it will be included verbatim in the generated code.
-Alex expects that this expression will have type `AlexAction Token`. Here's the automatically-genereated definition for `AlexAction` when using `monadUserState-bytestring`:
+Alex expects that this expression will have type `AlexAction RangedToken`. Here's the automatically-genereated definition for `AlexAction` when using `monadUserState-bytestring`:
 
 ```haskell
 type AlexAction result = AlexInput -> Int64 -> Alex result
 ```
 
-Where `result` will be `Token` in our case.
+Where `result` will be `RangedToken` in our case.
 
 Let's create our `tokId` function. We do so by inserting this definition at the bottom of the file:
 
@@ -396,11 +433,11 @@ mkRange (start, _, str, _) len = Range{start = start, stop = stop}
   where
     stop = BS.foldl' alexMove start $ BS.take len str
 
-tokId :: AlexAction Token
+tokId :: AlexAction RangedToken
 tokId inp@(_, _, str, _) len =
-  pure Token
-    { tType = Identifier $ BS.take len str
-    , tRange = mkRange inp len
+  pure RangedToken
+    { rtToken = Identifier $ BS.take len str
+    , rtRange = mkRange inp len
     }
 ```
 
@@ -410,12 +447,12 @@ The range will then be handled by `mkRange`, a function that advances the positi
 We should check whether our code works. I will define a small function that we can use for testing. Don't forget to export it!
 
 ```haskell
-scanMany :: ByteString -> Either String [Token]
+scanMany :: ByteString -> Either String [RangedToken]
 scanMany input = runAlex input go
   where
     go = do
       output <- alexMonadScan
-      if tType output == EOF
+      if rtToken output == EOF
         then pure [output]
         else (output :) <$> go
 ```
@@ -424,13 +461,13 @@ Startup GHCi and let's check whether this works. It should result in something l
 
 ```haskell
 >>> runAlex "my_identifier" alexMonadScan
-Right (Token {tType = Identifier "my_identifier", tRange = Range {start = AlexPn 0 1 1, stop = AlexPn 13 1 14}})
+Right (RangedToken {rtToken = Identifier "my_identifier", rtRange = Range {start = AlexPn 0 1 1, stop = AlexPn 13 1 14}})
 >>> scanMany "my_identifier other'identifier ALL_CAPS"
 Right
-  [ Token {tType = Identifier "my_identifier", tRange = Range {start = AlexPn 0 1 1, stop = AlexPn 13 1 14}}
-  , Token {tType = Identifier "other'identifier", tRange = Range {start = AlexPn 14 1 15, stop = AlexPn 30 1 31}}
-  , Token {tType = Identifier "ALL_CAPS", tRange = Range {start = AlexPn 31 1 32, stop = AlexPn 39 1 40}}
-  , Token {tType = EOF, tRange = Range {start = AlexPn 39 1 40, stop = AlexPn 39 1 40}}
+  [ RangedToken {rtToken = Identifier "my_identifier", rtRange = Range {start = AlexPn 0 1 1, stop = AlexPn 13 1 14}}
+  , RangedToken {rtToken = Identifier "other'identifier", rtRange = Range {start = AlexPn 14 1 15, stop = AlexPn 30 1 31}}
+  , RangedToken {rtToken = Identifier "ALL_CAPS", rtRange = Range {start = AlexPn 31 1 32, stop = AlexPn 39 1 40}}
+  , RangedToken {rtToken = EOF, rtRange = Range {start = AlexPn 39 1 40, stop = AlexPn 39 1 40}}
   ]
 ```
 
@@ -492,31 +529,31 @@ Thankfully, they are pretty simple:
 We also need to define `tok`:
 
 ```haskell
-tok :: TokenType -> AlexAction Token
+tok :: Token -> AlexAction RangedToken
 tok ctor inp len =
-  pure Token
-    { tType = ctor
-    , tRange = mkRange inp len
+  pure RangedToken
+    { rtToken = ctor
+    , rtRange = mkRange inp len
     }
 ```
 
-There should be no mystery to this function. It simply inserts the provided `TokenType` and creates a range for it.
+There should be no mystery to this function. It simply inserts the provided `Token` and creates a range for it.
 
 We can now check it out in GHCi:
 
 ```haskell
 >>> scanMany "if true then foo else (bar baz)"
 Right
-  [ Token {tType = If, tRange = Range {start = AlexPn 0 1 1, stop = AlexPn 2 1 3}}
-  , Token {tType = Identifier "true", tRange = Range {start = AlexPn 3 1 4, stop = AlexPn 7 1 8}}
-  , Token {tType = Then, tRange = Range {start = AlexPn 8 1 9, stop = AlexPn 12 1 13}}
-  , Token {tType = Identifier "foo", tRange = Range {start = AlexPn 13 1 14, stop = AlexPn 16 1 17}}
-  , Token {tType = Else, tRange = Range {start = AlexPn 17 1 18, stop = AlexPn 21 1 22}}
-  , Token {tType = LPar, tRange = Range {start = AlexPn 22 1 23, stop = AlexPn 23 1 24}}
-  , Token {tType = Identifier "bar", tRange = Range {start = AlexPn 23 1 24, stop = AlexPn 26 1 27}}
-  , Token {tType = Identifier "baz", tRange = Range {start = AlexPn 27 1 28, stop = AlexPn 30 1 31}}
-  , Token {tType = RPar, tRange = Range {start = AlexPn 30 1 31, stop = AlexPn 31 1 32}}
-  , Token {tType = EOF, tRange = Range {start = AlexPn 31 1 32, stop = AlexPn 31 1 32}}
+  [ RangedToken {rtToken = If, rtRange = Range {start = AlexPn 0 1 1, stop = AlexPn 2 1 3}}
+  , RangedToken {rtToken = Identifier "true", rtRange = Range {start = AlexPn 3 1 4, stop = AlexPn 7 1 8}}
+  , RangedToken {rtToken = Then, rtRange = Range {start = AlexPn 8 1 9, stop = AlexPn 12 1 13}}
+  , RangedToken {rtToken = Identifier "foo", rtRange = Range {start = AlexPn 13 1 14, stop = AlexPn 16 1 17}}
+  , RangedToken {rtToken = Else, rtRange = Range {start = AlexPn 17 1 18, stop = AlexPn 21 1 22}}
+  , RangedToken {rtToken = LPar, rtRange = Range {start = AlexPn 22 1 23, stop = AlexPn 23 1 24}}
+  , RangedToken {rtToken = Identifier "bar", rtRange = Range {start = AlexPn 23 1 24, stop = AlexPn 26 1 27}}
+  , RangedToken {rtToken = Identifier "baz", rtRange = Range {start = AlexPn 27 1 28, stop = AlexPn 30 1 31}}
+  , RangedToken {rtToken = RPar, rtRange = Range {start = AlexPn 30 1 31, stop = AlexPn 31 1 32}}
+  , RangedToken {rtToken = EOF, rtRange = Range {start = AlexPn 31 1 32, stop = AlexPn 31 1 32}}
   ]
 ```
 
@@ -532,11 +569,11 @@ Lexing integers is pretty straightforward. We can just use a sequence of one or 
 And of course, we need to define `tokInteger`:
 
 ```haskell
-tokInteger :: AlexAction Token
+tokInteger :: AlexAction RangedToken
 tokInteger inp@(_, _, str, _) len =
-  pure Token
-    { tType = Integer $ read $ BS.unpack $ BS.take len str
-    , tRange = mkRange inp len
+  pure RangedToken
+    { rtToken = Integer $ read $ BS.unpack $ BS.take len str
+    , rtRange = mkRange inp len
     }
 ```
 
@@ -545,8 +582,8 @@ Check that it works:
 ```haskell
 >>> scanMany "42"
 Right
-  [ Token {tType = Integer 42, tRange = Range {start = AlexPn 0 1 1, stop = AlexPn 2 1 3}}
-  , Token {tType = EOF, tRange = Range {start = AlexPn 2 1 3, stop = AlexPn 2 1 3}}
+  [ RangedToken {rtToken = Integer 42, rtRange = Range {start = AlexPn 0 1 1, stop = AlexPn 2 1 3}}
+  , RangedToken {rtToken = EOF, rtRange = Range {start = AlexPn 2 1 3, stop = AlexPn 2 1 3}}
   ]
 ```
 
@@ -565,11 +602,11 @@ For instance, what if the comment is unclosed?
 ```haskell
 >>> scanMany "(* my comment"
 Right
-  [ Token {tType = LPar, tRange = Range {start = AlexPn 0 1 1, stop = AlexPn 1 1 2}}
-  , Token {tType = Times, tRange = Range {start = AlexPn 1 1 2, stop = AlexPn 2 1 3}}
-  , Token {tType = Identifier "my", tRange = Range {start = AlexPn 3 1 4, stop = AlexPn 5 1 6}}
-  , Token {tType = Identifier "comment", tRange = Range {start = AlexPn 6 1 7, stop = AlexPn 13 1 14}}
-  , Token {tType = EOF, tRange = Range {start = AlexPn 13 1 14, stop = AlexPn 13 1 14}}
+  [ RangedToken {rtToken = LPar, rtRange = Range {start = AlexPn 0 1 1, stop = AlexPn 1 1 2}}
+  , RangedToken {rtToken = Times, rtRange = Range {start = AlexPn 1 1 2, stop = AlexPn 2 1 3}}
+  , RangedToken {rtToken = Identifier "my", rtRange = Range {start = AlexPn 3 1 4, stop = AlexPn 5 1 6}}
+  , RangedToken {rtToken = Identifier "comment", rtRange = Range {start = AlexPn 6 1 7, stop = AlexPn 13 1 14}}
+  , RangedToken {rtToken = EOF, rtRange = Range {start = AlexPn 13 1 14, stop = AlexPn 13 1 14}}
   ]
 ```
 
@@ -613,12 +650,14 @@ alexInitUserState = AlexUserState
 get :: Alex AlexUserState
 get = Alex $ \s -> Right (s, alex_ust s)
 
-set :: AlexUserState -> Alex ()
-set s' = Alex $ \s -> Right (s{alex_ust = s'}, ())
+put :: AlexUserState -> Alex ()
+put s' = Alex $ \s -> Right (s{alex_ust = s'}, ())
 
 modify :: (AlexUserState -> AlexUserState) -> Alex ()
 modify f = Alex $ \s -> Right (s{alex_ust = f (alex_ust s)}, ())
 ```
+
+n.b.: If you're familiar with the [`mtl`](https://hackage.haskell.org/package/mtl) library, you might prefer to define `instance MonadState Alex`.
 
 We simply increase the nesting value and skip the consumed input to nest a comment.
 Note that `skip input len` is simply `alexMonadScan`, which asks to scan the next token.
@@ -626,14 +665,14 @@ Unnesting is similar, except that we decrease the level, and if we reach level 0
 Don't forget to import `when` from `Control.Monad`.
 
 ```haskell
-nestComment, unnestComment :: AlexAction Token
+nestComment, unnestComment :: AlexAction RangedToken
 nestComment input len = do
   modify $ \s -> s{nestLevel = nestLevel s + 1}
   skip input len
 unnestComment input len = do
   state <- get
   let level = nestLevel state - 1
-  set state{nestLevel = level}
+  put state{nestLevel = level}
   when (level == 0) $
     alexSetStartCode 0
   skip input len
@@ -642,13 +681,13 @@ unnestComment input len = do
 Finally, let's change `alexEOF` to emit an error if we end up with an unclosed comment by checking whether we were parsing a comment when we reached EOF.
 
 ```haskell
-alexEOF :: Alex Token
+alexEOF :: Alex RangedToken
 alexEOF = do
   startCode <- alexGetStartCode
   when (startCode == comment) $
     alexError "Error: unclosed comment"
   (pos, _, _, _) <- alexGetInput
-  pure $ Token EOF (Range pos pos)
+  pure $ RangedToken EOF (Range pos pos)
 ```
 
 Trying it out in GHCi yields the expected results.
@@ -658,9 +697,9 @@ Trying it out in GHCi yields the expected results.
 Left "Error: unclosed comment"
 >>> scanMany "if (* my (* nested *) \n comment *) x"
 Right
-  [ Token {tType = If, tRange = Range {start = AlexPn 0 1 1, stop = AlexPn 2 1 3}}
-  , Token {tType = Identifier "x", tRange = Range {start = AlexPn 35 2 13, stop = AlexPn 36 2 14}}
-  , Token {tType = EOF, tRange = Range {start = AlexPn 36 2 14, stop = AlexPn 36 2 14}}
+  [ RangedToken {rtToken = If, rtRange = Range {start = AlexPn 0 1 1, stop = AlexPn 2 1 3}}
+  , RangedToken {rtToken = Identifier "x", rtRange = Range {start = AlexPn 35 2 13, stop = AlexPn 36 2 14}}
+  , RangedToken {rtToken = EOF, rtRange = Range {start = AlexPn 36 2 14, stop = AlexPn 36 2 14}}
   ]
 ```
 
@@ -669,17 +708,17 @@ Right
 Lexing strings should have no surprises. Just stick this in your lexer:
 
 ```alex
-<0> \".*\"  { tokString }
+<0> \"[^\"]*\" { tokString }
 ```
 
 And we use this definition for `tokString`:
 
 ```haskell
-tokString :: AlexAction Token
+tokString :: AlexAction RangedToken
 tokString inp@(_, _, str, _) len =
-  pure Token
-    { tType = String $ BS.take len str
-    , tRange = mkRange inp len
+  pure RangedToken
+    { rtToken = String $ BS.take len str
+    , rtRange = mkRange inp len
     }
 ```
 
@@ -722,6 +761,7 @@ Continue reading the [part 2](https://serokell.io/blog/parsing-with-happy) of th
 
 If you liked this article, you might also enjoy these resources:
 
+* [Alex User Guide](https://haskell-alex.readthedocs.io/en/latest/).
 * GHC's [Alex](https://gitlab.haskell.org/ghc/ghc/-/blob/e2520df3fffa0cf22fb19c5fb872832d11c07d35/compiler/GHC/Parser/Lexer.x) and [Happy](https://gitlab.haskell.org/ghc/ghc/-/blob/e2520df3fffa0cf22fb19c5fb872832d11c07d35/compiler/GHC/Parser.y) files.
 * APPEL, A. W. (1998). _Modern Compiler Implementation in ML_, Cambridge University Press.
 
