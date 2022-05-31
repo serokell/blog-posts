@@ -225,22 +225,22 @@ import qualified Lexer as L
 }
 
 %name parseMiniML
-%tokentype { L.Token }
+%tokentype { L.RangedToken }
 %error { parseError }
 %monad { L.Alex } { >>= } { pure }
-%lexer { lexer } { L.Token L.EOF _ }
+%lexer { lexer } { L.RangedToken L.EOF _ }
 
 %%
 
 empty : {}  -- only to get the file compiling; we will remove this
 
 {
-parseError :: L.Token -> L.Alex a
+parseError :: L.RangedToken -> L.Alex a
 parseError _ = do
   (L.AlexPn _ line column, _, _, _) <- L.alexGetInput
   L.alexError $ "Parse error at line " <> show line <> ", column " <> show column
 
-lexer :: (L.Token -> L.Alex a) -> L.Alex a
+lexer :: (L.RangedToken -> L.Alex a) -> L.Alex a
 lexer = (=<< L.alexMonadScan)
 }
 ```
@@ -270,41 +270,41 @@ We list each token name that we've defined in our lexer and a Haskell pattern be
 ```alex
 %token
   -- Identifiers
-  identifier { L.Token (L.Identifier _) _ }
+  identifier { L.RangedToken (L.Identifier _) _ }
   -- Constants
-  string     { L.Token (L.String _) _ }
-  integer    { L.Token (L.Integer _) _ }
+  string     { L.RangedToken (L.String _) _ }
+  integer    { L.RangedToken (L.Integer _) _ }
   -- Keywords
-  let        { L.Token L.Let _ }
-  in         { L.Token L.In _ }
-  if         { L.Token L.If _ }
-  then       { L.Token L.Then _ }
-  else       { L.Token L.Else _ }
+  let        { L.RangedToken L.Let _ }
+  in         { L.RangedToken L.In _ }
+  if         { L.RangedToken L.If _ }
+  then       { L.RangedToken L.Then _ }
+  else       { L.RangedToken L.Else _ }
   -- Arithmetic operators
-  '+'        { L.Token L.Plus _ }
-  '-'        { L.Token L.Minus _ }
-  '*'        { L.Token L.Times _ }
-  '/'        { L.Token L.Divide _ }
+  '+'        { L.RangedToken L.Plus _ }
+  '-'        { L.RangedToken L.Minus _ }
+  '*'        { L.RangedToken L.Times _ }
+  '/'        { L.RangedToken L.Divide _ }
   -- Comparison operators
-  '='        { L.Token L.Eq _ }
-  '<>'       { L.Token L.Neq _ }
-  '<'        { L.Token L.Lt _ }
-  '<='       { L.Token L.Le _ }
-  '>'        { L.Token L.Gt _ }
-  '>='       { L.Token L.Ge _ }
+  '='        { L.RangedToken L.Eq _ }
+  '<>'       { L.RangedToken L.Neq _ }
+  '<'        { L.RangedToken L.Lt _ }
+  '<='       { L.RangedToken L.Le _ }
+  '>'        { L.RangedToken L.Gt _ }
+  '>='       { L.RangedToken L.Ge _ }
   -- Logical operators
-  '&'        { L.Token L.And _ }
-  '|'        { L.Token L.Or _ }
+  '&'        { L.RangedToken L.And _ }
+  '|'        { L.RangedToken L.Or _ }
   -- Parenthesis
-  '('        { L.Token L.LPar _ }
-  ')'        { L.Token L.RPar _ }
+  '('        { L.RangedToken L.LPar _ }
+  ')'        { L.RangedToken L.RPar _ }
   -- Lists
-  '['        { L.Token L.LBrack _ }
-  ']'        { L.Token L.RBrack _ }
-  ','        { L.Token L.Comma _ }
+  '['        { L.RangedToken L.LBrack _ }
+  ']'        { L.RangedToken L.RBrack _ }
+  ','        { L.RangedToken L.Comma _ }
   -- Types
-  ':'        { L.Token L.Colon _ }
-  '->'       { L.Token L.Arrow _ }
+  ':'        { L.RangedToken L.Colon _ }
+  '->'       { L.RangedToken L.Arrow _ }
 ```
 
 These tokens will terminals used while writing the grammar. They are first-class, and we can use them among other productions.
@@ -380,8 +380,8 @@ We will also create some utilities to use in the parser.
 
 ```haskell
 -- | Build a simple node by extracting its token type and range.
-unTok :: L.Token -> (L.Range -> L.TokenType -> a) -> a
-unTok (L.Token tok range) ctor = ctor range tok
+unTok :: L.RangedToken -> (L.Range -> L.Token -> a) -> a
+unTok (L.RangedToken tok range) ctor = ctor range tok
 
 -- | Unsafely extracts the the metainformation field of a node.
 info :: Foldable f => f a -> a
@@ -407,7 +407,7 @@ name :: { Name L.Range }
   : identifier { unTok $1 (\range (L.Identifier name) -> Name range name) }
 
 dec :: { Dec L.Range }
-  : let name '=' exp { Dec (L.tRange $1 <-> info $4) $2 [] Nothing $4 }
+  : let name '=' exp { Dec (L.rtRange $1 <-> info $4) $2 [] Nothing $4 }
 
 exp :: { Exp L.Range }
   : integer    { unTok $1 (\range (L.Integer int) -> EInt range int) }
@@ -464,13 +464,13 @@ arguments :: { [Argument L.Range] }
   | argument arguments { $1 : $2 }
 
 argument :: { Argument L.Range }
-  : '(' name          ')' { Argument (L.tRange $1 <-> L.tRange $3) $2 Nothing }
-  | '(' name ':' type ')' { Argument (L.tRange $1 <-> L.tRange $5) $2 (Just $4) }
+  : '(' name          ')' { Argument (L.rtRange $1 <-> L.rtRange $3) $2 Nothing }
+  | '(' name ':' type ')' { Argument (L.rtRange $1 <-> L.rtRange $5) $2 (Just $4) }
   | name                  { Argument (info $1) $1 Nothing }
 
 dec :: { Dec L.Range }
-  : let name arguments          '=' exp { Dec (L.tRange $1 <-> info $5) $2 $3 Nothing   $5 }
-  | let name arguments ':' type '=' exp { Dec (L.tRange $1 <-> info $7) $2 $3 (Just $5) $7 }
+  : let name arguments          '=' exp { Dec (L.rtRange $1 <-> info $5) $2 $3 Nothing   $5 }
+  | let name arguments ':' type '=' exp { Dec (L.rtRange $1 <-> info $7) $2 $3 (Just $5) $7 }
 ```
 
 Again, we start with only type names in `type` for now to keep it simple.
@@ -523,11 +523,11 @@ typeAnnotation :: { Type L.Range }
   : ':' type { $2 }
 
 argument :: { Argument L.Range }
-  : '(' name optional(typeAnnotation) ')' { Argument (L.tRange $1 <-> L.tRange $4) $2 $3 }
+  : '(' name optional(typeAnnotation) ')' { Argument (L.rtRange $1 <-> L.rtRange $4) $2 $3 }
   | name                                  { Argument (info $1) $1 Nothing }
 
 dec :: { Dec L.Range }
-  : let name many(argument) optional(typeAnnotation) '=' exp { Dec (L.tRange $1 <-> info $6) $2 $3 $4 $6 }
+  : let name many(argument) optional(typeAnnotation) '=' exp { Dec (L.rtRange $1 <-> info $6) $2 $3 $4 $6 }
 ```
 
 You may delete `arguments` with it as it's now unused.
@@ -582,9 +582,9 @@ And we add it to our `type` production::
 ```happy
 type :: { Type L.Range }
   : name           { TVar (info $1) $1 }
-  | '(' ')'        { TUnit (L.tRange $1 <-> L.tRange $2) }
-  | '(' type ')'   { TPar (L.tRange $1 <-> L.tRange $3) $2 }
-  | '[' type ']'   { TList (L.tRange $1 <-> L.tRange $3) $2 }
+  | '(' ')'        { TUnit (L.rtRange $1 <-> L.rtRange $2) }
+  | '(' type ')'   { TPar (L.rtRange $1 <-> L.rtRange $3) $2 }
+  | '[' type ']'   { TList (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
 What about the arrow type? Well, let's try it out. Add it to the `type` production:
@@ -928,9 +928,9 @@ exp :: { Exp L.Range }
   : integer                  { unTok $1 (\range (L.Integer int) -> EInt range int) }
   | name                     { EVar (info $1) $1 }
   | string                   { unTok $1 (\range (L.String string) -> EString range string) }
-  | '(' ')'                  { EUnit (L.tRange $1 <-> L.tRange $2) }
-  | '[' sepBy(exp, ',') ']'  { EList (L.tRange $1 <-> L.tRange $3) $2 }
-  | '(' exp ')'              { EPar (L.tRange $1 <-> L.tRange $3) $2 }
+  | '(' ')'                  { EUnit (L.rtRange $1 <-> L.rtRange $2) }
+  | '[' sepBy(exp, ',') ']'  { EList (L.rtRange $1 <-> L.rtRange $3) $2 }
+  | '(' exp ')'              { EPar (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
 The only thing new here is the introduction of a new `sepBy` function, which should separate various productions (`exp`) by a separator (`,`), just like a list in Haskell.
@@ -988,9 +988,9 @@ atom :: { Exp L.Range }
   : integer                  { unTok $1 (\range (L.Integer int) -> EInt range int) }
   | name                     { EVar (info $1) $1 }
   | string                   { unTok $1 (\range (L.String string) -> EString range string) }
-  | '(' ')'                  { EUnit (L.tRange $1 <-> L.tRange $2) }
-  | '[' sepBy(exp, ',') ']'  { EList (L.tRange $1 <-> L.tRange $3) $2 }
-  | '(' exp ')'              { EPar (L.tRange $1 <-> L.tRange $3) $2 }
+  | '(' ')'                  { EUnit (L.rtRange $1 <-> L.rtRange $2) }
+  | '[' sepBy(exp, ',') ']'  { EList (L.rtRange $1 <-> L.rtRange $3) $2 }
+  | '(' exp ')'              { EPar (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
 This will cause Happy to build a chain `(((atom atom) atom) atom) atom` when parsing.
@@ -1004,8 +1004,8 @@ Let's see another case where we will get ambiguities.
 Adding these rules to `exp` will indicate 11 shift/reduce conflicts:
 
 ```happy
-  | if exp then exp          { EIfThen (L.tRange $1 <-> info $4) $2 $4 }
-  | if exp then exp else exp { EIfThenElse (L.tRange $1 <-> info $6) $2 $4 $6 }
+  | if exp then exp          { EIfThen (L.rtRange $1 <-> info $4) $2 $4 }
+  | if exp then exp else exp { EIfThenElse (L.rtRange $1 <-> info $6) $2 $4 $6 }
 ```
 
 If you see the `Parser.info` file, most ambiguities come from two states. The first one is this:
@@ -1038,8 +1038,8 @@ expapp :: { Exp L.Range }
   | atom                     { $1 }
 
 expcond :: { Exp L.Range }
-  : if exp then exp          { EIfThen (L.tRange $1 <-> info $4) $2 $4 }
-  | if exp then exp else exp { EIfThenElse (L.tRange $1 <-> info $6) $2 $4 $6 }
+  : if exp then exp          { EIfThen (L.rtRange $1 <-> info $4) $2 $4 }
+  | if exp then exp else exp { EIfThenElse (L.rtRange $1 <-> info $6) $2 $4 $6 }
 ```
 
 We use `expapp` to represent function applications, which will create a chain of `atom`s that represents the application.
@@ -1059,9 +1059,9 @@ Check the information file, where it will indicate that the conflict will either
 The solution here is simple enough, just use the `%shift` directive:
 
 ```diff
--  : if exp then exp          { EIfThen (L.tRange $1 <-> info $4) $2 $4 }
-+  : if exp then exp %shift   { EIfThen (L.tRange $1 <-> info $4) $2 $4 }
-   | if exp then exp else exp { EIfThenElse (L.tRange $1 <-> info $6) $2 $4 $6 }
+-  : if exp then exp          { EIfThen (L.rtRange $1 <-> info $4) $2 $4 }
++  : if exp then exp %shift   { EIfThen (L.rtRange $1 <-> info $4) $2 $4 }
+   | if exp then exp else exp { EIfThenElse (L.rtRange $1 <-> info $6) $2 $4 $6 }
 ```
 
 As a sanity check in GHCi, we can check the (prettified and simplified) output for the ambiguous expression:
@@ -1085,7 +1085,7 @@ Now, let's make it, so we are able to negate expressions.
 This case is pretty simple, just stick this definition in `exp`:
 
 ```happy
-  | '-' exp                  { ENeg (L.tRange $1 <-> info $2) $2 }
+  | '-' exp                  { ENeg (L.rtRange $1 <-> info $2) $2 }
 ```
 
 This will also allow us to parse interesting cases, such as `-if True then 1 else 2` or `-succ 2`.
@@ -1099,20 +1099,20 @@ First, add new productions to parse each existing operator to `exp`:
 
 ```happy
   -- Arithmetic operators
-  | exp '+'  exp             { EBinOp (info $1 <-> info $3) $1 (Plus (L.tRange $2)) $3 }
-  | exp '-'  exp             { EBinOp (info $1 <-> info $3) $1 (Minus (L.tRange $2)) $3 }
-  | exp '*'  exp             { EBinOp (info $1 <-> info $3) $1 (Times (L.tRange $2)) $3 }
-  | exp '/'  exp             { EBinOp (info $1 <-> info $3) $1 (Divide (L.tRange $2)) $3 }
+  | exp '+'  exp             { EBinOp (info $1 <-> info $3) $1 (Plus (L.rtRange $2)) $3 }
+  | exp '-'  exp             { EBinOp (info $1 <-> info $3) $1 (Minus (L.rtRange $2)) $3 }
+  | exp '*'  exp             { EBinOp (info $1 <-> info $3) $1 (Times (L.rtRange $2)) $3 }
+  | exp '/'  exp             { EBinOp (info $1 <-> info $3) $1 (Divide (L.rtRange $2)) $3 }
   -- Comparison operators
-  | exp '='  exp             { EBinOp (info $1 <-> info $3) $1 (Eq (L.tRange $2)) $3 }
-  | exp '<>' exp             { EBinOp (info $1 <-> info $3) $1 (Neq (L.tRange $2)) $3 }
-  | exp '<'  exp             { EBinOp (info $1 <-> info $3) $1 (Lt (L.tRange $2)) $3 }
-  | exp '<=' exp             { EBinOp (info $1 <-> info $3) $1 (Le (L.tRange $2)) $3 }
-  | exp '>'  exp             { EBinOp (info $1 <-> info $3) $1 (Gt (L.tRange $2)) $3 }
-  | exp '>=' exp             { EBinOp (info $1 <-> info $3) $1 (Ge (L.tRange $2)) $3 }
+  | exp '='  exp             { EBinOp (info $1 <-> info $3) $1 (Eq (L.rtRange $2)) $3 }
+  | exp '<>' exp             { EBinOp (info $1 <-> info $3) $1 (Neq (L.rtRange $2)) $3 }
+  | exp '<'  exp             { EBinOp (info $1 <-> info $3) $1 (Lt (L.rtRange $2)) $3 }
+  | exp '<=' exp             { EBinOp (info $1 <-> info $3) $1 (Le (L.rtRange $2)) $3 }
+  | exp '>'  exp             { EBinOp (info $1 <-> info $3) $1 (Gt (L.rtRange $2)) $3 }
+  | exp '>=' exp             { EBinOp (info $1 <-> info $3) $1 (Ge (L.rtRange $2)) $3 }
   -- Logical operators
-  | exp '&'  exp             { EBinOp (info $1 <-> info $3) $1 (And (L.tRange $2)) $3 }
-  | exp '|'  exp             { EBinOp (info $1 <-> info $3) $1 (Or (L.tRange $2)) $3 }
+  | exp '&'  exp             { EBinOp (info $1 <-> info $3) $1 (And (L.rtRange $2)) $3 }
+  | exp '|'  exp             { EBinOp (info $1 <-> info $3) $1 (Or (L.rtRange $2)) $3 }
 ```
 
 n.b.: Do NOT extract these operators to a new production and change it to `exp operator exp` because of a limitation in Happy. This will cause conflicts that will be pretty difficult to resolve.
@@ -1181,20 +1181,20 @@ This case is trivial, albeit annoying. Just shove these up in `atom`:
 
 ```happy
   -- Arithmetic operators
-  | '(' '+' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (Plus (L.tRange $2)) }
-  | '(' '-' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (Minus (L.tRange $2)) }
-  | '(' '*' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (Times (L.tRange $2)) }
-  | '(' '/' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (Divide (L.tRange $2)) }
+  | '(' '+' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (Plus (L.rtRange $2)) }
+  | '(' '-' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (Minus (L.rtRange $2)) }
+  | '(' '*' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (Times (L.rtRange $2)) }
+  | '(' '/' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (Divide (L.rtRange $2)) }
   -- Comparison operators
-  | '(' '=' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (Eq (L.tRange $2)) }
-  | '(' '<>' ')'             { EOp (L.tRange $1 <-> L.tRange $2) (Neq (L.tRange $2)) }
-  | '(' '<' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (Lt (L.tRange $2)) }
-  | '(' '<=' ')'             { EOp (L.tRange $1 <-> L.tRange $2) (Le (L.tRange $2)) }
-  | '(' '>' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (Gt (L.tRange $2)) }
-  | '(' '>=' ')'             { EOp (L.tRange $1 <-> L.tRange $2) (Ge (L.tRange $2)) }
+  | '(' '=' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (Eq (L.rtRange $2)) }
+  | '(' '<>' ')'             { EOp (L.rtRange $1 <-> L.rtRange $2) (Neq (L.rtRange $2)) }
+  | '(' '<' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (Lt (L.rtRange $2)) }
+  | '(' '<=' ')'             { EOp (L.rtRange $1 <-> L.rtRange $2) (Le (L.rtRange $2)) }
+  | '(' '>' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (Gt (L.rtRange $2)) }
+  | '(' '>=' ')'             { EOp (L.rtRange $1 <-> L.rtRange $2) (Ge (L.rtRange $2)) }
   -- Logical operators
-  | '(' '&' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (And (L.tRange $2)) }
-  | '(' '|' ')'              { EOp (L.tRange $1 <-> L.tRange $2) (Or (L.tRange $2)) }
+  | '(' '&' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (And (L.rtRange $2)) }
+  | '(' '|' ')'              { EOp (L.rtRange $1 <-> L.rtRange $2) (Or (L.rtRange $2)) }
 ```
 
 #### Parsing let-in
@@ -1248,7 +1248,7 @@ Right
 To finish, let's just make one last change to our parser. At the top of the file, add the following:
 
 ```diff
- %lexer { lexer } { L.Token L.EOF _ }
+ %lexer { lexer } { L.RangedToken L.EOF _ }
 +%expect 0
 ```
 
