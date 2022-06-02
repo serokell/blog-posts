@@ -90,7 +90,7 @@ $ stack install alex
 $ stack install happy
 ```
 
-We will use a `package.yaml` file for our project configuration.
+We will create a `package.yaml` file for our project configuration.
 Use your favorite text editor to initialize `package.yaml` with the following:
 
 ```yaml
@@ -115,7 +115,7 @@ library:
   - happy
 ```
 
-n.b.: You might need to use `hpack --force` to override the current Cabal file.
+n.b.: If you chose to use Stack, you might need to use `hpack --force` to override the current Cabal file.
 
 You may want to remove `src/Main.hs`, as we won't need it.
 
@@ -219,7 +219,7 @@ An escaped character like `\?` will match exactly that character.
 You can group regexes by concatenating them or by inserting a pipe (`|`) between them.
 
 When you concatenate regexes, such as in `[a-z][A-Za-z0-9]*`, it means that Alex should match each set of strings in sequence.
-One example of a language that can be matched by this regex is `myVariable1`.
+One example of a lexeme that can be matched by this regex is `myVariable1`.
 
 The pipe means that Alex can alternate between choices, such as `0(x[0-9a-fA-F]+ | o[0-7]+)`, which is a regex that can match hexadecimal or octal numbers.
 
@@ -229,10 +229,12 @@ For example, `foo bar` and `foobar` can both be matched only by `foobar`, and yo
 ### Our first lexer
 
 Begin by creating a new file: `src/Lexer.x`.
-For now, let's add a "skeleton" for the file, which should look like the following:
+For now, let's add a "skeleton" for the file, which we will use to get Stack to compile the file.
+Don't worry; I will explain everything there soon. :)
 
 ```alex
 {
+-- At the top of the file, we define the module and its imports, similarly to Haskell.
 module Lexer
   ( -- * Invoking Alex
     Alex
@@ -247,7 +249,7 @@ module Lexer
   , Token (..)
   ) where
 }
-
+-- In the middle, we insert our definitions for the lexer, which will generate the lexemes for our grammar.
 %wrapper "monadUserState-bytestring"
 
 tokens :-
@@ -255,6 +257,7 @@ tokens :-
 <0> $white+ ;
 
 {
+-- At the bottom, we may insert more Haskell definitions, such as data structures, auxiliary functions, etc.
 data AlexUserState = AlexUserState
   {
   }
@@ -283,17 +286,9 @@ data Token
 }
 ```
 
-We will use this small template to get Stack to compile the file.
-Don't worry; I will explain everything there soon. :)
-
 Running `stack build --fast --file-watch` will build the project, and Stack will automatically compile the Alex file into a Haskell file.
 
-Alex files are divided into three sections.
-* At the top of the file, we define the module and its imports, similarly to Haskell.
-* In the middle, we insert our definitions for the lexer, which will generate the lexemes for our grammar.
-* At the bottom, we may insert more Haskell definitions, such as data structures, auxiliary functions, etc.
-
-The top and bottom sections are provided between the { and }, and all Haskell code will be inlined in the generated Stack file.
+The top and bottom sections are provided between the `{` and `}`, and all Haskell code will be inlined in the generated Stack file.
 
 Curious to see the generated file? There are two ways in which you can access it.
 
@@ -372,7 +367,7 @@ import qualified Data.ByteString.Lazy.Char8 as BS
 
 ### Regex and regex macros
 
-Alex uses regular expressions to match lexemes, so we will use them to recognize the various lexemes that should be available in our grammar.
+Alex uses regular expressions to match lexemes, so we will use them to recognize the various lexemes in our language.
 Let's start with a simple one: identifiers.
 We are free to choose the specification for identifiers, but let's use the following:
 
@@ -415,12 +410,12 @@ tokens :-
 
 <0> @id     { tokId }
 ```
-The syntax `<START_CODE> REGEX { CODE }` means that if Alex has managed to match a token `REGEX`, and it's currently in the `START_CODE` state, it should execute the code `CODE`.
+The syntax `<START_CODE> REGEX { CODE }` means that if Alex has managed to match a pattern `REGEX`, and it's starting from the `START_CODE` state, it should execute the code `CODE`.
 
 Similarly, for white space, we can use `;` instead of giving it an explicit action, which simply means that Alex should do nothing interesting with it. This is the same as writing `{ skip }`.
 
 The idea of start codes is a bit more sophisticated yet valuable.
-Alex works as a state machine, and `0` indicates the initial code in which the machine starts.
+Alex works as a state machine, and `0` indicates the initial state in which the machine starts.
 In this case, we can match white space and identifiers when we start in state `0`.
 We will later create other start codes.
 
@@ -431,11 +426,25 @@ Alex expects that this expression will have type `AlexAction RangedToken`. Here'
 type AlexAction result = AlexInput -> Int64 -> Alex result
 ```
 
-Where `result` will be `RangedToken` in our case.
-
-Let's create our `tokId` function. We do so by inserting this definition at the bottom of the file:
+Where `result` will be `RangedToken` in our case and the `Int64` corresponds to the length of the input.
+It will be useful to know how `AlexInput` looks like as well:
 
 ```haskell
+type AlexInput = (AlexPosn,    -- current position,
+                  Char,        -- previous char
+                  ByteString,  -- current input string
+                  Int64)       -- bytes consumed so far
+```
+
+Let's create our `tokId` function. We do so by inserting this definition at the bottom of the file.
+Here I placed `Token` as an anchor as a suggestion where you can put the new functions.
+
+```haskell
+data Token  -- anchor: don't copy and paste this
+  ...
+  | EOF
+  deriving (Eq, Show)
+
 mkRange :: AlexInput -> Int64 -> Range
 mkRange (start, _, str, _) len = Range{start = start, stop = stop}
   where
@@ -455,6 +464,8 @@ The range will then be handled by `mkRange`, a function that advances the positi
 We should check whether our code works. I will define a small function that we can use for testing. Don't forget to export it!
 
 ```haskell
+tokId = ...  -- anchor, don't copy and paste this
+
 scanMany :: ByteString -> Either String [RangedToken]
 scanMany input = runAlex input go
   where
@@ -465,7 +476,7 @@ scanMany input = runAlex input go
         else (output :) <$> go
 ```
 
-Startup GHCi and let's check whether this works. It should result in something like this (slightly prettified for ease of visualization):
+Startup GHCi (run `stack ghci`) and let's check whether this works. It should result in something like this (slightly prettified for ease of visualization):
 
 ```haskell
 >>> runAlex "my_identifier" alexMonadScan
@@ -487,11 +498,15 @@ If you are stuck or want to check that we're on the same page, the code for the 
 
 #### Lexing keywords and operators
 
-We can now lex identifiers, but a programming language typically consists of much more than only this.
+We can now lex identifiers, but a programming language typically consists of much more than just this.
 Let's now scan other keywords that we defined.
 Thankfully, they are pretty simple:
 
 ```alex
+tokens :-
+
+<0> $white+ ;
+
 -- Keywords
 <0> let     { tok Let }
 <0> in      { tok In }
@@ -537,6 +552,8 @@ Thankfully, they are pretty simple:
 We also need to define `tok`:
 
 ```haskell
+tokId = ...  -- anchor
+
 tok :: Token -> AlexAction RangedToken
 tok ctor inp len =
   pure RangedToken
@@ -570,6 +587,9 @@ Right
 Lexing integers is pretty straightforward. We can just use a sequence of one or more digits.
 
 ```alex
+-- Identifiers
+<0> @id     { tokId }
+
 -- Constants
 <0> $digit+ { tokInteger }
 ```
@@ -577,6 +597,8 @@ Lexing integers is pretty straightforward. We can just use a sequence of one or 
 And of course, we need to define `tokInteger`:
 
 ```haskell
+tok = ...  -- anchor
+
 tokInteger :: AlexAction RangedToken
 tokInteger inp@(_, _, str, _) len =
   pure RangedToken
@@ -601,7 +623,11 @@ Lexing comments will require us to use an extra start code besides just `0`.
 Surely, we could make something as simple as the following:
 
 ```alex
+<0> $white+ ;
+
 <0> "(*" (. | \n)* "*)" ;
+
+-- Keywords
 ```
 
 But this will lead to some problems.
@@ -624,12 +650,16 @@ We will create two helper functions, `nestComment` and `unnestComment`, which wi
 In addition, Alex provides the `andBegin` combinator that will execute an expression and change the current start code.
 
 ```alex
+<0> $white+ ;
+
 <0>       "(*" { nestComment `andBegin` comment }
 <0>       "*)" { \_ _ -> alexError "Error: unexpected closing comment" }
 <comment> "(*" { nestComment }
 <comment> "*)" { unnestComment }
 <comment> .    ;
 <comment> \n   ;
+
+-- Keywords
 ```
 
 The critical thing to notice is that we can start a comment anywhere, as it has start code `0`, but we can only match a closing comment pair if we begin to match a comment in the first place, thanks to the `comment` start code.
@@ -638,7 +668,7 @@ Note that checking for the `*)` lexeme at the start code `0` is unnecessary.
 Without it, it would be emitted as a multiplication followed by a closing parenthesis, but the parser would catch it later.
 Like Haskell, MiniML will support passing operators as first-class functions, like `let add = (+)`.
 However, this has the same deficiency as OCaml: `(*)` is recognized as a comment.
-However, `( *)` is accepted by OCaml but emits a message saying, "Warning : this is not the end of a comment.".
+OCaml accepts `( *)`, but emits a message saying, "Warning : this is not the end of a comment.".
 Because of this, we will emit an error using `alexError` to the user and expect that `( * )` will be used to reference the multiplication operator instead.
 Alternatively, you can change comments' syntax to something else here, such as `/* */`, and avoid this ambiguity, but that wouldn't feel too ML-like.
 
@@ -646,6 +676,8 @@ Next, we will change `AlexUserState` so it remembers the nesting level of our co
 We also define some helper functions for dealing with our state.
 
 ```haskell
+tokInteger = ...  -- anchor
+
 data AlexUserState = AlexUserState
   { nestLevel :: Int
   }
@@ -673,6 +705,8 @@ Unnesting is similar, except that we decrease the level, and if we reach level 0
 Don't forget to import `when` from `Control.Monad`.
 
 ```haskell
+tokInteger = ...  -- anchor
+
 nestComment, unnestComment :: AlexAction RangedToken
 nestComment input len = do
   modify $ \s -> s{nestLevel = nestLevel s + 1}
@@ -716,12 +750,16 @@ Right
 Lexing strings should have no surprises. Just stick this in your lexer:
 
 ```alex
+-- Constants
+<0> $digit+ { tokInteger }
 <0> \"[^\"]*\" { tokString }
 ```
 
 And we use this definition for `tokString`:
 
 ```haskell
+tokInteger = ...  -- anchor
+
 tokString :: AlexAction RangedToken
 tokString inp@(_, _, str, _) len =
   pure RangedToken
@@ -742,15 +780,18 @@ You can find the complete code for the lexer until now [here](https://gist.githu
 2. Change the string lexer to accept the following escaped characters: `\\`, `\n`, and `\t`.
 Feel free to add any other escape codes that you can think about.
 
-**Hint**: Create a buffer in `AlexUserState` that adds characters as they are seen and two auxiliary `enterString` and `exitString` functions.
-Entering the string, save the current position in the state, add `\"` to the buffer, and begin a new start code.
-For a escape character matched with `\\n`, `\\t` or `\\\\`, add `\n`, `\t`, or `\\` to the buffer with a new `emit` function.
-For an ordinary character matched with a `.`, add it to the current buffer with a new `emitCurrent` function.
-Don't forget to match `\\\"` as an escaped quote mark and add it with `emit`.
+<details>
+<summary><b>Hint</b></summary>
+Create a buffer in <code>AlexUserState</code> that adds characters as they are seen and two auxiliary <code>enterString</code> and <code>exitString</code> functions.
+Entering the string, save the current position in the state, add <code>\"</code> to the buffer, and begin a new start code.
+For a escape character matched with <code>\\n</code>, <code>\\t</code> or <code>\\\\</code>, add <code>\n</code>, <code>\t</code>, or <code>\\</code> to the buffer with a new <code>emit</code> function.
+For an ordinary character matched with a <code>.</code>, add it to the current buffer with a new <code>emitCurrent</code> function.
+Don't forget to match <code>\\\"</code> as an escaped quote mark and add it with <code>emit</code>.
 Emit the string as a new token when you exit the string state, reseting the string state, and don't forget to add the closing quote mark. Make sure that the end position is also advanced by one character.
 Don't forget to check if there is an unclosed string like we did for the block comments.
 
 For inspiration on doing this, you can use Alex's [Tiger example](https://github.com/haskell/alex/blob/master/examples/tiger.x) as a guide.
+</details>
 
 You can find the solutions to both exercises [here](https://gist.github.com/heitor-lassarote/a6ec93ae4cf5ebc218c335017140342b).
 
