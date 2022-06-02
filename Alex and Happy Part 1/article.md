@@ -61,13 +61,13 @@ It will take the input stream of characters (a `String`, or in our case, a `Byte
 Note that we've mentioned that Alex will _generate_ a lexical analyzer and not that Alex is a lexical analyzer by itself.
 Alex will read a `.x` file created by us specifying how to match lexemes and it will in turn create a `.hs` file which is the generated lexer.
 
-In the second part of this tutorial, the token stream will be consumed by the parser generated Happy; a tool to generate syntactic analyzers.
-Happy will try to match tokens according to specific rules that we will describe, where we will produce a tree structure representing a valid MiniML program.
+In the second part of this tutorial, we will use Happy to generate a parser that will consume the token stream.
+Happy will try to match tokens according to specific rules that we will describe and produce a tree structure representing a valid MiniML program.
 
 Note that using Alex is not a requirement. You could also use, for example, parser combinators such as Megaparsec for lexing and Happy for parsing if you wanted to.
 
 Making a lexer using parser combinators is pretty doable and manageable.
-Meanwhile, using Alex is a bit more involved, but it has the advantage that performance will be more predictable; besides that, it can be easily integrated with Happy to output one token at a time, which may avoid creating a massive stream of tokens in the memory in the first place.
+Meanwhile, using Alex is a bit more involved, but it has the advantage that performance will be more predictable; besides that, it can be easily integrated with Happy to output one token at a time, which may avoid creating a massive list of tokens in the memory in the first place.
 
 ## Creating the project
 
@@ -140,9 +140,9 @@ It will be essential to differentiate between the terms **lexeme** and **token**
 A lexeme is a valid atom of the grammar, such as a keyword (`in`, `if`, etc.), an operator (`+`, `/`, etc.), an integer literal, a string literal, a left or right parenthesis, an identifier, etc.
 Meanwhile, a token consists of the _token name_ and an optional _token value_.
 The token name is the name of a lexical category that the lexeme belongs to, while the token value is implemention-defined.
-We can represent tokens as Haskell constructors with optionally the scanned lexeme. For instance, `In`, `If`, `Plus`, `Divide`, `Integer 42`, `String "\"foo\""`, `LPar`, `RPar`, and `Identifier "my_function"` are all tokens generated for each lexemes.
+We can represent tokens as a Haskell sum datatype, where data constructor names correspond to token names and constructor arguments correspond to the token value with optionally the scanned lexeme. For instance, `In`, `If`, `Plus`, `Divide`, `Integer 42`, `String "\"foo\""`, `LPar`, `RPar`, and `Identifier "my_function"` are all tokens generated for their corresponding lexemes.
 
-Lexers are often implemented using Deterministic Finite Automata (DFAs), which is a state machine. For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
+Lexers are often implemented using Deterministic Finite Automata (DFAs), which are state machines. For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
 
 ```text
                  ┌─┐
@@ -177,7 +177,7 @@ The arrows also have directions in them, guided by your GPS. Your GPS may tell y
 
 To refine the terminology, the city is the _automaton_ (plural: _automata_) represented by a _state transition graph_, each numbered square is called a _state_, and each arrow is called a _transition_.
 When a transition comes from nowhere and into a state, we say that this state is a _start state_, which is state 0 in this example.
-The places were you can park are called _accept states_, i.e., 1, 2, 3, and 4.
+The places were you can park are called _accepting states_, i.e., 1, 2, 3, and 4.
 
 The GPS represents the _input_ (string) of the automaton.
 The dead ends represent an implicit _error state_ present in every DFA, which you can think of like a hidden state number 5, with all invalid transitions from every state to it.
@@ -200,11 +200,11 @@ The resulting token would be `In` if we stopped at 2 instead (for the expression
 What if we consumed no input and stopped at state 0, or the input was something like "Foo123" where we'd reach the implicit state 5?
 In such cases, we halt and indicate a lexical error.
 
-As started previously, we won't write our lexical analyzer from scratch. Instead, we will use Alex to generate a lexer that creates a stream of tokens, which the Happy-generated parser will parse.
+As stated previously, we won't write our lexical analyzer from scratch. Instead, we will use Alex to generate a lexer that creates a stream of tokens, which the Happy-generated parser will parse.
 
 ### Regular expressions
 
-Alex uses regular expressions (regexes) to match patterns, we'll keep it pretty simple and explain some of them which we'll use.
+Alex uses regular expressions (regexes) to define patterns, we'll keep it pretty simple and explain some of them which we'll use.
 
 A syntax like `[0-9]` means that any digit character between `0` and `9` (inclusive) will be matched. Likewise, `[a-zA-Z]` means that any lowercase or uppercase character can be matched.
 Characters may be excluded as well, for example, `[^\"]` reads as "anything except a double quote mark".
@@ -213,10 +213,18 @@ A `*` (called _Kleene star_) means that the expression can be matched zero or mo
 
 A dot (`.`) means "match anything but a newline". You can also use common escape codes like `\n` which will match a newline.
 
-An expression between strings, such as `">="`, means that it should only match exactly that string. An escaped character like `\?` can also match exactly that character.
+A double-quoted string, such as `">="`, will match exactly the string inside quotes.
+An escaped character like `\?` will match exactly that character.
 
-You can group regexes with a space or a pipe (`|`) between them. A space means that Alex should match each regex successively, while the pipe means that it can alternate between choices, such as `0 (x [0-9a-fA-F]+ | o [0-7]+)`, which is a regex that can match hexadecimal or octal numbers.
-Parentheses are used to group regexes together.
+You can group regexes by concatenating them or by inserting a pipe (`|`) between them.
+
+When you concatenate regexes, such as in `[a-z][A-Za-z0-9]*`, it means that Alex should match each set of strings in sequence.
+One example of a language that can be matched by this regex is `myVariable1`.
+
+The pipe means that Alex can alternate between choices, such as `0(x[0-9a-fA-F]+ | o[0-7]+)`, which is a regex that can match hexadecimal or octal numbers.
+
+Parentheses are used to group regexes together, and Alex ignores white space unless they ere escaped.
+For example, `foo bar` and `foobar` can both be matched only by `foobar`, and you'd write `foo\ bar` in case you'd like to explicitly require a single space between them.
 
 ### Our first lexer
 
@@ -310,7 +318,7 @@ Finally, for the EOF token, we use the `alexGetInput` action to retrieve the cur
 We should provide one token name for each lexical category in the grammar.
 You are free to add new token names as you wish. Still, for this tutorial, we will have the following: operators, keywords, literals (strings and integers), identifiers, a token representing the end-of-file (EOF), etc.
 
-Our token names will be as such:
+Our token datatype is thus:
 
 ```haskell
 data Token
