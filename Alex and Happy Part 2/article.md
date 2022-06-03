@@ -8,7 +8,7 @@
 This is the second and final part of the _Parsing with Haskell_ series.
 Haven't read the first part yet? You can find it [here](https://serokell.io/blog/lexing-with-alex).
 
-As with Alex, our goal here is to provide enough information on Happy enough to be productive and do valuable things with it so that we won't visit every single feature of Happy.
+As with Alex, our goal here is to provide enough information on Happy to be productive and do valuable things with it, hence we won't visit every single feature of Happy.
 Please refer to the [Happy User Guide](https://monlih.github.io/happy-docs/).
 
 This tutorial was written using GHC version 9.0.2, Stack resolver LTS-19.8, Alex version 3.2.7.1, and Happy version 1.20.0.
@@ -51,99 +51,121 @@ In the article, we discussed some pros and cons of LL parsers compared to LR par
 TODO: not sure how correct is the theory here, a more in-depth review here would be nice
 -->
 
-Haskell libraries such as Megaparsec are typically exposed as a LL(1) or LL(∞) parser.
+Haskell libraries such as Megaparsec work best on LL(1) or LL(∞) grammars and they're implemented as recursive descent parsers with backtracking.
+As such, caveats like not being able to handle left-recursion also apply to them, besides that their performance can exponentially degrade due to backtracking.
 LL here means **L**eft-to-right parsing, **L**eftmost derivation, as they scan strings from left to right and build a tree deriving them from the left (see below).
 
 The number between the parentheses indicates how many look-ahead tokens the parser can see.
 A parser with a look-ahead of `k` can make decisions by looking `k` tokens (or characters) ahead.
-A look-ahead of `k=1` is often better for better performance, and it's enough to parse most grammars in programming languages.
+A look-ahead of `k=1` is often chosen for better performance, but popular parser combinatrs libraries offer an option to use an arbitrary `k` with the `try` function. A LL(k) parser is often enough to parse most grammars in programming languages.
 
-On the other hand, Happy is an LR(1)\* parser, where the R means **R**ightmost derivation in reverse.
+On the other hand, Happy is an LR(1)\* parser generator, where the R means **R**ightmost derivation in reverse.
 
-\* Happy is actually an LALR(1) (Look-Ahead LR) parser, which is a more performant albeit less powerful variant of an LR(1) parser; see [section 8.4.1](https://monlih.github.io/happy-docs/#_sec_conflict_tips) of the Happy User Guide.
-Happy also supports GLR (Generalized LR) parsing, which this tutorial won't cover, but you can find more about it in the [section 3](https://monlih.github.io/happy-docs/#_sec_glr) of the Happy User Guide.
+<details>
+<summary>* A note on Happy</summary>
+* Happy is actually an LALR(1) (Look-Ahead LR) parser generator, which is a more performant albeit less powerful variant of an LR(1) parser; see <a href=https://monlih.github.io/happy-docs/#_sec_conflict_tips>section 8.4.1</a> of the Happy User Guide.
+Happy also supports GLR (Generalized LR) parsing, which this tutorial won't cover, but you can find more about it in the <a href=https://monlih.github.io/happy-docs/#_sec_glr)>section 3</a> of the Happy User Guide.
+</details><br>
 
 As an example, suppose we have the expression `1 + 2 + 3`, which is parsed as the following tree:
 
 ```text
-                +
-              ↙   ↘
-            +       3
+            +
           ↙   ↘
-        1       2
+        1       +
+              ↙   ↘
+            2       3
 ```
 
-It means that in an expression such as `1 + 2 + 3`, a LL parser would expand the tree visiting the leftmost nodes first, visiting the tokens in this order:
+Which was generated from this grammar:
+
+```
+exp -> num
+exp -> num "+" exp
+num -> [0-9]+
+```
+
+It means that in an expression such as `1 + 2 + 3`, a LL parser would perform substitutions by visiting the leftmost nodes first, recovering the tokens in this order:
 
 <pre>
-<u>exp</u>
-<b><u>exp</u> + exp</b>
-<b><u>exp</u> + exp</b> + exp
-<b>1</b> + <u>exp</u> + exp
-1 + <b>2</b> + <u>exp</u>
+<i>exp</i>
+<b><i>num</i> + exp</b>
+<b>1</b> + <i>exp</i>
+1 + <b><i>num</i> + exp</b>
+1 + <b>2</b> + <i>exp</i>
+1 + 2 + <b><i>num</i></b>
 1 + 2 + <b>3</b>
 </pre>
 
-n.b.: **Bold** means the result of the derivation, and <u>underline</u> means the derivation that will be expanded next.
+n.b.: **Bold** means the result of the derivation, and <i>italic</i> means the derivation that will be expanded next.
 
 Whilst an LR parser would do the following:
 
 <pre>
-<u>exp</u>
-<b>exp + <u>exp</u></b>
-exp + <b>exp + <u>exp</u></b>
-exp + <u>exp</u> + <b>3</b>
-<u>exp</u> + <b>2</b> + 3
+<i>exp</i>
+<b>num + <i>exp</i></b>
+num + <b>num + <i>exp</i></b>
+num + num + <b><i>num</i></b>
+num + <i>num</i> + <b>3</b>
+<i>num</i> + <b>2</b> + 3
 <b>1</b> + 2 + 3
 </pre>
 
 For more information on leftmost and rightmost derivations, see [LL and LR Parsing Demystified](https://blog.reverberate.org/2013/07/ll-and-lr-parsing-demystified.html).
 
 Another difference is that Alex is a lexer generator and Happy a parser generator.
-It means that instead of writing Haskell files (`.hs`) like in parser combinators, you will write Alex (`.x`) and Happy (`.y`) files, which in turn will automatically generate Haskell files with the described grammar.
+It means that instead of writing Haskell files (`.hs`) like in parser combinators, you will write Alex (`.x`) and Happy (`.y`) files, which in turn will automatically generate Haskell files with implementations of the lexer and parser recognizing the described grammar.
 
 Below are some pros and cons of Happy in comparison to, for example, Megaparsec:
 
 Pros:
 * LR parsers are more powerful than LL, allowing to parse more complex grammars with greater ease.
 * Ambiguous grammars are reported to the user, allowing a greater trust in the parser's output and saving the debugging headache.
-* LR grammars can handle left-recursion, while LL parsers can't.
+* LR parsers can handle left-recursion, while LL parsers can't.
 
 Cons:
 * Less idiomatic, as you need to write Alex and Happy grammars instead of Haskell code.
 * Less flexible since you can't touch the algorithm on how Happy works. Meanwhile, you can easily create your functions for parser combinators.
 
-Comparing the implementations of both parsing techniques is beyond the scope of this post. Still, if you are interested, you may read the parser combinators article listed above, as well as [How to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
+Comparing the implementations of both parsing techniques is beyond the scope of this post. Still, if you are interested, you may read the parser combinators article linked above.
 
 ## How it works
 
 An in-depth explanation of how an LR(1) parser works is well beyond the scope of this tutorial, but for this, we recommend you read our article, [How to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
 We will, however, introduce a few basic concepts required to understand this article better.
 
-### Productions, terminals and non-terminals
+### Terminals, non-terminals, and production rules
 
-A **production rule** is a parsing rule, which we will use to describe our grammar.
-It looks like so in Happy:
+A **terminal** is a lexical item of the language; in our case they will be tokens that were produced by Alex.
+
+A **non-terminal** is an arbitrary identifier that's replaced by other terminals and non-terminals (terminals and non-terminals together are called **symbols**) to produce derivations.
+In the example above, `myNonTerminal` is non-terminal.
+
+A **production rule** is a rule describing how to "produce" a string that is a sentence corresponding to the grammar.
+It has form `a : b { action }`, which looks like so in Happy:
 
 ```happy
-myProduction
-  : productionA1 productionA2 ... { actionA }
-  | productionB1 productionB2 ... { actionB }
+myNonTerminal
+  : bodyA1 bodyA2 ... { actionA }
+  | bodyB1 bodyB2 ... { actionB }
   | ...
 ```
 
-The ellipses here are not correct Happy grammar, and we use them to represent that more productions may be present.
+n.b.: The ellipses here are not correct Happy grammar, and we use them to represent that more symbols may be present.
 
-`production@#` where `@` is some letter and `#` some number means that the parser must parse each production in succession.
-The pipe (`|`) represents an alternation. The parser may parse any of the given productions, accepting the one that matches.
-An alternative may be empty, meaning that `myProduction : { action }` is also accepted.
+`body@#` where `@` is some letter and `#` some number means that the parser must parse each body in succession.
+The pipe (`|`) represents an alternation. The parser may parse any of the given bodies, accepting the one that matches.
+An alternative may be empty, meaning that `myNonTerminal : { action }` is also accepted.
 `action@` represents what the parser should do once successfully parsed that rule. Like in Alex, it may be any Haskell expression. More about this later.
 
 Production rules may also have an optional type signature.
-For instance, the declaration of `myProduction` could also have been written as such:
+For instance, the declaration of `myNonTerminal` could also have been written as such:
 
 ```happy
-myProduction :: { MyType }
+myNonTerminal :: { MyType }
+  : bodyA1 bodyA2 ... { actionA }
+  | bodyB1 bodyB2 ... { actionB }
+  | ...
 ```
 
 Where any Haskell type may replace `MyType`.
@@ -152,18 +174,12 @@ Later in the article, we will also use the following notation representing the s
 This is not valid Happy code, but it's what it uses for debugging information.
 
 ```
-myProduction -> productionA1 productionA2 ...
-myProduction -> productionB1 productionB2 ...
-myProduction -> ...
+myNonTerminal -> bodyA1 bodyA2 ...
+myNonTerminal -> bodyB1 bodyB2 ...
+myNonTerminal -> ...
 ```
 
 There may be multiple productions in a single Happy file.
-
-A **terminal** is a production that has no children.
-In our grammar, the tokens produced by Alex will be terminals.
-
-A **non-terminal** is a production that consists of a group of various other productions (they may be terminal or non-terminal).
-In the example above, `myProduction` is non-terminal.
 
 ### Parser position
 
@@ -187,18 +203,31 @@ In the `exp` example above, the look-ahead token will be `+`.
 
 When working with Happy, two core concepts that you need to know are **shifting** and **reducing**, which I'll briefly explain.
 
-An LR parser is also implemented as a state machine, like Alex. The parser contains a stack with all the tokens consumed during parsing.
+An LR parser also contains a state machine, similarly to Alex.
+This finite-state machine is called an _LR automaton_, which is also a DFA, which is used to make parsing decisions.
+At the same time, the parser contains a stack with all the tokens consumed during parsing, making it a _pushdown automaton_.
 The parser produces an action table describing how to make decisions based on its stack and the look-ahead token.
 
-**Shifting** means that the parser should push the look-ahead token on its internal stack, change (shift) its state, and continue parsing.
+**Shifting** means that the parser should push (shift) the current input symbol on the top of its internal stack, change its state, and continue parsing.
 
-**Reducing** means that the parser has accepted a production, and so it will pop tokens from the stack, run an action with the consumed input, and return to a previous state.
+**Reducing** means that the parser has accepted a production, and so it will pop symbols from the stack, push the symbol corresponding to the production head on the stack, and run an action with the consumed input.
 
 Later on, we will introduce the concept of shift/reduce and reduce/reduce conflicts, which are ways that Happy tells us that the grammar is ambiguous.
 
 There are also **goto** and **accept** actions.
 Goto simply means that the parser should change states without consuming input.
-Accept is the last action performed by the parser when it has seen all input and reached EOF—accepting means that the program was successfully parsed.
+Accept is the last action performed by the parser when it has seen all valid input—accepting means that the program was successfully parsed, and it normally happens when it has reached EOF.
+
+<details>
+<summary>Interactive parser demo</summary>
+If you'd like to see an interactive parser showing a step-by-step on how it works, you may be interested in Nikolay Yakimov's <a href=https://lierdakil.github.io/parser-demo/>parser-demo</a>. Change the dropdown menu to "LALR", press "Run", and use the arrows to step through the parsing process.
+
+The current stack is on the left, the current tree is on the right, the action table is in the center, the grammar is on the bottom, and the input string is at the top.
+
+The control table is divided in two parts:
+* To the left, there is the _action_ table with the terminals.
+* To the right, there is the _goto_ table, which is used to decide what state to push at the top of the stack after reducing.
+</details>
 
 But enough with theory, let's go to the practice and learn more concepts as we go through it.
 
@@ -245,14 +274,14 @@ lexer = (=<< L.alexMonadScan)
 }
 ```
 
-Happy has a similar structure to Alex, where we insert Haskell definitions at the top and the bottom of the file, with our parser being in the middle.
+Happy has a similar structure to Alex, where we insert Haskell definitions at the top and the bottom of the file, with the parser definition in the middle.
 Likewise, anything between `{` and `}` is going to be inlined as well.
 
 Let's quickly visit each part of this file, from top to bottom.
 * The header contains the code that will generate the header of our Haskell file. Happy will generate the primary parsing function, `parseMiniML`, which we export.
   * `DeriveFoldable` allows us to write `deriving (Foldable)`, which will be helpful later.
   * We also import some extra things that will be useful in utilities later.
-* The following lines instruct Happy with extra information to generate the parser. The things we should provide to it include:
+* The following lines instruct Happy on how exactly to generate the parser. The things we should provide to it include:
   * One or more names for our parser. The syntax should be `%name PARSER_NAME [PRODUCTION]`. If the `PRODUCTION` is not given, it uses the first non-terminal that appears in the file.
   * What is the type of our tokens with `%tokentype`.
   * Which function should it call if there is a parse error with `%error`.
@@ -311,7 +340,7 @@ These tokens will terminals used while writing the grammar. They are first-class
 
 ### Semantic actions
 
-With the definitions of our tokens, we can now begin writing the parser itself.
+Now that we have the definitions of our tokens, we can now begin writing the parser itself.
 We can start with top-level definitions of format `let example = 0`.
 This will be a simplistic definition for now, but we will elaborate on it shortly.
 Note that production rules must be placed after the `%%` in the file, and you may delete the `empty` production after inserting the one below.
@@ -1044,7 +1073,8 @@ expcond :: { Exp L.Range }
 
 We use `expapp` to represent function applications, which will create a chain of `atom`s that represents the application.
 Likewise, `expcond` represents the conditional expressions.
-Since the left-hand side of an application can't be an `if` expression anymore, the conflict is eliminated.
+Since the left-hand side of an application can't be a non-atom anymore, the conflict is eliminated.
+To write an `if` expression in an application, you will now need to surround it with parentheses.
 
 It's important to note that extracting the conditional expressions from `exp` into their own `expcond` production is unnecessary. Still, it makes the grammar a bit more organized, in my opinion. :)
 
@@ -1262,13 +1292,19 @@ You can find the complete grammar [here](https://gist.github.com/heitor-lassarot
 1. Change your lexer and parser to accept fractional numbers.
 Besides accepting numbers such as `3.14`, it should also accept exponents, like `12.5e-4`.
 
-**Hint**: Use the [`scientific`](https://hackage.haskell.org/package/scientific-0.3.7.0) package to read and store the number in your list of tokens and then in your abstract syntax tree. You may replace `Integer` with a new `Number` type if you prefer.
+<details>
+<summary><b>Hint</b></summary>
+Use the <a href=https://hackage.haskell.org/package/scientific-0.3.7.0><code>scientific</code></a> package to read and store the number in your list of tokens and then in your abstract syntax tree. You may replace <code>Integer</code> with a new <code>Number</code> type if you prefer.
+</details><br>
 
 2. Support accessing list positions in your lexer and parser. For example, accessing the first element of a list would look like `my_list.(0)`. Note that it may also nest, e.g., `[[1, 2], [3]].(if foo then 0 else 1).(0)`.
 
 3. Change the grammar to support patterns in declarations. Patterns are mainly similar to a subset of expressions, like a few of the atoms, such as numbers, parentheses (although only accepting patterns inside), lists, and strings.
 
-**Hint**: Rename `Argument` to `Pattern` and work from there. The case for `'(' pattern typeAnnotation ')'` may itself be an extra "annotation pattern".
+<details>
+<summary><b>Hint</b></summary>
+Rename <code>Argument</code> to <code>Pattern</code> and work from there. The case for <code>'(' pattern typeAnnotation ')'</code> may itself be an extra "annotation pattern".
+</details><br>
 
 Bonus: Support `match...with...` in your grammar.
 
