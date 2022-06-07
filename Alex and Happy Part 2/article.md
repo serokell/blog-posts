@@ -134,11 +134,11 @@ We will, however, introduce a few basic concepts required to understand this art
 
 A **terminal** is a lexical item of the language; in our case they will be tokens that were produced by Alex.
 
-A **non-terminal** is an arbitrary identifier that's replaced by other terminals and non-terminals (terminals and non-terminals together are called **symbols**) to produce derivations.
+A **non-terminal** is an arbitrary identifier that's replaced by other terminals and non-terminals (terminals and non-terminals together are called **symbols**) to produce derivations, i.e., how to join symbols together in a syntactically correct way.
 In the example below, `myNonTerminal` is non-terminal.
 
-A **production rule** is a rule describing how to "produce" a string that is a sentence corresponding to the grammar.
-It has form `a : b { action }`, which looks like so in Happy:
+A **production rule** is a rule describing how to "produce" a string that is syntactic valid according to the grammar. It joins tokens together to form a sentence.
+It looks like so in Happy:
 
 ```happy
 myNonTerminal
@@ -152,7 +152,7 @@ n.b.: The ellipses here are not correct Happy grammar, and we use them to repres
 `body@#` where `@` is some letter and `#` some number means that the parser must parse each body in succession.
 The pipe (`|`) represents an alternation. The parser may parse any of the given bodies, accepting the one that matches.
 An alternative may be empty, meaning that `myNonTerminal : { action }` is also accepted.
-`action@` represents what the parser should do once successfully parsed that rule. Like in Alex, it may be any Haskell expression. More about this later.
+`action@` represents what the parser should do once successfully parsed that rule, such as how to interpret what was parsed, or how to build a data structure. Like in Alex, it may be any Haskell expression.
 
 Production rules may also have an optional type signature.
 For instance, the declaration of `myNonTerminal` could also have been written as such:
@@ -166,7 +166,24 @@ myNonTerminal :: { MyType }
 
 Where any Haskell type may replace `MyType`.
 
-Later in the article, we will also use the following notation representing the same as above.
+As a concrete example, here's how we could describe a non-terminal for arithmetic operations, whose action is to evaluate such operations:
+
+```happy
+arithmetic :: { Double }
+  : number                    { $1 }
+  | arithmetic '+' arithmetic { $1 + $3 }
+  | arithmetic '-' arithmetic { $1 - $3 }
+  | arithmetic '*' arithmetic { $1 * $3 }
+  | arithmetic '/' arithmetic { $1 / $3 }
+  | '(' arithmetic ')'        { $2 }
+  | '-' arithmetic            { negate $2 }
+```
+
+Each `$n` refers to a symbol in the production bodies, respectively. In this example, assume `number`, `'('`, `')'`, `'+'`, `'-'`, `'*'`, and `'/'` are terminals.
+There are a few more steps to get this example running, such as dealing with operator precedence and associativity.
+Our goal is to provide arithmetic operations for MiniML as well, so we'll describe how to do it later in the tutorial. :)
+
+We will also use the following notation representing productions.
 This is not valid Happy code, but it's what it uses for debugging information.
 
 ```
@@ -284,7 +301,8 @@ Let's quickly visit each part of this file, from top to bottom.
 
 Since Happy operates on tokens, we must instruct it on how to match each token.
 This is done using `%token`, which must be placed before the `%%` in the file.
-We list each token name that we've defined in our lexer and a Haskell pattern between braces indicating how to match it.
+For each token, on the left side, we'll put an alias that we can use to refer to our terminals.
+On the right side, we use a Haskell pattern between braces indicating how Happy should match the tokens we've defined while working with Alex.
 
 ```alex
 %token
@@ -443,9 +461,6 @@ Notice that we now generalized `dec` to accept not only integers but any express
 Furthermore, we create its range by compromising the start of `let` to the end of `exp`.
 
 We've omitted the type annotation for the declaration, inserting `Nothing` in its place, as well as the function arguments, but we will fill it in shortly.
-
-n.b.: We've used `::` here to give the type (between braces) of the production we're parsing.
-This is optional and may be omitted if preferred.
 
 At the top of your file, do the following substitution:
 
