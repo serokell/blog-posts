@@ -7,10 +7,8 @@
 This is the first part of the two parts _Parsing with Haskell_ series.
 Looking for the second part instead? You can find it [here](https://serokell.io/blog/parsing-with-happy).
 
-A critical part of the majority of the compilers is grammar.
-The grammar exposes the compiler's front-end as a convenient way to build programs.
-
 This two-parts tutorial will look into two tools often used together by Haskellers to parse programs, namely Alex and Happy.
+With them, we will parse a small programming language from scratch.
 
 Both Alex and Happy are industrial-strength tools powerful enough to parse even Haskell itself.
 At the bottom of this tutorial, you will find links to GHC's lexer and parser if you are curious to see how they look.
@@ -47,15 +45,33 @@ let main (unit : ()) : () =
   print ("The answer is: " + the_answer)
 ```
 
+At the end of the parsing process, we will build an _abstract syntax tree_ (AST), which is a data structure representing a program, which you can use to write an interpreter, to transpile into other language, etc.
+Here's how the (simplified and prettified) AST will look at at the end of part 2, after parsing the snippet above:
+
+```haskell
+[ Dec _ (Name _ "the_answer") [] (Just (TVar _ (Name _ "int")))
+  (ELetIn _ (Dec _ (Name _ "a") [] Nothing (EInt _ 20))
+  (ELetIn _ (Dec _ (Name _ "b") [] Nothing (EInt _ 1))
+  (ELetIn _ (Dec _ (Name _ "c") [] Nothing (EInt _ 2))
+  (EBinOp _ (EBinOp _ (EVar _ (Name _ "a")) (Times _) (EVar _ (Name _ "c"))) (Plus _) (EBinOp _ (EVar _ (Name _ "b")) (Times _) (EVar _ (Name _ "c")))))))
+, Dec _ (Name _ "main") [Argument _ (Name _ "unit") (Just (TUnit _))] (Just (TUnit _))
+  (EApp _ (EVar _ (Name _ "print")) (EPar _ (EBinOp _ (EString _ "\"The answer is: \"") (Plus _) (EVar _ (Name _ "the_answer")))))
+]
+```
+
+n.b.: The `_` will contain the range of the parsed tree, we've omited it here for brevitity.
+
+So we transformed unstructured data (a string) into structured data, which is much easier to manipulate.
+
 ## Lexing
 
-Before we can start parsing, we should first write a lexer to the grammar, which is also known as _lexical analyzer_, _scanner_, and _tokenizer_.
+Before we can start parsing, we should first write a lexer to the grammar, which is also known as _lexical analyzer_, _scanner_, or _tokenizer_.
 According to A. W. Appel in _Modern Compiler Implementation in ML_ (p. 14):
 
 > The lexical analyzer takes a stream of characters and produces a stream of names, keywords, and punctuation marks; it discards white space and comments between the tokens. It would unduly complicate the parser to have to account for possible white space and comments at every possible point; this is the main reason for separating lexical analysis from parsing.
 
-We will use Alex as a tool to generate the lexical analyzer for our grammar.
-It's the first step of the grammatical analysis for our programming language.
+We will use [Alex](https://www.haskell.org/alex/) as a tool to generate the lexical analyzer for our grammar.
+It's similar to the tools `lex` and `flex` for C and C++, and it's the first step of the grammatical analysis for our programming language.
 It will take the input stream of characters (a `String`, or in our case, a `ByteString`) representing the program written by the user and generate a stream of tokens (a list), which will be explained more in-depth shortly.
 
 Note that we've mentioned that Alex will _generate_ a lexical analyzer and not that Alex is a lexical analyzer by itself.
@@ -137,12 +153,13 @@ Although Alex and Happy are frequently used together, they are independent tools
 -->
 
 It will be essential to differentiate between the terms **lexeme** and **token** during this section.
-A lexeme is a valid atom of the grammar, such as a keyword (`in`, `if`, etc.), an operator (`+`, `/`, etc.), an integer literal, a string literal, a left or right parenthesis, an identifier, etc.
+A lexeme is a valid atom of the grammar, such as a keyword (`in`, `if`, etc.), an operator (`+`, `/`, etc.), an integer literal, a string literal, a left or right parenthesis, an identifier, etc. You can think of it as any word, punctuation mark, number, etc. in the input string.
 Meanwhile, a token consists of the _token name_ and an optional _token value_.
 The token name is the name of a lexical category that the lexeme belongs to, while the token value is implemention-defined.
 We can represent tokens as a Haskell sum datatype, where data constructor names correspond to token names and constructor arguments correspond to the token value with optionally the scanned lexeme. For instance, `In`, `If`, `Plus`, `Divide`, `Integer 42`, `String "\"foo\""`, `LPar`, `RPar`, and `Identifier "my_function"` are all tokens generated for their corresponding lexemes.
+Note that in some cases the token also carries its lexeme value with it, as it is in the case of `Integer`, `String`, and `Identifier`.
 
-Lexers are often implemented using Deterministic Finite Automata (DFAs), which are state machines. For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
+If your goal is to move from lexemes to tokens, how do you discern different lexemes? For that, lexers are often implemented using Deterministic Finite Automata (DFAs), which are state machines. For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
 
 ```text
                  ┌─┐
@@ -302,7 +319,6 @@ Consult the Alex User Manual on [Wrappers](https://haskell-alex.readthedocs.io/e
 
 The following section is `tokens :-`, where we will list all the patterns defined by regular expressions to match lexemes in our grammar plus an action on what the lexer should do with the matched lexeme.
 The first definition we provided is `<0> $white+ ;`, which simply indicates that all white space should be skipped.
-More on this later.
 
 The bottom section contains some boilerplate that Alex requires us to write. These include a data type that needs to be called `AlexUserState`, a value with the initial state called `alexInitUserState`, and a value called `alexEOF`, which instructs Alex how to build the EOF (End-Of-File) token, reached when Alex has finished lexing the input string.
 
@@ -365,16 +381,20 @@ import Data.ByteString.Lazy.Char8 (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as BS
 ```
 
-### Regex and regex macros
+### Lexing identifiers
 
-Alex uses regular expressions to match lexemes, so we will use them to recognize the various lexemes in our language.
 Let's start with a simple one: identifiers.
 We are free to choose the specification for identifiers, but let's use the following:
 
 > An identifier is a sequence of alphanumeric characters, primes ('), question marks (?), and underscores (_).
 > The identifier must begin with a letter or an underscore.
 
-Alex allows the creation of _character set macros_, which are shortcuts that you can use to avoid duplicating macros. We use `$NAME = CHARACTER_SET` to define a character set macro.
+<hr>
+<b>Regex macros</b>
+
+To make it easier to write the regex pattern for identifiers, we can use character set and regex macros.
+
+_Character set macros_ are shortcuts that you can use to avoid duplicating character sets. We use `$NAME = CHARACTER_SET` to define a character set macro.
 
 ```alex
 %wrapper "monadUserState-bytestring"
@@ -398,8 +418,7 @@ tokens :-
 ```
 
 We use `@NAME = REGEX` to define a regular expression macro. Note that macros may not be recursive.
-
-#### Lexing identifiers
+<hr>
 
 Let's define our first lexeme based on our identifier:
 
@@ -436,7 +455,7 @@ type AlexInput = (AlexPosn,    -- current position,
                   Int64)       -- bytes consumed so far
 ```
 
-Let's create our `tokId` function. We do so by inserting this definition at the bottom of the file.
+Let's create our `tokId` function. We do so by inserting this definition at the bottom part of the file.
 Here I placed `Token` as an anchor as a suggestion where you can put the new functions.
 
 ```haskell
