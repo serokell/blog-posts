@@ -8,7 +8,7 @@ This is the first of the two parts of our Parsing with Haskell series.
 Looking for the second part instead? You can find it [here](https://serokell.io/blog/parsing-with-happy).
 
 This two-part tutorial will look into two tools often used together by Haskellers to parse programs: Alex and Happy.
-With them, we will parse a small programming language from scratch.
+We'll use them to parse a small programming language from scratch.
 
 Both Alex and Happy are industrial-strength tools powerful enough to parse even Haskell itself.
 At the bottom of this tutorial, you will find links to GHC's lexer and parser if you are curious to see how they look.
@@ -65,7 +65,7 @@ Here's how the (simplified and prettified) AST of the snippet above will look at
 
 n.b.: The `_` will contain the range of the parsed tree, we've omited it here for brevitity.
 
-## Lexing
+## Lexing with Alex
 
 Before we can start parsing, we should first write a lexer for the grammar, which is also known as _lexical analyzer_, _scanner_, or _tokenizer_.
 
@@ -74,21 +74,27 @@ According to A. W. Appel in _Modern Compiler Implementation in ML_ (p. 14):
 > The lexical analyzer takes a stream of characters and produces a stream of names, keywords, and punctuation marks; it discards white space and comments between the tokens. It would unduly complicate the parser to have to account for possible white space and comments at every possible point; this is the main reason for separating lexical analysis from parsing.
 
 We will use [Alex](https://www.haskell.org/alex/) as a tool to generate the lexical analyzer for our grammar.
+
+This section aims at giving an introduction to Alex and how you can use it to do useful things in conjunction with Happy.
+
+In the second part of this tutorial series, we will use Happy to generate a parser that will consume the token stream.
+Happy will try to match tokens according to specific rules that we will describe and produce a tree structure representing a valid MiniML program.
+
+Although Alex and Happy are frequently used together, they are independent tools. They may be combined with other technologies, so you may, for example, use Alex and Megaparsec together if you prefer.
+
+Making a lexer using parser combinators is pretty doable and manageable.
+Meanwhile, using Alex is a bit more involved, but it has the advantage that performance will be more predictable. Besides that, it can be easily integrated with Happy to output one token at a time, which may avoid creating a massive list of tokens in the memory in the first place.
+
+### Alex
+
+Alex is a Haskell tool to generate lexers.
 It's similar to the tools `lex` and `flex` for C and C++, and it's the first step of the grammatical analysis for our programming language.
 It will take an input stream of characters (a `String`, or in our case, a `ByteString`) representing the program written by the user and generate a stream of tokens (a list), which will be explained more in-depth shortly.
 
 Note that we've mentioned that Alex will _generate_ a lexical analyzer and not that Alex is a lexical analyzer by itself.
 Alex will read the `.x` file created by us that specifies how to match lexemes and then create a `.hs` file, which will be the generated lexer.
 
-In the second part of this tutorial, we will use Happy to generate a parser that will consume the token stream.
-Happy will try to match tokens according to specific rules that we will describe and produce a tree structure representing a valid MiniML program.
-
-Note that using Alex is not a requirement. You could also use, for example, parser combinators such as Megaparsec for lexing and Happy for parsing if you wanted to.
-
-Making a lexer using parser combinators is pretty doable and manageable.
-Meanwhile, using Alex is a bit more involved, but it has the advantage that performance will be more predictable. Besides that, it can be easily integrated with Happy to output one token at a time, which may avoid creating a massive list of tokens in the memory in the first place.
-
-## Creating the project
+### Creating the project
 
 We will use Stack to build the project.
 Alex and Happy use files with extensions `.x` and `.y,` respectively, and Stack can automatically detect these file formats and build them.
@@ -137,17 +143,6 @@ library:
 n.b.: If you chose to use Stack, you might need to use `hpack --force` to override the current Cabal file.
 
 You may want to remove `src/Main.hs` since we won't need it.
-
-## Alex
-
-<!--
-* [X] link to its user guide
--->
-
-Alex is a Haskell tool to generate lexers.
-
-This section aims at giving an introduction to Alex and how you can use it to do useful things in conjunction with Happy (explained later).
-Although Alex and Happy are frequently used together, they are independent tools. They may be combined with other technologies, so you may, for example, use Alex and Megaparsec together if you prefer.
 
 ### How it works
 
