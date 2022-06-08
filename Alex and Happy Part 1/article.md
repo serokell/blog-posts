@@ -154,16 +154,16 @@ It will be essential to differentiate between the terms *lexeme* and *token* dur
 
 A lexeme is a valid atom of the grammar, such as a keyword (`in`, `if`, etc.), an operator (`+`, `/`, etc.), an integer literal, a string literal, a left or right parenthesis, an identifier, etc. You can think of it as any word, punctuation mark, number, etc. in the input string.
 
-Meanwhile, a token consists of the _token name_ and an optional _token value_.
-The token name is the name of a lexical category that the lexeme belongs to, while the token value is implemention-defined.
+Meanwhile, a token consists of a _token name_ and an optional _token value_.
+The token name is the name of the lexical category that the lexeme belongs to, while the token value is implemention-defined.
 
 We can represent tokens as a Haskell sum datatype, where data constructor names correspond to token names and constructor arguments correspond to the token value with optionally the scanned lexeme. For instance, `In`, `If`, `Plus`, `Divide`, `Integer 42`, `String "\"foo\""`, `LPar`, `RPar`, and `Identifier "my_function"` are all tokens generated for their corresponding lexemes.
 
 Note that in some cases the token also carries its lexeme value with it, as it is in the case of `Integer`, `String`, and `Identifier`.
 
-If your goal is to move from lexemes to tokens, how do you discern different lexemes? For that, lexers are often implemented using Deterministic Finite Automata (DFAs), which are state machines. 
+If your goal is to move from lexemes to tokens, how do you discern different lexemes? For that, lexers are often implemented using deterministic finite automata (DFAs), which are state machines. 
 
-For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
+For example, supposing that our grammar has only the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
 
 ```text
                  ┌─┐
@@ -208,6 +208,7 @@ To simplify matters, on ambiguous transitions such as `i` and `[a-z]`, assume th
 For example, to check the expression "int", we will follow this path: 0 → 1 → 2 → 4.
 
 Now, we need to attribute meanings to each state so that this automaton can be useful, and we will do so like this:
+
 * 0: Error.
 * 1: Identifier.
 * 2: In.
@@ -225,7 +226,8 @@ As stated previously, we won't write our lexical analyzer from scratch. Instead,
 
 ### Regular expressions
 
-Alex uses regular expressions (regexes) to define patterns, we'll keep it pretty simple and explain some of them which we'll use.
+Alex uses regular expressions (regexes) to define patterns.
+We'll keep it pretty simple and explain some of them which we'll use.
 
 A syntax like `[0-9]` means that any digit character between `0` and `9` (inclusive) will be matched. Likewise, `[a-zA-Z]` means that any lowercase or uppercase character can be matched.
 Characters may be excluded as well, for example, `[^\"]` reads as "anything except a double quote mark".
@@ -313,25 +315,30 @@ The top and bottom sections are provided between the `{` and `}`, and all Haskel
 
 Curious to see the generated file? There are two ways in which you can access it.
 
-1. If you run `alex src/Lexer.x`, it will generate `src/Lexer.hs`, where all generated Alex code will be, together with the provided snippets of your code.
+1. If you run `alex src/Lexer.x`, it will generate `src/Lexer.hs`, where all the generated Alex code will be, together with the provided snippets of your code.
 2. Stack automatically generates a file whose path varies between OS and Cabal versions, but on my machine, it's in `.stack-work/dist/x86_64-linux-tinfo6/Cabal-3.4.1.0/build/Lexer.hs`. You can also use `$(stack path --dist-dir)/build/Lexer.hs` to access this file.
 
 For now, at the top of our file, we only declare the module name, but we will soon increase our export list and add more imports.
 
 In the middle section, we first declare our _wrapper_, which indicates the type of code Alex should generate for us (`monadUserState`, which allows us to save custom state) and the input type (`bytestring`, but we could use plain Haskell `String`s instead).
-Consult the Alex User Manual on [Wrappers](https://haskell-alex.readthedocs.io/en/latest/api.html#wrappers) if you want to see other wrappers.
+Consult the Alex User Guide on [wrappers](https://haskell-alex.readthedocs.io/en/latest/api.html#wrappers) if you want to see other wrappers.
 
-The following section is `tokens :-`, where we will list all the patterns defined by regular expressions to match lexemes in our grammar plus an action on what the lexer should do with the matched lexeme.
+Then we have `tokens :-`, where we will list all the patterns defined by regular expressions to match lexemes in our grammar plus an action on what the lexer should do with the matched lexeme.
 The first definition we provided is `<0> $white+ ;`, which simply indicates that all white space should be skipped.
 
-The bottom section contains some boilerplate that Alex requires us to write. These include a data type that needs to be called `AlexUserState`, a value with the initial state called `alexInitUserState`, and a value called `alexEOF`, which instructs Alex how to build the EOF (End-Of-File) token, reached when Alex has finished lexing the input string.
+The bottom section contains some boilerplate that Alex requires us to write. These include: 
 
-We add some additional datatypes: `Range`, `RangedToken`, and `Token`, which we will use throughout the article to describe the tokens that we've successfully created, as well as their positions. Saving the ranges is unnecessary, but it's an excellent addition when reporting errors.
+* A data type that needs to be called `AlexUserState`.
+* A value with the initial state called `alexInitUserState`. 
+* A value called `alexEOF`, which instructs Alex how to build the EOF (end-of-file) token. It is reached when Alex has finished lexing the input string.
+* Some additional datatypes: `Range`, `RangedToken`, and `Token`, which we will use throughout the article to describe the tokens that we've successfully created, as well as their positions. Saving the ranges is unnecessary, but they are useful when reporting errors.
 
 Finally, for the EOF token, we use the `alexGetInput` action to retrieve the current position of the scanner and provide it to the token.
 
-We should provide one token name for each lexical category in the grammar.
-You are free to add new token names as you wish. Still, for this tutorial, we will have the following: operators, keywords, literals (strings and integers), identifiers, a token representing the end-of-file (EOF), etc.
+We should provide one token name to `Token` for each lexical category in the grammar.
+You are free to add new token names as you wish. 
+
+For this tutorial, we will have the following: operators, keywords, literals (strings and integers), identifiers, a token representing the end-of-file (EOF), etc.
 
 Our token datatype is thus:
 
@@ -393,10 +400,10 @@ We are free to choose the specification for identifiers, but let's use the follo
 > An identifier is a sequence of alphanumeric characters, primes ('), question marks (?), and underscores (_).
 > The identifier must begin with a letter or an underscore.
 
+To make it easier to write the regex pattern for identifiers, we can use character set and regex macros.
+
 <hr>
 <b>Regex macros</b>
-
-To make it easier to write the regex pattern for identifiers, we can use character set and regex macros.
 
 _Character set macros_ are shortcuts that you can use to avoid duplicating character sets. We use `$NAME = CHARACTER_SET` to define a character set macro.
 
@@ -433,17 +440,17 @@ tokens :-
 
 <0> @id     { tokId }
 ```
-The syntax `<START_CODE> REGEX { CODE }` means that if Alex has managed to match a pattern `REGEX`, and it's starting from the `START_CODE` state, it should execute the code `CODE`.
 
-Similarly, for white space, we can use `;` instead of giving it an explicit action, which simply means that Alex should do nothing interesting with it. This is the same as writing `{ skip }`.
+The syntax `<START_CODE> REGEX { CODE }` means that if Alex has managed to match a pattern `REGEX` and it's starting from the `START_CODE` state, it should execute the code `CODE`.
 
-The idea of start codes is a bit more sophisticated yet valuable.
+The idea of start codes is quite valuable.
 Alex works as a state machine, and `0` indicates the initial state in which the machine starts.
 In this case, we can match white space and identifiers when we start in state `0`.
 We will later create other start codes.
 
-`CODE` may contain any Haskell expression, as it will be included verbatim in the generated code.
-Alex expects that this expression will have type `AlexAction RangedToken`. Here's the automatically-genereated definition for `AlexAction` when using `monadUserState-bytestring`:
+`CODE` may contain any Haskell expression, as it will be included verbatim in the generated code. For white space, we can use `;` instead of giving it an explicit action, which simply means that Alex should do nothing interesting with it. This is the same as writing `{ skip }`.
+
+Alex expects that the expression will have the type `AlexAction RangedToken`. Here's the automatically-genereated definition for `AlexAction` when using `monadUserState-bytestring`:
 
 ```haskell
 type AlexAction result = AlexInput -> Int64 -> Alex result
@@ -484,7 +491,7 @@ tokId inp@(_, _, str, _) len =
 `tokId` will extract the lexeme from the input string, which will be the first `len` characters of `str`.
 The range will then be handled by `mkRange`, a function that advances the position accordingly to each seen character in the input string using `alexMove`. Alex automatically generates this function, and you don't need to include it with your code.
 
-We should check whether our code works. I will define a small function that we can use for testing. Don't forget to export it!
+We should check whether our code works. Here's a small function that we can use for testing. Don't forget to export it!
 
 ```haskell
 tokId = ...  -- anchor, don't copy and paste this
@@ -499,7 +506,7 @@ scanMany input = runAlex input go
         else (output :) <$> go
 ```
 
-Startup GHCi (run `stack ghci`) and let's check whether this works. It should result in something like this (slightly prettified for ease of visualization):
+Start GHCi (run `stack ghci`) and let's check whether this works. It should result in something like this (slightly prettified for ease of visualization):
 
 ```haskell
 >>> runAlex "my_identifier" alexMonadScan
@@ -668,7 +675,7 @@ Right
 ```
 
 We would like to detect such cases and also support nested comments.
-We will create two helper functions, `nestComment` and `unnestComment`, which will keep track of how many layers of comments we have and allow us to detect whether we reached the end of the file with an unclosed comment.
+We will create two helper functions, `nestComment` and `unnestComment`, which will keep track of how many layers of comments we have and allow us to detect whether we have reached the end of the file with an unclosed comment.
 
 In addition, Alex provides the `andBegin` combinator that will execute an expression and change the current start code.
 
@@ -823,7 +830,7 @@ You can find the solutions to both exercises [here](https://gist.github.com/heit
 
 In this part of the tutorial, we demonstrated how to build a lexer using Alex to turn lexemes into tokens, using start codes and a user state adequate for MiniML.
 
-Your next step in this journey is now to use the tokens generated by Alex to create a parser.
+Your next step in this journey is to use the tokens generated by Alex to create a parser.
 You can continue reading the [second part](https://serokell.io/blog/parsing-with-happy) of this series where you will be introduced to Happy to create the parser of the grammar.
 
 If you liked this article, you might also enjoy these resources:
