@@ -4,10 +4,10 @@
 * [X] generic introduction
 -->
 
-This is the first part of the two parts _Parsing with Haskell_ series.
+This is the first of the two parts of our Parsing with Haskell series.
 Looking for the second part instead? You can find it [here](https://serokell.io/blog/parsing-with-happy).
 
-This two-parts tutorial will look into two tools often used together by Haskellers to parse programs, namely Alex and Happy.
+This two-part tutorial will look into two tools often used together by Haskellers to parse programs: Alex and Happy.
 With them, we will parse a small programming language from scratch.
 
 Both Alex and Happy are industrial-strength tools powerful enough to parse even Haskell itself.
@@ -22,15 +22,16 @@ This tutorial was written using GHC version 9.0.2, Stack resolver LTS-19.8, Alex
 * [X] example snippet
 -->
 
-For this tutorial, we will introduce a small grammar based on [ML](https://en.wikipedia.org/wiki/ML_(programming_language)), which we will call MiniML (read as "minimal").
-As the name suggests, it should introduce a minimal syntax to get you started with Alex and Happy. Still, at the same time, we hope to introduce enough concepts so that you will be able to create a useful grammar for your programming language and use these tools effectively.
+For this tutorial, we will introduce a small grammar called MiniML (read as "minimal") that's based on [ML](https://en.wikipedia.org/wiki/ML_(programming_language)) .
+As the name suggests, it has the minimal syntax needed to get you started with Alex and Happy. Yet we hope to introduce enough concepts for you to be able to create a useful grammar for your programming language and use these tools effectively.
 
 Some of the features that this tutorial series will support are:
 * Variables, constants, function declarations, function applications, local bindings, and operators.
 * Some simple types, as well as arrow types (functions).
 * Conditional expressions: if-then-else and if-then.
 * Block comments.
-* The reader will be invited in the proposed exercises to extend the language with line comments and rational numbers. Later, in the second part, exercises will introduce patterns, list access, and pattern matching.
+
+In addition, exercises will guide you through extending the language with line comments and rational numbers. Later, in the second part, exercises will introduce patterns, list access, and pattern matching.
 
 The snippet below demonstrates a program written in MiniML:
 
@@ -45,8 +46,11 @@ let main (unit : ()) : () =
   print ("The answer is: " + the_answer)
 ```
 
-At the end of the parsing process, we will build an _abstract syntax tree_ (AST), which is a data structure representing a program, which you can use to write an interpreter, to transpile into other language, etc.
-Here's how the (simplified and prettified) AST will look at at the end of part 2, after parsing the snippet above:
+At the end of the parsing process, we will build an _abstract syntax tree_ (AST), which is a data structure representing a program.
+In contrast to unstructured data (like a string), an AST is much easier to manipulate.
+You can use it to write an interpreter, transpile into other language, etc.
+
+Here's how the (simplified and prettified) AST of the snippet above will look at at the end of the second part:
 
 ```haskell
 [ Dec _ (Name _ "the_answer") [] (Just (TVar _ (Name _ "int")))
@@ -61,21 +65,20 @@ Here's how the (simplified and prettified) AST will look at at the end of part 2
 
 n.b.: The `_` will contain the range of the parsed tree, we've omited it here for brevitity.
 
-So we transformed unstructured data (a string) into structured data, which is much easier to manipulate.
-
 ## Lexing
 
-Before we can start parsing, we should first write a lexer to the grammar, which is also known as _lexical analyzer_, _scanner_, or _tokenizer_.
+Before we can start parsing, we should first write a lexer for the grammar, which is also known as _lexical analyzer_, _scanner_, or _tokenizer_.
+
 According to A. W. Appel in _Modern Compiler Implementation in ML_ (p. 14):
 
 > The lexical analyzer takes a stream of characters and produces a stream of names, keywords, and punctuation marks; it discards white space and comments between the tokens. It would unduly complicate the parser to have to account for possible white space and comments at every possible point; this is the main reason for separating lexical analysis from parsing.
 
 We will use [Alex](https://www.haskell.org/alex/) as a tool to generate the lexical analyzer for our grammar.
 It's similar to the tools `lex` and `flex` for C and C++, and it's the first step of the grammatical analysis for our programming language.
-It will take the input stream of characters (a `String`, or in our case, a `ByteString`) representing the program written by the user and generate a stream of tokens (a list), which will be explained more in-depth shortly.
+It will take an input stream of characters (a `String`, or in our case, a `ByteString`) representing the program written by the user and generate a stream of tokens (a list), which will be explained more in-depth shortly.
 
 Note that we've mentioned that Alex will _generate_ a lexical analyzer and not that Alex is a lexical analyzer by itself.
-Alex will read a `.x` file created by us specifying how to match lexemes and it will in turn create a `.hs` file which is the generated lexer.
+Alex will read the `.x` file created by us that specifies how to match lexemes and then create a `.hs` file, which will be the generated lexer.
 
 In the second part of this tutorial, we will use Happy to generate a parser that will consume the token stream.
 Happy will try to match tokens according to specific rules that we will describe and produce a tree structure representing a valid MiniML program.
@@ -83,7 +86,7 @@ Happy will try to match tokens according to specific rules that we will describe
 Note that using Alex is not a requirement. You could also use, for example, parser combinators such as Megaparsec for lexing and Happy for parsing if you wanted to.
 
 Making a lexer using parser combinators is pretty doable and manageable.
-Meanwhile, using Alex is a bit more involved, but it has the advantage that performance will be more predictable; besides that, it can be easily integrated with Happy to output one token at a time, which may avoid creating a massive list of tokens in the memory in the first place.
+Meanwhile, using Alex is a bit more involved, but it has the advantage that performance will be more predictable. Besides that, it can be easily integrated with Happy to output one token at a time, which may avoid creating a massive list of tokens in the memory in the first place.
 
 ## Creating the project
 
@@ -133,7 +136,7 @@ library:
 
 n.b.: If you chose to use Stack, you might need to use `hpack --force` to override the current Cabal file.
 
-You may want to remove `src/Main.hs`, as we won't need it.
+You may want to remove `src/Main.hs` since we won't need it.
 
 ## Alex
 
@@ -152,14 +155,20 @@ Although Alex and Happy are frequently used together, they are independent tools
 * [X] make a nifty flowchart
 -->
 
-It will be essential to differentiate between the terms **lexeme** and **token** during this section.
+It will be essential to differentiate between the terms *lexeme* and *token* during this section.
+
 A lexeme is a valid atom of the grammar, such as a keyword (`in`, `if`, etc.), an operator (`+`, `/`, etc.), an integer literal, a string literal, a left or right parenthesis, an identifier, etc. You can think of it as any word, punctuation mark, number, etc. in the input string.
+
 Meanwhile, a token consists of the _token name_ and an optional _token value_.
 The token name is the name of a lexical category that the lexeme belongs to, while the token value is implemention-defined.
+
 We can represent tokens as a Haskell sum datatype, where data constructor names correspond to token names and constructor arguments correspond to the token value with optionally the scanned lexeme. For instance, `In`, `If`, `Plus`, `Divide`, `Integer 42`, `String "\"foo\""`, `LPar`, `RPar`, and `Identifier "my_function"` are all tokens generated for their corresponding lexemes.
+
 Note that in some cases the token also carries its lexeme value with it, as it is in the case of `Integer`, `String`, and `Identifier`.
 
-If your goal is to move from lexemes to tokens, how do you discern different lexemes? For that, lexers are often implemented using Deterministic Finite Automata (DFAs), which are state machines. For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
+If your goal is to move from lexemes to tokens, how do you discern different lexemes? For that, lexers are often implemented using Deterministic Finite Automata (DFAs), which are state machines. 
+
+For example, supposing that our grammar has the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
 
 ```text
                  ┌─┐
@@ -814,18 +823,13 @@ For inspiration on doing this, you can use Alex's [Tiger example](https://github
 
 You can find the solutions to both exercises [here](https://gist.github.com/heitor-lassarote/a6ec93ae4cf5ebc218c335017140342b).
 
-## Happy
 
-In this tutorial, we demonstrated how to build a lexer using Alex to turn lexemes into tokens, using start codes and a user state adequate for MiniML.
+## Conclusions and further reading
+
+In this part of the tutorial, we demonstrated how to build a lexer using Alex to turn lexemes into tokens, using start codes and a user state adequate for MiniML.
 
 Your next step in this journey is now to use the tokens generated by Alex to create a parser.
-Continue reading the [part 2](https://serokell.io/blog/parsing-with-happy) of this series where you will be introduced to Happy to create the parser of the grammar.
-
-## Further reading
-
-<!--
-* [X] copy and paste links to blog/Twitter etc. from previous articles
--->
+You can continue reading the [second part](https://serokell.io/blog/parsing-with-happy) of this series where you will be introduced to Happy to create the parser of the grammar.
 
 If you liked this article, you might also enjoy these resources:
 
