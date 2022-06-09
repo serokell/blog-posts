@@ -126,7 +126,7 @@ This too can be done with the `forall` keyword.
 You can do it this way because these two constructions – `(exists x. p x) -> q` and `forall x. (p x -> q)` – are equivalent in terms of first-order predicate logic.
 For a theoretical proof of this statement, you can check this [thread](https://stackoverflow.com/questions/10753073/whats-the-theoretical-basis-for-existential-types?rq=1).
 
-In this article, we'll look at existential quantification in data type and function declarations.
+In this article, we'll look at existential quantification in data type and function signatures.
 
 ### Existential quantification in data types
 
@@ -201,9 +201,9 @@ myFromException (SomeException (ex :: MyException)) = ex
 
 Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract the inner value and cast to a specified type. But how that is done is a topic for a different article.
 
-### Existential quantification in functions
+### Existential quantification in function signatures
 
-Existential quantification can also happen in functions. 
+Existential quantification can also happen in function signatures. 
 
 In order to proceed further, you'll have to enable the [`RankNTypes`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/rank_polymorphism.html) extension. This enables us to create higher-rank types.
 
