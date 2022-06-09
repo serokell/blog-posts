@@ -63,7 +63,10 @@ Here's how the (simplified and prettified) AST of the snippet above will look at
 ]
 ```
 
-n.b.: The `_` will contain the range of the parsed tree, we've omited it here for brevitity.
+n.b.: The wildcards (`_`) will contain the ranges of each parsed tree node, omited here for brevitity.
+
+So we transformed unstructured data (a string) into structured data, which is much easier to manipulate.
+This tree structure is ready to be type-checked, transpiled or interpreted.
 
 ## Lexing with Alex
 
@@ -161,7 +164,7 @@ We can represent tokens as a Haskell sum datatype, where data constructor names 
 
 Note that in some cases the token also carries its lexeme value with it, as it is in the case of `Integer`, `String`, and `Identifier`.
 
-If your goal is to move from lexemes to tokens, how do you discern different lexemes? For that, lexers are often implemented using deterministic finite automata (DFAs), which are state machines. 
+If your goal is to move from lexemes to tokens, how do you discern different lexemes? For that, lexers are often implemented using deterministic finite automata (DFAs), which are state machines.
 
 For example, supposing that our grammar has only the keywords `if` and `in` and also identifiers consisting of only lowercase letters, a small automaton for it could look like so:
 
@@ -326,17 +329,17 @@ Consult the Alex User Guide on [wrappers](https://haskell-alex.readthedocs.io/en
 Then we have `tokens :-`, where we will list all the patterns defined by regular expressions to match lexemes in our grammar plus an action on what the lexer should do with the matched lexeme.
 The first definition we provided is `<0> $white+ ;`, which simply indicates that all white space should be skipped.
 
-The bottom section contains some boilerplate that Alex requires us to write. These include: 
+The bottom section contains some boilerplate that Alex requires us to write. These include:
 
 * A data type that needs to be called `AlexUserState`.
-* A value with the initial state called `alexInitUserState`. 
+* A value with the initial state called `alexInitUserState`.
 * A value called `alexEOF`, which instructs Alex how to build the EOF (end-of-file) token. It is reached when Alex has finished lexing the input string.
 * Some additional datatypes: `Range`, `RangedToken`, and `Token`, which we will use throughout the article to describe the tokens that we've successfully created, as well as their positions. Saving the ranges is unnecessary, but they are useful when reporting errors.
 
 Finally, for the EOF token, we use the `alexGetInput` action to retrieve the current position of the scanner and provide it to the token.
 
 We should provide one token name to `Token` for each lexical category in the grammar.
-You are free to add new token names as you wish. 
+You are free to add new token names as you wish.
 
 For this tutorial, we will have the following: operators, keywords, literals (strings and integers), identifiers, a token representing the end-of-file (EOF), etc.
 
@@ -400,10 +403,10 @@ We are free to choose the specification for identifiers, but let's use the follo
 > An identifier is a sequence of alphanumeric characters, primes ('), question marks (?), and underscores (_).
 > The identifier must begin with a letter or an underscore.
 
-To make it easier to write the regex pattern for identifiers, we can use character set and regex macros.
+To make it easier to write the regex pattern for identifiers, we can use character set macros and regex macros.
 
 <hr>
-<b>Regex macros</b>
+<b>Character set and regex macros</b>
 
 _Character set macros_ are shortcuts that you can use to avoid duplicating character sets. We use `$NAME = CHARACTER_SET` to define a character set macro.
 
@@ -676,6 +679,7 @@ Right
 
 We would like to detect such cases and also support nested comments.
 We will create two helper functions, `nestComment` and `unnestComment`, which will keep track of how many layers of comments we have and allow us to detect whether we have reached the end of the file with an unclosed comment.
+But before we implement those two functions, let's first write the Alex code to deal with recognizing comments as well as some utilities.
 
 In addition, Alex provides the `andBegin` combinator that will execute an expression and change the current start code.
 
