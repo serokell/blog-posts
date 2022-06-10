@@ -5,18 +5,22 @@
 * [X] link to its user guide
 -->
 
-This is the second and final part of the _Parsing with Haskell_ series.
+This is the second and final part of the Parsing with Haskell series.
 Haven't read the first part yet? You can find it [here](https://serokell.io/blog/lexing-with-alex).
 
-As with Alex, our goal here is to provide enough information on Happy to be productive and do valuable things with it, hence we won't visit every single feature of Happy.
-Please refer to the [Happy User Guide](https://monlih.github.io/happy-docs/).
+In this article, we will use [Happy](https://www.haskell.org/happy/) to generate a parser that will consume the token stream from the lexer that Alex has generated for us. 
+
+As with Alex, our goal here is to provide enough information on Happy to be productive and do valuable things with it, hence we won't cover every single feature of Happy.
+Please refer to the [Happy User Guide](https://monlih.github.io/happy-docs/) for more information.
 
 This tutorial was written using GHC version 9.0.2, Stack resolver LTS-19.8, Alex version 3.2.7.1, and Happy version 1.20.0.
 
 ## Our grammar: MiniML
 
 We've discussed the grammar in the previous article, but let's reintroduce it here.
-MiniML (read as "minimal") will be a small grammar based on ML.
+MiniML (read as "minimal") is a small grammar based on [ML](https://en.wikipedia.org/wiki/ML_(programming_language)).
+As the name suggests, it has the minimal syntax needed to get you started with Alex and Happy.
+
 By the end of this tutorial, you will be able to parse programs such as the following:
 
 ```sml
@@ -30,12 +34,13 @@ let main (unit : ()) : () =
   print ("The answer is: " + the_answer)
 ```
 
-Some of the features that this tutorial will support are:
+Some of the features that this tutorial covers are:
 * Variables, constants, function declarations, function applications, local bindings, and operators.
 * Some simple types, as well as arrow types (functions).
 * Conditional expressions: if-then-else and if-then.
 * Block comments (added in part 1).
-* The reader will be invited in the proposed exercises to extend the language with patterns, list access, and pattern matching. The exercises in the first part also introduced rational numbers and line comments.
+
+In addition, exercises will guide you through extending the language with patterns, list access, and pattern matching. The exercises in the first part also introduced rational numbers and line comments.
 
 ## Happy vs. Megaparsec
 
@@ -127,18 +132,18 @@ Comparing the implementations of both parsing techniques is beyond the scope of 
 
 ## How it works
 
-An in-depth explanation of how an LR(1) parser works is well beyond the scope of this tutorial, but for this, we recommend you read our article, [How to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
+An in-depth explanation of how an LR(1) parser works is well beyond the scope of this tutorial. For this, we recommend you read our article on [how to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
 We will, however, introduce a few basic concepts required to understand this article better.
 
 ### Terminals, non-terminals, and production rules
 
-A **terminal** is a lexical item of the language; in our case they will be represented by tokens that were produced by Alex.
+A **terminal** is a lexical item of the language. In our case, they will be represented by tokens that were produced by Alex.
 
 A **non-terminal** is an arbitrary identifier that's replaced by other terminals and non-terminals (terminals and non-terminals together are called **symbols**) to produce derivations, i.e., it's a description of how to group symbols together, meaning that a sequence that doesn't match any non-terminal is considered a syntax error.
 In the example below, `myNonTerminal` is non-terminal.
 
 A **production rule** is a rule describing how to "produce" a string that is syntactically valid according to the grammar. It joins terminals together to form a sentence.
-It looks like so in Happy:
+This is how it looks in Happy:
 
 ```happy
 myNonTerminal
@@ -147,12 +152,11 @@ myNonTerminal
   | ...
 ```
 
-n.b.: The ellipses here are not correct Happy grammar, and we use them to represent that more symbols may be present.
+n.b.: The ellipses here are not correct Happy grammar. We use them to represent that more symbols may be present.
 
-`body@#` where `@` is some letter and `#` some number means that the parser must parse each body in succession.
-The pipe (`|`) represents an alternation. The parser may parse any of the given bodies, accepting the one that matches.
-An alternative may be empty, meaning that `myNonTerminal : { action }` is also accepted.
-`action@` represents what the parser should do once it successfully parsers that rule, such as how to interpret what it has parsed, or how to build a data structure with it. Like in Alex, it may be any Haskell expression.
+* `body@#` where `@` is some letter and `#` some number means that the parser must parse each body in succession.
+* The pipe (`|`) represents an alternation. The parser may parse any of the given bodies, accepting the one that matches. An alternative may be empty, meaning that `myNonTerminal : { action }` is also accepted.
+* `action@` represents what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it. Like in Alex, it may be any Haskell expression.
 
 Production rules may also have an optional type signature.
 For instance, the declaration of `myNonTerminal` could also have been written as such:
@@ -164,9 +168,9 @@ myNonTerminal :: { MyType }
   | ...
 ```
 
-Where any Haskell type may replace `MyType`.
+In the example above, any Haskell type may replace `MyType`.
 
-As a concrete example, here's how we could describe a non-terminal for arithmetic operations, whose action is to evaluate such operations:
+As a concrete example, here's how we could describe a non-terminal for arithmetic operations, the goal of which is to evaluate the operations:
 
 ```happy
 arithmetic :: { Double }
@@ -179,7 +183,9 @@ arithmetic :: { Double }
   | '-' arithmetic            { negate $2 }
 ```
 
-Each `$n` refers to a symbol in the corresponding production body, respectively. In this example, assume `number`, `'('`, `')'`, `'+'`, `'-'`, `'*'`, and `'/'` are terminals.
+In this example, assume `number`, `'('`, `')'`, `'+'`, `'-'`, `'*'`, and `'/'` are terminals.
+Each `$n` refers to a symbol in the corresponding production body, respectively. 
+
 There are a few more steps to get this example running, such as dealing with operator precedence and associativity.
 Our goal is to provide arithmetic operations for MiniML as well, so we'll describe how to do it later in the tutorial. :)
 
@@ -212,23 +218,24 @@ The **look-ahead** represents the sequence of symbols that will be consumed next
 Happy is an LALR(1) parser, which means its look-ahead is 1, so it can see one incoming symbol.
 In the `exp` example above, the look-ahead symbol will be `+`.
 
-### Actions (shift, reduce, goto, accept)
+### Components of an LR parser
 
-When working with Happy, two core concepts that you need to know are **shifting** and **reducing**, which I'll briefly explain.
+Similarly, to lexers generated by Alex, an LR parser also contains a state machine.
+This finite-state machine is used to make parsing decisions. It is a [deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton), and we call it an _LR automaton_.
 
-An LR parser also contains a state machine, similarly to Alex.
-This finite-state machine is called an _LR automaton_, which is also a DFA, which is used to make parsing decisions.
-At the same time, the parser contains a stack with all the tokens consumed during parsing, making it a _pushdown automaton_.
+At the same time, the parser contains a stack with all the tokens consumed during parsing, making it a [_pushdown automaton_](https://en.wikipedia.org/wiki/Pushdown_automaton).
 The parser produces an action table describing how to make decisions based on its stack and the look-ahead token.
-The items in the action table are described in the table below:
 
-|Shift|Reduce|Goto|Accept|
-|-|-|-|-|
-|**Shifting** makes the parser push (shift) the state corresponding to the current input symbol on the top of its internal stack, change its state, and continue parsing.|**Reducing** indicates that the parser has accepted a production, and so it will pop symbols from the stack, push the symbol corresponding to the production head on the stack, and run an action with the consumed input.|**Goto** causes the parser to change states without consuming input.|**Accept** is the last action performed by the parser when it has seen all valid input—accepting means that the program was successfully parsed, and it normally happens when it has reached EOF.|
+Here are the possible actions in the action table:
+
+* **Shift** makes the parser push (shift) the state corresponding to the current input symbol on the top of its internal stack, change its state, and continue parsing.
+* **Reduce** indicates that the parser has accepted a production, and so it will pop symbols from the stack, push the symbol corresponding to the production head on the stack, and run an action with the consumed input. 
+* **Goto** causes the parser to change states without consuming input.
+* **Accept** is the last action performed by the parser when it has seen all valid input. Accepting means that the program was successfully parsed, and it normally happens when the parser has reached EOF.
 
 <details>
 <summary>Interactive parser demo</summary>
-If you'd like to see an interactive parser showing a step-by-step on how it works, you may be interested in Nikolay Yakimov's <a href=https://lierdakil.github.io/parser-demo/>parser-demo</a>. Change the dropdown menu to "LALR", press "Run", and use the arrows to step through the parsing process.
+If you'd like to see an interactive parser showing a step-by-step presentation on how it works, you may be interested in Nikolay Yakimov's <a href=https://lierdakil.github.io/parser-demo/>parser-demo</a>. Change the dropdown menu to "LALR", press "Run", and use the arrows to step through the parsing process.
 
 In the demo, the current stack is on the left, the current tree is on the right, the action table is in the center, the grammar is on the bottom, and the input string is at the top.
 You can input arbitrary strings and write arbitrary grammars, but there's no lexer, so the input string is a sequence of terminals separated by whitespace.
@@ -238,12 +245,15 @@ The control table is divided in two parts:
 * To the right, there is the _goto_ table, which is used to decide what state to push at the top of the stack after reducing.
 </details>
 
+When working with Happy, **shifting** and **reducing** are two core concepts which we will come into contact later.
+
 But enough with theory, let's go to the practice and learn more concepts as we go through it.
 
 ## Our first parser
 
 Below is a minimal definition of a grammar file that Happy can compile.
-In addition, we inserted an extra `empty` rule which we will delete later, as it's there only to make Happy happy.
+In addition, we inserted an extra `empty` rule that we'll delete later.
+It's only there to make Happy happy.
 
 Make sure to put it in a new `Parser.y` file.
 
@@ -282,7 +292,7 @@ lexer = (=<< L.alexMonadScan)
 }
 ```
 
-Happy has a similar structure to Alex, where we insert Haskell definitions at the top and the bottom of the file, with the parser definition in the middle.
+Happy files have a similar structure to Alex files, where we insert Haskell definitions at the top and the bottom of the file, with the parser definition in the middle.
 Likewise, anything between `{` and `}` is going to be inlined as well.
 
 Let's quickly visit each part of this file, from top to bottom.
@@ -300,10 +310,10 @@ Let's quickly visit each part of this file, from top to bottom.
 
 ### Tokens
 
-Since Happy operates on tokens, we must instruct it on how to match each token.
-This is done using `%token`, which must be placed before the `%%` in the file.
-For each token, on the left side, we'll put an alias that we can use to refer to our terminals.
-On the right side, we use a Haskell pattern between braces indicating how Happy should match the tokens we've defined while working with Alex.
+Since Happy operates on tokens, we must tell it how to match each token.
+This is done by using `%token`, which must be placed before `%%` in the file.
+For each token, on the left side, we put an alias that we'll use to refer to our terminals.
+On the right side, we put a Haskell pattern between braces that indicates how Happy should match the Alex tokens.
 
 ```alex
 %token
@@ -345,33 +355,37 @@ On the right side, we use a Haskell pattern between braces indicating how Happy 
   '->'       { L.RangedToken L.Arrow _ }
 ```
 
-These tokens are the terminals used while writing the grammar. They are first-class, and we can use them among other symbols.
+These tokens are the terminals we'll use while writing the grammar. They are first-class, and we can use them among other symbols.
 
 ### Semantic actions
 
 Now that we have the definitions of our tokens, we can now begin writing the parser itself.
-We can start with top-level definitions of format `let example = 0`.
+
+We'll start with top-level definitions of format `let example = 0`.
 This will be a simplistic definition for now, but we will elaborate on it shortly.
-Note that production rules must be placed after the `%%` in the file, and you may delete the `empty` production after inserting the one below.
+
+Note that production rules must be placed after the `%%` in the file.
+You may delete the `empty` production after inserting the one below.
 
 ```happy
 dec
   : let identifier '=' integer {}
 ```
 
-We use `:` to describe the production to be parsed (called `dec`), denoting the tokens (defined above) to be parsed, separated by spaces.
+We use `:` to describe the production to be parsed (called `dec`). We denote the tokens (defined [above](https://serokell.io/blog/parsing-with-happy#tokens)) to be parsed, separated by spaces.
 
-And that's it.
-Well, apart from the fact it does nothing useful but recognizes strings that match this definition or throws a parse error otherwise.
+And that's it, apart from the fact that the rule does nothing useful.
+It recognizes strings that match this definition or throws a parse error otherwise.
 
-We usually want to perform an action simultaneously once something is successfully parsed.
-We can put between the braces a semantic action that does something with the identifier and its integer.
-For example, we could choose to create an interpreter or build a syntax tree, which is what we will do.
+Usually, we want to perform an action once something is successfully parsed.
+To do that, we can put a semantic action between the braces that does something with the identifier and its integer.
+For example, we could choose to create an interpreter or build a syntax tree.
+We'll cover how to do the latter in this tutorial.
 
 ### Abstract syntax trees
 
-An abstract syntax tree (AST) describes the exact structure of the expressions we are parsing.
-Before we continue parsing further, we should define the AST either in a new file and import it in our parser or at the trailer of the Happy file.
+An abstract syntax tree (AST) describes the exact structure of the expressions we're parsing.
+Before we continue parsing further, we should either define the AST in a new file and import it in our parser or define it at the trailer of the Happy file.
 We will keep the AST in `Parser.y` for simplicity.
 
 We will keep the AST small for now and grow it as needed.
@@ -403,18 +417,18 @@ data Exp a
 ```
 
 Note the use of a polymorphic field in each constructor.
-This is useful for storing extra parsing information in the tree, such as the range spanned by that node.
-In practice, however, we will use `a ~ Range` while parsing, but having this field can be helpful if you plan to reuse your tree in other parts of your compiler and need to store more information.
+This is useful for storing extra parsing information in the tree.
+In practice, range is the only thing we'll store there, but having this field can be helpful if you plan to reuse the tree in other parts of your compiler and need to store more information.
 
 A few words about each new data type introduced:
 
-* A `Name` represents an identifier, such as a variable or type name. You could also define a `TypeName` in addition to `Name`, but for simplicity, we will stay only with `Name`.
-* A `Type` contains the type annotation of a declaration. MiniML will support functions, type names, the unit type, and lists. We will start with type names and add the remaining types later.
-* An `Argument` stores information regarding a function parameter, such as its name and its type.
-* A `Dec` represents a declaration consisting of a name, a possibly empty list of function arguments, an optional type annotation, and its body.
-* An `Exp` describes each possible expression. Likewise, we start with simple ones: integers, variables, and strings and will add new ones later.
+* `Name` represents an identifier, such as a variable or a type name. You could also define a `TypeName` in addition to `Name`, but for simplicity, we will stay only with `Name`.
+* `Type` contains the type annotation of a declaration. MiniML will support functions, type names, the unit type, and lists. We'll start with type names and add the remaining types later.
+* `Argument` stores information regarding a function parameter, such as its name and its type.
+* `Dec` represents a declaration, which consists of a name, a possibly empty list of function arguments, an optional type annotation, and the body of the declaration.
+* `Exp` describes each possible expression. We'll start with simple ones – integers, variables, and strings – and add new ones later.
 
-We will also create some utilities to use in the parser.
+We'll also create some utility functions for the parser.
 
 ```haskell
 -- | Build a simple node by extracting its token type and range.
@@ -433,12 +447,12 @@ info = fromJust . getFirst . foldMap pure
 L.Range a1 _ <-> L.Range _ b2 = L.Range a1 b2
 ```
 
-The definition of `ìnfo` could be changed with a typeclass whose purpose is to match on the AST and extract its field, but here we take a shortcut.
-If you want to understand better what's going on, I recommend checking the docs for [`First`](https://hackage.haskell.org/package/base-4.16.1.0/docs/Data-Monoid.html#t:First).
+The definition of `ìnfo` could be switched with a typeclass whose purpose is to match on the AST and extract its field, but here we take a shortcut.
+If you want to better understand what's going on, I recommend checking the docs for [`First`](https://hackage.haskell.org/package/base-4.16.1.0/docs/Data-Monoid.html#t:First).
 
 ### Parsing declarations
 
-With it, we can improve our `dec` parser, as well as creating a few new parsers:
+With the AST in hand, we can improve our `dec` parser and create a few new parsers:
 
 ```happy
 name :: { Name L.Range }
@@ -453,15 +467,16 @@ exp :: { Exp L.Range }
   | string     { unTok $1 (\range (L.String string) -> EString range string) }
 ```
 
-Happy provides the variables `$1`, `$2`, etc., that allow accessing the semantic value of grammar symbols. It's worth noting that the semantic value of a terminal is by default the corresponding token.
+Happy provides variables `$1`, `$2`, etc., that allow accessing the semantic value of grammar symbols.
+By default, this is the corresponding token.
 In the semantic action `EVar (info $1) $1`, for example, `$1` will have the type `Name Range`, which results from parsing `name`.
 
 Likewise, in `dec`, `$1` will refer to the token `let`, `$2` to the parsed variable name, `$3` to the token `'='`, and `$4` to the parsed expression.
 
-Notice that we now generalized `dec` to accept not only integers but any expression.
-Furthermore, we make it so `dec`'s range starts from the start point of `let` and ends and the end point of `exp`.
+Notice that we have generalized `dec` to accept not only integers but any expression.
+Furthermore, we make it so that `dec`'s range starts from the start point of `let` and ends at the end point of `exp`.
 
-We've omitted the type annotation for the declaration, inserting `Nothing` in its place, as well as the function arguments, but we will fill it in shortly.
+We've omitted the type annotation for the declaration (inserting `Nothing` in its place) as well as the function arguments, but we will fill those in shortly.
 
 At the top of your file, do the following substitution:
 
@@ -473,14 +488,16 @@ At the top of your file, do the following substitution:
 Happy uses the first non-terminal if the name is omitted.
 In this case, we'd be able only to parse `name`, which is not what we want, so we make it use `dec` instead.
 
-Let's also check that what we've made so far works. Open up GHCi and test it:
+Let's check that what we've made works so far. 
+
+Open up GHCi and test it:
 
 ```haskell
 >>> runAlex "let example = 42" parseMiniML
 Right (Dec (Range {start = AlexPn 0 1 1, stop = AlexPn 16 1 17}) (Name (Range {start = AlexPn 4 1 5, stop = AlexPn 11 1 12}) "example") [] Nothing (EInt (Range {start = AlexPn 14 1 15, stop = AlexPn 16 1 17}) 42))
 ```
 
-After stripping some of the range boilerplate, it's easy to check that this is what we wanted:
+After stripping some of the range boilerplate, it's easy to see that this is what we wanted:
 
 ```haskell
 Right (Dec _ (Name _ "example") [] Nothing (EInt _ 42))
@@ -488,7 +505,7 @@ Right (Dec _ (Name _ "example") [] Nothing (EInt _ 42))
 
 If you are stuck and need some synchronization, you can find the code up to this point [here](https://gist.github.com/heitor-lassarote/fec2bb3feeb30f47be5a685937011917).
 
-Moving on, let's continue parsing types and arguments for declarations.
+Moving on, let's continue with parsing types and arguments of declarations.
 
 ```happy
 type :: { Type L.Range }
@@ -513,6 +530,7 @@ Again, we start with only type names in `type` for now to keep it simple.
 In `arguments`, the first production means that it's allowed to parse nothing, in which case we yield the empty list.
 
 Some people like to place a comment instead when something is empty, like so:
+
 ```happy
 arguments :: { [Argument L.Range] }
   : {- empty -}        { [] }
@@ -536,7 +554,7 @@ optional(p)
 The first alternative is to parse nothing, which we indicate by putting no productions in it and a semantic action returning `Nothing`.
 The second alternative is to parse the given parser, called `p` here.
 
-To parse the argument list, we will create another utility that parses a production `p` zero or more times, which we call `many`.
+To parse the argument list, we will create another utility that parses a production `p` zero or more times, called `many`.
 
 Additionally, it's recommended to use left recursions instead of right recursions, so we'd use `arguments argument` in the code above.
 You would then call `reverse $1` (assuming `$1` is our list) or use a `Seq` to have the correct order.
@@ -551,7 +569,7 @@ many(p)
   : many_rev(p) { reverse $1 }
 ```
 
-And now we can provide a definition of `dec` avoiding repetition:
+And now we can provide a definition of `dec` that avoids repetition:
 
 ```happy
 typeAnnotation :: { Type L.Range }
@@ -565,7 +583,7 @@ dec :: { Dec L.Range }
   : let name many(argument) optional(typeAnnotation) '=' exp { Dec (L.rtRange $1 <-> info $6) $2 $3 $4 $6 }
 ```
 
-You may delete `arguments` with it as it's now unused.
+You may delete `arguments` since it's unused now.
 
 Finally, let's make the parser capable of parsing zero or more declarations:
 
@@ -612,7 +630,7 @@ data Type a
   deriving (Foldable, Show)
 ```
 
-And we add the corresponding `type` productions to the grammar:
+And then we add the corresponding `type` productions to the grammar:
 
 ```happy
 type :: { Type L.Range }
@@ -653,8 +671,10 @@ The second way it could be parsed is `int -> (int -> int)`, which we desire.
 -->
 
 As previously mentioned, an LR(1) conflict indicates that the parser has found an ambiguity in the grammar.
-They may be indicators of ill-formed grammars, and you should probably refactor it to avoid ambiguities. However, some cases can be reduced by explicitly telling Happy to either shift or reduce.
-In general, there are two types of conflicts that you may find in Happy.
+Conflicts may be indicators of ill-formed grammars, and you should probably refactor them to avoid ambiguities.
+However, some cases can be reduced by explicitly telling Happy to either shift or reduce.
+
+In general, there are two types of conflicts that you may encounter in Happy: shift/reduce and reduce/reduce.
 
 #### Shift/reduce conflicts
 
@@ -662,12 +682,12 @@ In general, there are two types of conflicts that you may find in Happy.
 TODO: I would also appreciate an in-depth review from an LR(1) connoisseur.
 -->
 
-The first one is a shift/reduce conflict.
-This is sometimes benign, and there are two well-known cases where it can be handled.
+A shift/reduce conflict can sometimes be benign, and there are two well-known cases where it can be handled.
 
 ##### Operator precedence and associativity
 
-The first one is regarding operator precedence and associativity, which is also the case we've had with type arrows.
+The first case concerns operator precedence and associativity, which is also the case we've had with type arrows.
+
 Suppose the following snippet:
 
 ```happy
@@ -677,7 +697,7 @@ exp
   | integer     {}
 ```
 
-Which is may also be represented by the following rules:
+Which may also be represented by the following rules:
 
 ```text
 %start_parseExp -> exp (0)
@@ -798,10 +818,11 @@ For example, the first position in state 7 means that the parser has just finish
 
 State 7 happens after we have consumed a `*` in state 6, while state 8 happens after consuming a `+` in state 5.
 
-Suppose we use `1 + 2 * 3` as the input, and suppose that the parser has arrived at `1 + 2 . * 3` in state 8 (coming from state 5).
+Suppose we use `1 + 2 * 3` as the input and that the parser has arrived at `1 + 2 . * 3` in state 8 (coming from state 5).
 It may either _shift_ to consume the `*` and go to state 6 or _reduce_ to accept that it has finished consuming the addition.
 
-In other words, if it shifts, it will parse `1 + (2 * 3)`, giving priority to `*`, and if it reduces, it will parse `(1 + 2) * 3`, giving priority to `+`.
+In other words, if it shifts, it will parse `1 + (2 * 3)`, giving priority to `*`.
+If it reduces, it will parse `(1 + 2) * 3`, giving priority to `+`.
 So if we want `*` to bind tighter than `+`, we want to reduce.
 
 Likewise, what if we have `1 + 2 + 3` as the input?
@@ -810,12 +831,13 @@ It may either be parsed as `(1 + 2) + 3` or `1 + (2 + 3)`.
 If we shift, we make `+` right-associative, resulting in `1 + (2 + 3)`.
 If we reduce, we make `+` left-associative, resulting in `(1 + 2) + 3`.
 
-It means that an LR parser can use shift/reduce conflicts to either shift or reduce, allowing the programmer to specify precedences and associativities for operators.
+It means that an LR parser can use shift/reduce conflicts to either shift or reduce, allowing the programmer to specify precedences and associativities of operators.
 
 ##### Dangling else
 
-The second well-known case is the dangling-else problem, which is a conflict that arises when a language supports both if-then and if-then-else expressions (such as MiniML).
-The expression `if a then if b then x else y` is ambiguous and may be parsed either as `if a then (if b then x else y)` or `if a then (if b then x) else y`.
+The second well-known case is the dangling-else problem, which is a conflict that arises when a language supports both if-then and if-then-else expressions (like we do in MiniML).
+
+It rises from the fact that the expression `if a then if b then x else y` is ambiguous and may be parsed either as `if a then (if b then x else y)` or `if a then (if b then x) else y`.
 
 Typically, the first interpretation is desirable.
 To illustrate, let's see once again the parsing states:
@@ -827,14 +849,16 @@ exp -> if exp then exp .
 
 If we reduced, we would accept the input and get `if a then (if b then x) else b`. So we want to shift instead to continue parsing and get `if a then (if b then x else y)`.
 
-If you think about it, you might notice that this is the same as the operator precedence problem, so it can be solved similarly, but it's nice to have this extra example in mind.
+If you think about it, you might notice that this is the same as the operator precedence problem.
+So it can be solved similarly, but it's nice to have this extra example in mind.
 
 #### Reduce/reduce conflicts
 
 The second type of conflict is a reduce/reduce conflict, meaning that the parser can reduce an expression using different production rules.
-This conflict is more severe than a shift/reduce conflict, and if you ever get it, you should refactor your grammar to eliminate it, as it's often not as trivially resolved as the case of a shift/reduce conflict.
+This conflict is more severe than a shift/reduce conflict and is not often as trivially resolvable.
+If you ever get it, you should refactor your grammar to eliminate it.
 
-### Finding conflicts in Happy
+### Finding and solving conflicts in Happy
 
 Thankfully, Happy provides an easy way to find conflicts in grammars.
 In your terminal, type the following:
@@ -854,7 +878,9 @@ shift/reduce conflicts:  1
 It will generate `src/Parser.hs` and `src/Parser.info`, which you may remove after you are done reading them.
 Now open `src/Parser.info`.
 
-At the top of the file, it will list conflicts. In my `Parser.info`, I see the following:
+At the top of the file, it will list conflicts. 
+
+In my `Parser.info`, I see the following:
 
 ```
 state 32 contains 1 shift/reduce conflicts.
@@ -877,7 +903,7 @@ State 32
 ```
 
 This block tells us that Happy will shift and not reduce when it sees that `->` as a look-ahead.
-Remember that shifting makes the operator right-associative while reducing makes it left-associative.
+Remember that shifting makes the operator right-associative, while reducing makes it left-associative.
 In this case, we would like to make this token right-associative, so we have two ways of achieving this.
 
 1. Use the `%shift` directive.
@@ -914,7 +940,7 @@ This means that `|` binds less tightly than any other operator, followed by `&`.
 The comparison operators are all non-associative\* and bind equally tight.
 Addition and subtraction bind less tightly than division and multiplication.
 
-\* Instead of shifting or reducing, it will cause a parse error.
+\* Instead of shifting or reducing, they will cause a parse error.
 
 There will be a few more precedences that we will indicate later, but for now, let's continue with this.
 
@@ -945,7 +971,7 @@ The complete code for this section may be found [here](https://gist.github.com/h
 Finally, let's move on to the last part of the grammar we want to parse: expressions.
 
 For now, we can parse three simple expression types: integers, variables, and strings.
-Expressions are often more complicated than this, as they may have function applications, list literals, local variable declarations, conditionals, etc.
+Expressions are often more complicated than this – they may have function applications, list literals, local variable declarations, conditionals, etc.
 
 To begin, let's enrich our `Exp` AST with the remainder of the nodes:
 
@@ -983,6 +1009,7 @@ data Exp a
 ```
 
 A few words and an example about each production:
+
 * `EInt`: An integer. `42`.
 * `EVar`: A variable. `my_variable`.
 * `EString`: A string. `"this is a string"`.
@@ -999,7 +1026,7 @@ A few words and an example about each production:
 
 We've previously defined a few primitives, namely `integer`, `name`, and `string`.
 We may now add a few more simple productions.
-Just so we're on the same page, I'll repeat the productions of `exp` that we already had.
+Just so we're on the same page, I'll repeat the productions of `exp` that we already have.
 
 ```happy
 exp :: { Exp L.Range }
@@ -1011,7 +1038,7 @@ exp :: { Exp L.Range }
   | '(' exp ')'              { EPar (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
-The only thing new here is the introduction of a new `sepBy` function, which should separate various productions (`exp`) by a separator (`,`), just like a list in Haskell.
+The only thing new here is the `sepBy` function, which separates various productions (`exp`) by a separator (`,`), just like a list in Haskell.
 The definition of `sepBy` is provided below.
 
 ```happy
@@ -1023,9 +1050,9 @@ sepBy(p, sep)
   : sepBy_rev(p, sep) { reverse $1 }
 ```
 
-Parsing such "atoms" is simple enough, but now we will find difficulties in parsing the other types of expressions, as they will have more complicated interactions.
+Parsing such "atoms" is simple enough, but now we will find difficulties in parsing the other types of expressions since they will have more complicated interactions.
 
-#### Parsing function applications
+#### Parsing function application
 
 Let's begin with `EApp`. You might want to add a new production defining it like so:
 
@@ -1033,11 +1060,12 @@ Let's begin with `EApp`. You might want to add a new production defining it like
   | exp exp                  { EApp (info $1 <-> info $2) $1 $2 }
 ```
 
-But immediately see that it will produce five shift/reduce conflicts.
+But we'll immediately see that it will produce five shift/reduce conflicts.
 The ambiguity comes from the fact that `a b c` could be parsed either as `(a b) c` or `a (b c)`.
 If you analyze the output of `happy -i src/Parser.y`, you should see that it can either shift to another token or reduce it to a function application.
 
 Remember, shifting asks Happy to continue parsing, making the output right-associative, while reducing asks Happy to accept what we have so far, making the output left-associative.
+
 Since shifting is the default action, we will get the incorrect output with `let x = a b c`:
 
 ```haskell
@@ -1049,10 +1077,9 @@ Right
 Unfortunately, Happy doesn't have a `%reduce` directive, only a `%shift` directive.
 Furthermore, using precedences here will not help us.
 
-One feature supported by Happy is the `%prec` directive, which allows creating a placeholder precedence such as `%left APP`, and then using it like `| exp exp %prec APP` (see [2.3.2](https://monlih.github.io/happy-docs/#_sec_precedences) in the Happy User Guide).
+One feature supported by Happy is the `%prec` directive, which allows creating a placeholder precedence such as `%left APP`, and then using it like this:  `| exp exp %prec APP` (see [2.3.2](https://monlih.github.io/happy-docs/#_sec_precedences) in the Happy User Guide).
 
-Instead of messing with precedences, we will make an observation that will allow us to refactor our grammar in an intelligent way to resolve this ambiguity:
-**The right side of a function application will always be an "atom"**.
+Instead of messing with precedences, we will make an observation that will allow us to refactor our grammar in an intelligent way to resolve this ambiguity: the right side of a function application will always be an "atom".
 
 To be more precise, ambiguities, in general, should appear every time we have a production such as `A B C ... exp` or `exp ... X Y Z`.
 Had we placed another token to the left or the right of `exp exp`, such as `exp exp in`, the ambiguity would be eliminated (in this specific case).
@@ -1073,10 +1100,10 @@ atom :: { Exp L.Range }
   | '(' exp ')'              { EPar (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
-This will cause Happy to build a chain `(((atom atom) atom) atom) atom` when parsing.
-Note that even though the left side was stated to be an `exp`, eventually, we must reach an `atom` to terminate parsing.
+This will cause Happy to build a chain like `(((atom atom) atom) atom) atom` when parsing.
+Note that even though the left side was stated to be an `exp`, we must eventually reach an `atom` to terminate parsing.
 
-With it, function applications should now be left-biased.
+With this, function application should now be left-biased.
 
 #### Parsing conditional expressions
 
@@ -1102,11 +1129,11 @@ We see that there is an ambiguity when parsing function applications and conditi
 One instance of a conflicting parse is `if b then f x` when we arrive at `if b then f . x`.
 Should it be parsed as `if b then (f x)` or `(if b then f) x`?
 
-Shifting will cause the first parse to be accepted while reducing will cause the second parse to be accepted.
+Shifting will cause the first parse to be accepted, while reducing will cause the second parse to be accepted.
 Remember, intuitively, shifting can be approximated as "continue parsing and see what we get" while reducing as "accept what we have so far".
 This is why reducing inserts parenthesis right after `f` is parsed.
 
-For now, just like we've split `exp` into `exp` and `atom` in the past, we can further split it:
+For now, just like we split `exp` into `exp` and `atom` in the past, we can further split it:
 
 ```happy
 exp :: { Exp L.Range }
@@ -1129,7 +1156,7 @@ To write an `if` expression in an application, you will now need to surround it 
 
 It's important to note that extracting the conditional expressions from `exp` into their own `expcond` production is unnecessary. Still, it makes the grammar a bit more organized, in my opinion. :)
 
-Be careful not to duplicate `atom` at the end of both `expapp` and `expcond`, or you will get reduce/reduce conflicts since Happy would not be able to figure out if an `atom` should be reduced using `expapp` or `expcond`.
+Be careful not to duplicate `atom` at the end of both `expapp` and `expcond`. If you do, you will get reduce/reduce conflicts since Happy won't be able to figure out if an `atom` should be reduced using `expapp` or `expcond`.
 
 With this, we now only have one shift/reduce conflict, which is the second ambiguity that needs to be resolved.
 Recall that we've discussed before in this article that there is a conflict when parsing `if exp then exp` and `if exp then exp else exp`, which is the dangling-else problem.
@@ -1162,7 +1189,8 @@ You can find the source code up to this point [here](https://gist.github.com/hei
 
 ### Parsing negations
 
-Now, let's make it, so we are able to negate expressions.
+Now, let's make it so we're able to negate expressions.
+
 This case is pretty simple, just stick this definition in `exp`:
 
 ```happy
@@ -1170,7 +1198,8 @@ This case is pretty simple, just stick this definition in `exp`:
 ```
 
 This will also allow us to parse interesting cases, such as `-if True then 1 else 2` or `-succ 2`.
-Try it in GHCi, both cases are valid Haskell code, and we also make it valid MiniML code now.
+Try it in GHCi.
+Both cases are valid Haskell code, and we also have made the first valid MiniML code now.
 
 #### Parsing binary operators
 
@@ -1197,7 +1226,7 @@ First, add new productions to parse each existing operator to `exp`:
 ```
 
 n.b.: Do NOT extract these operators to a new production and change it to `exp operator exp` because of a limitation in Happy. This will cause conflicts that will be pretty difficult to resolve.
-You could work around it using `%prec`, but you will have to list all lookahead terminals in the operator precedence table.
+You could work around it by using `%prec`, but you will have to list all lookahead terminals in the operator precedence table.
 
 Remember that we previously defined the precedences and associativities of each operator; otherwise, Happy would generate 168 shift/reduce conflicts. I will copy and paste them here yet again in case you've missed them:
 
@@ -1213,7 +1242,7 @@ Remember that we previously defined the precedences and associativities of each 
 With it, we now have 12 shift/reduce conflicts.
 
 You could observe that the left-hand side of an operator is always an `atom` and change it accordingly, but this will be no good.
-Even though it would remove all of the shift/reduce conflicts, it would also have the side-effect that **the tree would always be right-biased**.
+Even though it would remove all of the shift/reduce conflicts, it would also have the side-effect that the tree would always be right-biased.
 You could live with it and properly balance the tree afterward (see the "rotation" method for `Dynamic infix operators with Alex and Happy` at the end of the article on how to do it). Still, in this case, it's possible to resolve this only by tweaking the grammar, so let's do it.
 
 The reason we need to keep `exp operator exp` and not `atom operator exp` is because the first alternative can have ambiguities, such as parsing `1 + 2 + 3` as either `(1 + 2) + 3` or `1 + (2 + 3)`. The `%left`, `%nonassoc`, and `%right` directives will properly reduce, error, or shift based on the conflicts.
@@ -1246,7 +1275,7 @@ Is this `if true then 0 else (1 + 2)` (shift) or `(if true then 0 else 1) + 2` (
 
 You have a few choices here. The first is to split the expressions into even more productions, the second is to add a `%shift` directive to the `if-then-else`, and the third is to add an associativity and precedence to the `else`.
 
-I don't want to fiddle too much with the grammar or the LR parsing table, so for now, let's add a precedence to `else`:
+I don't want to fiddle too much with the grammar or the LR parsing table. So for now, let's add a precedence to `else`:
 
 ```diff
 +%right else
@@ -1281,7 +1310,7 @@ This case is trivial, albeit annoying. Just shove these up in `atom`:
 
 #### Parsing let-in
 
-Finally, let's see `let...in...`, the final expression in our language.
+Finally, let's see how we can do `let...in...`, the final expression in our language.
 
 Let's add a new case to `exp` and see what happens:
 
@@ -1289,9 +1318,11 @@ Let's add a new case to `exp` and see what happens:
   | dec in exp               { ELetIn (info $1 <-> info $3) $1 $3 }
 ```
 
-12 shift/reduce conflicts. Not cool. However, looking at `Parser.info`, this is a case that we are already familiar with, which is how conditional expressions interacted with operators, although now with `let...in...` instead of `if...then...else...`.
+12 shift/reduce conflicts. Not cool. However, by looking at `Parser.info`, we can see this is a case that we are already familiar with. 
+It is similar to how conditional expressions interacted with operators, although now with `let...in...` instead of `if...then...else...`.
 
-To illustrate, should `let a = b in a + b` be parsed as `(let a = b in a) + c` or `let a = b in (a + b)`? The second case is desirable, which is shifting when we reach `in`.
+To illustrate, should `let a = b in a + b` be parsed as `(let a = b in a) + c` or `let a = b in (a + b)`?
+The second case is desirable, which is shifting when we reach `in`.
 
 The solution is simply to add a precedence for `in`:
 
@@ -1309,7 +1340,7 @@ Try parsing the snippet at the introduction of this chapter:
 Right [Dec (Range {start = AlexPn 0 1 1, stop = AlexPn 84 5 16}) (Name (Range {start = AlexPn 4 1 5, stop = AlexPn 14 1 15}) "the_answer") [] (Just (TVar (Range {start = AlexPn 17 1 18, stop = AlexPn 20 1 21}) (Name (Range {start = AlexPn 17 1 18, stop = AlexPn 20 1 21}) "int"))) (ELetIn (Range {start = AlexPn 25 2 3, stop = AlexPn 84 5 16}) (Dec (Range {start = AlexPn 25 2 3, stop = AlexPn 35 2 13}) (Name (Range {start = AlexPn 29 2 7, stop = AlexPn 30 2 8}) "a") [] Nothing (EInt (Range {start = AlexPn 33 2 11, stop = AlexPn 35 2 13}) 20)) (ELetIn (Range {start = AlexPn 41 3 3, stop = AlexPn 84 5 16}) (Dec (Range {start = AlexPn 41 3 3, stop = AlexPn 50 3 12}) (Name (Range {start = AlexPn 45 3 7, stop = AlexPn 46 3 8}) "b") [] Nothing (EInt (Range {start = AlexPn 49 3 11, stop = AlexPn 50 3 12}) 1)) (ELetIn (Range {start = AlexPn 56 4 3, stop = AlexPn 84 5 16}) (Dec (Range {start = AlexPn 56 4 3, stop = AlexPn 65 4 12}) (Name (Range {start = AlexPn 60 4 7, stop = AlexPn 61 4 8}) "c") [] Nothing (EInt (Range {start = AlexPn 64 4 11, stop = AlexPn 65 4 12}) 2)) (EBinOp (Range {start = AlexPn 71 5 3, stop = AlexPn 84 5 16}) (EBinOp (Range {start = AlexPn 71 5 3, stop = AlexPn 76 5 8}) (EVar (Range {start = AlexPn 71 5 3, stop = AlexPn 72 5 4}) (Name (Range {start = AlexPn 71 5 3, stop = AlexPn 72 5 4}) "a")) (Times (Range {start = AlexPn 73 5 5, stop = AlexPn 74 5 6})) (EVar (Range {start = AlexPn 75 5 7, stop = AlexPn 76 5 8}) (Name (Range {start = AlexPn 75 5 7, stop = AlexPn 76 5 8}) "c"))) (Plus (Range {start = AlexPn 77 5 9, stop = AlexPn 78 5 10})) (EBinOp (Range {start = AlexPn 79 5 11, stop = AlexPn 84 5 16}) (EVar (Range {start = AlexPn 79 5 11, stop = AlexPn 80 5 12}) (Name (Range {start = AlexPn 79 5 11, stop = AlexPn 80 5 12}) "b")) (Times (Range {start = AlexPn 81 5 13, stop = AlexPn 82 5 14})) (EVar (Range {start = AlexPn 83 5 15, stop = AlexPn 84 5 16}) (Name (Range {start = AlexPn 83 5 15, stop = AlexPn 84 5 16}) "c"))))))),Dec (Range {start = AlexPn 86 7 1, stop = AlexPn 154 8 41}) (Name (Range {start = AlexPn 90 7 5, stop = AlexPn 94 7 9}) "main") [Argument (Range {start = AlexPn 95 7 10, stop = AlexPn 106 7 21}) (Name (Range {start = AlexPn 96 7 11, stop = AlexPn 100 7 15}) "unit") (Just (TUnit (Range {start = AlexPn 103 7 18, stop = AlexPn 105 7 20})))] (Just (TUnit (Range {start = AlexPn 109 7 24, stop = AlexPn 111 7 26}))) (EApp (Range {start = AlexPn 116 8 3, stop = AlexPn 154 8 41}) (EVar (Range {start = AlexPn 116 8 3, stop = AlexPn 121 8 8}) (Name (Range {start = AlexPn 116 8 3, stop = AlexPn 121 8 8}) "print")) (EPar (Range {start = AlexPn 122 8 9, stop = AlexPn 154 8 41}) (EBinOp (Range {start = AlexPn 123 8 10, stop = AlexPn 153 8 40}) (EString (Range {start = AlexPn 123 8 10, stop = AlexPn 140 8 27}) "\"The answer is: \"") (Plus (Range {start = AlexPn 141 8 28, stop = AlexPn 142 8 29})) (EVar (Range {start = AlexPn 143 8 30, stop = AlexPn 153 8 40}) (Name (Range {start = AlexPn 143 8 30, stop = AlexPn 153 8 40}) "the_answer")))))]
 ```
 
-Or, simplifying a bit:
+Or, after simplifying a bit:
 
 ```haskell
 Right
@@ -1338,11 +1369,11 @@ You can find the complete grammar [here](https://gist.github.com/heitor-lassarot
 ### Exercises
 
 1. Change your lexer and parser to accept fractional numbers.
-Besides accepting numbers such as `3.14`, it should also accept exponents, like `12.5e-4`.
+  Besides accepting numbers such as `3.14`, it should also accept exponents, like `12.5e-4`.
 
 <details>
 <summary><b>Hint</b></summary>
-Use the <a href=https://hackage.haskell.org/package/scientific-0.3.7.0><code>scientific</code></a> package to read and store the number in your list of tokens and then in your abstract syntax tree. You may replace <code>Integer</code> with a new <code>Number</code> type if you prefer.
+Use the <a href=https://hackage.haskell.org/package/scientific-0.3.7.0><code>scientific</code></a> package to read and store the number in your list     of tokens and then in your abstract syntax tree. You may replace <code>Integer</code> with a new <code>Number</code> type if you prefer.
 </details><br>
 
 2. Support accessing list positions in your lexer and parser. For example, accessing the first element of a list would look like `my_list.(0)`. Note that it may also nest, e.g., `[[1, 2], [3]].(if foo then 0 else 1).(0)`.
@@ -1360,9 +1391,9 @@ You can find the solutions to exercises 1, 2, and 3 [here](https://gist.github.c
 
 ## Conclusion
 
-In this tutorial, we integrated Alex with Happy, where we created a grammar, resolved LR conflicts, and built an abstract syntax tree.
+In this tutorial, we successfully integrated Alex with Happy and made a parser that will parse the incoming token stream from Alex into an abstract syntax tree.
 
-With it, we hope that you can now use these tools to make valuable things while understanding how to overcome the various challenges that arise when creating grammars.
+After reading the series, we hope that you can now use these tools to make valuable things while understanding how to overcome the various challenges that arise when creating grammars.
 
 ## Further reading
 
