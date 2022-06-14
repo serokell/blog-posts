@@ -5,19 +5,21 @@
 * [X] link to its user guide
 -->
 
-This is the second and final part of the Parsing with Haskell series.
+This is the second and final part of the Parsing with Haskell series. 
 Haven't read the first part yet? You can find it [here](https://serokell.io/blog/lexing-with-alex).
 
 In this article, we will use [Happy](https://www.haskell.org/happy/) to generate a parser that will consume the token stream from the lexer that Alex has generated for us. 
 
-As with Alex, our goal here is to provide enough information on Happy to be productive and do valuable things with it, hence we won't cover every single feature of Happy.
+As with Alex, our goal is to provide enough information to be productive with Happy.
+Hence, we won't cover every single feature of it.
 Please refer to the [Happy User Guide](https://monlih.github.io/happy-docs/) for more information.
 
 This tutorial was written using GHC version 9.0.2, Stack resolver LTS-19.8, Alex version 3.2.7.1, and Happy version 1.20.0.
 
 ## Our grammar: MiniML
 
-We've discussed the grammar in the previous article, but let's reintroduce it here.
+We discussed our grammar in the previous article, but let's reintroduce it here.
+
 MiniML (read as "minimal") is a small grammar based on [ML](https://en.wikipedia.org/wiki/ML_(programming_language)).
 As the name suggests, it has the minimal syntax needed to get you started with Alex and Happy.
 
@@ -34,13 +36,13 @@ let main (unit : ()) : () =
   print ("The answer is: " + the_answer)
 ```
 
-Some of the features that this tutorial covers are:
+Some of the features that this tutorial will cover are:
+
 * Variables, constants, function declarations, function applications, local bindings, and operators.
 * Some simple types, as well as arrow types (functions).
 * Conditional expressions: if-then-else and if-then.
-* Block comments (added in part 1).
 
-In addition, exercises will guide you through extending the language with patterns, list access, and pattern matching. The exercises in the first part also introduced rational numbers and line comments.
+In addition, exercises will guide you through extending the language with patterns, list access, and pattern matching. The first part also introduced block comments (in the main text) and rational numbers and line comments (in exercises).
 
 ## Happy vs. Megaparsec
 
@@ -62,7 +64,7 @@ LL here means **L**eft-to-right parsing, **L**eftmost derivation, as they scan s
 
 The number between the parentheses indicates how many look-ahead tokens the parser can see.
 A parser with a look-ahead of `k` can make decisions by looking `k` tokens (or symbols) ahead.
-A look-ahead of `k=1` is often chosen for better performance, but popular parser combinatrs libraries offer an option to use an arbitrary `k` with the `lookAhead` function. A LL(k) parser is often enough to parse most grammars in programming languages.
+A look-ahead of `k=1` is often chosen for better performance, but popular parser combinator libraries offer an option to use an arbitrary `k` with the `lookAhead` function. A LL(k) parser is often enough to parse most grammars in programming languages.
 
 On the other hand, Happy is an LALR(1) parser generator (bottom-up parser), where the R means **R**ightmost derivation in reverse. An LALR(1) (Look-Ahead LR) parser generator is a more performant albeit less powerful variant of an LR(1) parser; see <a href=https://monlih.github.io/happy-docs/#_sec_conflict_tips>section 8.4.1</a> of the Happy User Guide.
 Happy also supports GLR (Generalized LR) parsing, which this tutorial won't cover, but you can find more about it in the <a href=https://monlih.github.io/happy-docs/#_sec_glr)>section 3</a> of the Happy User Guide.
@@ -192,7 +194,7 @@ Each `$n` refers to a symbol in the corresponding production body, respectively.
 There are a few more steps to get this example running, such as dealing with operator precedence and associativity.
 Our goal is to provide arithmetic operations for MiniML as well, so we'll describe how to do it later in the tutorial. :)
 
-We will also use the following notation representing productions.
+We'll also use the following notation to represent productions.
 This is not valid Happy code, but it's what it uses for debugging information.
 
 ```
@@ -248,7 +250,7 @@ The control table is divided in two parts:
 * To the right, there is the _goto_ table, which is used to decide what state to push at the top of the stack after reducing.
 </details>
 
-When working with Happy, **shifting** and **reducing** are two core concepts which we will come into contact later.
+When working with Happy, shifting and reducing are two core concepts which we will come into contact later.
 
 But enough with theory, let's go to the practice and learn more concepts as we go through it.
 
@@ -546,7 +548,7 @@ Even though this code works, it leads to some undesirable repetition.
 Notably, we repeat two productions for accepting an optional type annotation.
 Thankfully, Happy allows for _parameterized productions_, which you can think of as being similar to a function taking parsers as arguments.
 
-Let us define a utility which we will call `optional`:
+Let us define a utility called `optional`:
 
 ```happy
 optional(p)
@@ -561,7 +563,7 @@ To parse the argument list, we will create another utility that parses a product
 
 Additionally, it's recommended to use left recursion instead of right recursion, so we'd use `arguments argument` in the code above.
 You would then call `reverse $1` (assuming `$1` is our list) or use a `Seq` to have the correct order.
-This is because Happy can parse left recursions more efficiently, as LR requires O(n) stack space for right recursion and only O(1) for left recursion. See [2.2 Parsing sequences](https://monlih.github.io/happy-docs/#_sec_sequences) in the Happy user guide for more information. So let's also change this!
+This is because Happy can parse left recursions more efficiently – LR requires O(n) stack space for right recursion and only O(1) for left recursion. See [2.2 Parsing sequences](https://monlih.github.io/happy-docs/#_sec_sequences) in the Happy user guide for more information. So let's also change this!
 
 ```happy
 many_rev(p)
