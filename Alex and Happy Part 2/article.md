@@ -5,10 +5,10 @@
 * [X] link to its user guide
 -->
 
-This is the second and final part of the Parsing with Haskell series. 
+This is the second and final part of the Parsing with Haskell series.
 Haven't read the first part yet? You can find it [here](https://serokell.io/blog/lexing-with-alex).
 
-In this article, we will use [Happy](https://www.haskell.org/happy/) to generate a parser that will consume the token stream from the lexer that Alex has generated for us. 
+In this article, we will use [Happy](https://www.haskell.org/happy/) to generate a parser that will consume the token stream from the lexer that Alex has generated for us.
 
 As with Alex, our goal is to provide enough information to be productive with Happy.
 Hence, we won't cover every single feature of it.
@@ -46,91 +46,28 @@ In addition, exercises will guide you through extending the language with patter
 
 ## Happy vs. Megaparsec
 
-<!--
-* [X] refer to parser combinators article
-* [X] talk about the pros and cons
--->
+Happy is a parser generator that generates LALR(1) (bottom-up) parsers, which is a more performant yet less powerful version of LR(1) parsers.
 
-In a previous tutorial, we discussed implementing and using [Parser Combinators in Haskell](https://serokell.io/blog/parser-combinators-in-haskell).
-In the article, we discussed some pros and cons of top-down parsers compared to LR parsers, which we will reiterate and elaborate on.
+Meanwhile, Haskell libraries such as Megaparsec work best on LL(1) or LL(∞) grammars. They're implemented as recursive descent parsers (top-down parsers) with backtracking.
 
-<!--
-TODO: not sure how correct is the theory here, a more in-depth review here would be nice
--->
+As such, these libraries have caveats like not being able to handle left-recursion. Their performance can also exponentially degrade due to backtracking.
 
-Haskell libraries such as Megaparsec work best on LL(1) or LL(∞) grammars and they're implemented as recursive descent parsers (top-down parser) with backtracking.
-As such, caveats like not being able to handle left-recursion also apply to them, besides that their performance can exponentially degrade due to backtracking.
-LL here means **L**eft-to-right parsing, **L**eftmost derivation, as they scan strings from left to right and recovers a leftmost derivation (see below).
+While comparing the implementations of both parsing techniques is beyond the scope of this post, you can read two suggested blog posts for more information: [From recursive descent to LR parsing](https://www.abubalay.com/blog/2021/12/31/lr-control-flow) and [Which Parsing Approach?](https://tratt.net/laurie/essays/entries/which_parsing_approach.html).
 
-The number between the parentheses indicates how many look-ahead tokens the parser can see.
-A parser with a look-ahead of `k` can make decisions by looking `k` tokens (or symbols) ahead.
-A look-ahead of `k=1` is often chosen for better performance, but popular parser combinator libraries offer an option to use an arbitrary `k` with the `lookAhead` function. A LL(k) parser is often enough to parse most grammars in programming languages.
+Another difference between these libraries is that Happy is a parser generator.
+It means that instead of writing Haskell files (`.hs`) like you do with Megaparsec, you will write Happy (`.y`) files. Those will generate Haskell files with implementations of the parser recognizing the described grammar.
 
-On the other hand, Happy is an LALR(1) parser generator (bottom-up parser), where the R means **R**ightmost derivation in reverse. An LALR(1) (Look-Ahead LR) parser generator is a more performant albeit less powerful variant of an LR(1) parser; see <a href=https://monlih.github.io/happy-docs/#_sec_conflict_tips>section 8.4.1</a> of the Happy User Guide.
-Happy also supports GLR (Generalized LR) parsing, which this tutorial won't cover, but you can find more about it in the <a href=https://monlih.github.io/happy-docs/#_sec_glr)>section 3</a> of the Happy User Guide.
-
-As an example, suppose we have the expression `1 + 2 + 3`, which is parsed as the following tree:
-
-```text
-            +
-          ↙   ↘
-        1       +
-              ↙   ↘
-            2       3
-```
-
-Which was generated from this grammar:
-
-```
-exp -> num
-exp -> num "+" exp
-num -> [0-9]+
-```
-
-It means that in an expression such as `1 + 2 + 3`, a LL parser would perform substitutions by visiting the leftmost nodes first, recovering the tokens in this order:
-
-<pre>
-<i>exp</i>
-<b><i>num</i> + exp</b>
-<b>1</b> + <i>exp</i>
-1 + <b><i>num</i> + exp</b>
-1 + <b>2</b> + <i>exp</i>
-1 + 2 + <b><i>num</i></b>
-1 + 2 + <b>3</b>
-</pre>
-
-n.b.: **Bold** means the result of the derivation, and <i>italic</i> means the derivation that will be expanded next.
-
-Whilst an LR parser would do the following:
-
-<pre>
-<i>1</i> + 2 + 3
-<b>num</b> + <i>2</i> + 3
-num + <b>num</b> + <i>3</i>
-num + num + <i><b>num</b></i>
-num + <i>num + <b>exp</b></i>
-<i>num + <b>exp</b></i>
-<b>exp</b>
-</pre>
-
-For more information on leftmost and rightmost derivations, see [LL and LR Parsing Demystified](https://blog.reverberate.org/2013/07/ll-and-lr-parsing-demystified.html).
-
-Another difference is that Alex is a lexer generator and Happy a parser generator.
-It means that instead of writing Haskell files (`.hs`) like you do with Megaparsec, you will write Alex (`.x`) and Happy (`.y`) files, which in turn will automatically generate Haskell files with implementations of the lexer and parser recognizing the described grammar.
-
-Below are some pros and cons of Happy in comparison to Megaparsec:
+To sum it up, here are some pros and cons of Happy in comparison to Megaparsec:
 
 Pros:
-* Ambiguous grammars are reported to the user with parser generators, allowing a greater trust in the parser's output and saving the debugging headache.
-* Bottom-up parsers can handle left-recursion, while top-down can't.
+* Parser generators report ambiguous grammars to the user, creating greater trust in the parser's output and saving from debugging headaches.
+* Bottom-up parsers can handle left-recursion, while top-down parsers can't.
 * The performance will be more predictable, as Megaparsec can cause exponential time complexity with the use of `try`. In addition, Happy's "static" generated LALR algorithm has better known complexity constraints.
+* Dealing with operator precedence and associativity requires less labor. In Megaparsec, there are standard tools like [`makeExprParser`](https://hackage.haskell.org/package/parser-combinators-1.3.0/docs/Control-Monad-Combinators-Expr.html#v:makeExprParser) to deal with them, but once you need something that is non-standard, you'll need to write more non-trivial parser rules by hand.
 
 Cons:
-* Less idiomatic, as you need to write Alex and Happy grammars instead of Haskell code.
-* Less flexible since you can't touch the algorithm on how Happy works. Meanwhile, you can easily create your functions for parser combinators.
-* Dealing with operator precedence and associativity requires more labor. There are standard tools to deal with them, but once you need something that is non-standard, you'll need to write more non-trivial parser rules by hand.
-
-Comparing the implementations of both parsing techniques is beyond the scope of this post. Still, if you are interested, you may read the parser combinators article linked above.
+* Less idiomatic, as you need to write Happy grammars instead of Haskell code.
+* Less flexible since you can't change Happy’s algorithm. Meanwhile, parser combinators enable you to easily create your own functions.
 
 ## How it works
 
@@ -140,11 +77,11 @@ We will, however, introduce a few basic concepts required to understand this art
 ### Terminals, non-terminals, and production rules
 
 A **terminal** is a lexical item of the language. In our case, they will be represented by tokens that were produced by Alex.
-They will represent the leaves of our tree.
+They will represent the leaves of the syntax tree.
 
 A **non-terminal** is a description of how the grammar can group symbols together. It's an arbitrary identifier that's replaced by other terminals and non-terminals (terminals and non-terminals together are called **symbols**) to produce derivations. A sequence that doesn't match any non-terminal is considered a syntax error.
 In the example below, `myNonTerminal` is non-terminal.
-They will represent the internal nodes of our tree.
+They will represent the internal nodes of the abstract syntax tree.
 
 A **production rule** is a rule describing how to "produce" a string that is syntactically valid according to the grammar. It joins terminals together to form a sentence.
 This is how it looks in Happy:
@@ -159,7 +96,7 @@ myNonTerminal
 n.b.: The ellipses here are not correct Happy grammar. We use them to represent that more symbols may be present.
 
 * `body@#` where `@` is some letter and `#` some number means that the parser must parse each body in succession.
-* The pipe (`|`) represents an alternation (an _or_). The parser may parse any of the given bodies, accepting the one that matches. An alternative may be empty, meaning that `myNonTerminal : { action }` is also accepted.
+* The pipe (`|`) represents an alternation (an _or_). The parser may parse any of the given bodies, accepting the one that matches. A body of a production may be empty, meaning that `myNonTerminal : { action }` is also accepted.
 * `action@` represents what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it. Like in Alex, it may be any Haskell expression.
 
 Production rules may also have an optional type signature.
@@ -189,7 +126,7 @@ arithmetic :: { Double }
   | '-' arithmetic            { negate $2 }
 ```
 
-Each `$n` refers to a symbol in the corresponding production body, respectively. 
+Each `$n` refers to a symbol in the corresponding production body, respectively.
 
 There are a few more steps to get this example running, such as dealing with operator precedence and associativity.
 Our goal is to provide arithmetic operations for MiniML as well, so we'll describe how to do it later in the tutorial. :)
@@ -234,7 +171,7 @@ The parser generates an action table describing how to make parsing decisions wh
 Here are the possible actions in the action table:
 
 * **Shift** makes the parser push (shift) the state corresponding to the current input symbol on the top of its internal stack, change its state, and continue parsing.
-* **Reduce** indicates that the parser has accepted a production, and so it will pop symbols from the stack, push the symbol corresponding to the production head on the stack, and run an action with the consumed input. 
+* **Reduce** indicates that the parser has accepted a production, and so it will pop symbols from the stack, push the symbol corresponding to the production head on the stack, and run an action with the consumed input.
 * **Goto** causes the parser to change states without consuming input.
 * **Accept** is the last action performed by the parser when it has seen all valid input. Accepting means that the program was successfully parsed, and it normally happens when the parser has reached EOF.
 
@@ -377,7 +314,7 @@ dec
   : let identifier '=' integer {}
 ```
 
-We use `:` to describe the non-terminal to be parsed (called `dec`). We denote the tokens (defined [above](https://serokell.io/blog/parsing-with-happy#tokens)) to be parsed, separated by spaces.
+We use `:` to describe the production body to be parsed (whose production head is `dec`). We denote the tokens (defined [above](https://serokell.io/blog/parsing-with-happy#tokens)) to be parsed, separated by spaces.
 
 And that's it, apart from the fact that the rule does nothing useful.
 It recognizes strings that match this definition or throws a parse error otherwise.
@@ -493,7 +430,7 @@ At the top of your file, do the following substitution:
 Happy uses the first non-terminal if the name is omitted.
 In this case, we'd be able only to parse `name`, which is not what we want, so we make it use `dec` instead.
 
-Let's check that what we've made works so far. 
+Let's check that what we've made works so far.
 
 Open up GHCi and test it:
 
@@ -645,7 +582,7 @@ type :: { Type L.Range }
   | '[' type ']'   { TList (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
-n.b.: Having a `TPar` node is not necessary, and you could have used `$2` in its semantic action instead, but we opted to leave it here.
+n.b.: Having a `TPar` node is not necessary because from the AST alone we can figure out the correct precedence of operators and avoid redundant parentheses, and you could have used `$2` in its semantic action instead, but we opted to leave it here for consistency.
 
 What about the arrow type? Well, let's try it out. Add it to the `type` production:
 
@@ -723,14 +660,14 @@ As well as the following states and actions:
     <td>0</td>
     <td><pre>%start_parseExp -> . exp (rule 0)</pre></td>
     <td>
-      <pre>integer shift, and enter state 3                                      
+      <pre>integer shift, and enter state 3
 exp     goto state 4</pre>
     </td>
   </tr>
   <tr>
     <td>1</td>
     <td><pre>exp -> . exp '*' exp (rule 1)</pre></td>
-    <td><pre>integer shift, and enter state 3                                      
+    <td><pre>integer shift, and enter state 3
 exp     goto state 2</pre>
     </td>
   </tr>
@@ -741,8 +678,8 @@ exp     goto state 2</pre>
 exp -> exp . '+' exp (rule 2)</pre>
     </td>
     <td>
-      <pre>'+'     reduce using rule 3                                           
-'*'     reduce using rule 3                                           
+      <pre>'+'     reduce using rule 3
+'*'     reduce using rule 3
 %eof    reduce using rule 3</pre>
     </td>
   </tr>
@@ -883,7 +820,7 @@ shift/reduce conflicts:  1
 It will generate `src/Parser.hs` and `src/Parser.info`, which you may remove after you are done reading them.
 Now open `src/Parser.info`.
 
-At the top of the file, it will list conflicts. 
+At the top of the file, it will list conflicts.
 
 In my `Parser.info`, I see the following:
 
@@ -1083,6 +1020,8 @@ Unfortunately, Happy doesn't have a `%reduce` directive, only a `%shift` directi
 Furthermore, using precedences here will not help us.
 
 One feature supported by Happy is the `%prec` directive, which allows creating a placeholder precedence such as `%left APP`, and then using it like this:  `| exp exp %prec APP` (see [2.3.2](https://monlih.github.io/happy-docs/#_sec_precedences) in the Happy User Guide).
+It might cause shift/reduce conflicts later on, though, that could be fixed by listing all terminals in the precedence table.
+Sometimes it might be less annoying than refactoring the grammar, but it's not our case here.
 
 Instead of messing with precedences, we will make an observation that will allow us to refactor our grammar in an intelligent way to resolve this ambiguity: the right side of a function application will always be an "atom".
 
@@ -1323,10 +1262,10 @@ Let's add a new case to `exp` and see what happens:
   | dec in exp               { ELetIn (info $1 <-> info $3) $1 $3 }
 ```
 
-12 shift/reduce conflicts. Not cool. However, by looking at `Parser.info`, we can see this is a case that we are already familiar with. 
+12 shift/reduce conflicts. Not cool. However, by looking at `Parser.info`, we can see this is a case that we are already familiar with.
 It is similar to how conditional expressions interacted with operators, although now with `let...in...` instead of `if...then...else...`.
 
-To illustrate, should `let a = b in a + b` be parsed as `(let a = b in a) + c` or `let a = b in (a + b)`?
+To illustrate, should `let a = b in a + b` be parsed as `(let a = b in a) + b` or `let a = b in (a + b)`?
 The second case is desirable, which is shifting when we reach `in`.
 
 The solution is simply to add a precedence for `in`:
