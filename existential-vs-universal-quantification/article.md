@@ -120,7 +120,7 @@ Other extensions that somehow benefit from the usage of `ExplicitForAll` are `Li
 
 ## Existential quantification
 
-As I said earlier, besides universal quantification, Haskell also supports existential quantification.
+As said earlier, besides universal quantification, Haskell also supports existential quantification.
 This too can be done with the `forall` keyword.
 
 You can do it this way because these two constructions – `(exists x. p x) -> q` and `forall x. (p x -> q)` – are equivalent in terms of first-order predicate logic.
@@ -149,7 +149,7 @@ The above is a heterogeneous list that contains values of different types.
 You can't do that with an universally quantified list because every element in that list would need to have the same type.
 
 But, there are not many things you can do with elements of this list.
-Since the type of elements is unknown at the use-site, you can't address it, nor can you pass it to functions that expect values of concrete type.
+Since the type of elements is unknown at the use site, you can't address it, nor can you pass it to functions that expect values of concrete type.
 
 Adding constraints to the `a` variable may improve the situation:
 
@@ -271,9 +271,9 @@ existentially quantified type variables are instantiated at the "definition site
 In other words, the function's definition is free to choose how to instantiate the type variable; but the user of the function is not.
 
 Let's look at a real life example.
-Imagine a function that prints some logs while calculating the result.
-You may want to write logs into a console or into some file.
-In order to do it, you pass a logging function as an argument.
+Imagine a function that prints logs while calculating some result.
+You may want to write logs to the console or into some file.
+In order to abstract over where the logs are written to, you pass a logging function as an argument.
 
 ```haskell
 func :: _ -> IO ()
@@ -291,13 +291,13 @@ getUserCount :: IO Int
 getUserCount = undefined
 ```
 
-What type should the log function have?
-Since it somehow logs both `String` and `Int`:
+What type should the `log` function have?
+Since it logs both `String` and `Int`,
+one might think that adding a function with signature `a -> IO` and a constraint `Show a` would be enough to implement it.
 
 ```haskell
 log :: Show a => a -> IO ()
 ```
-So one might think that adding a function with signature `a -> IO` and a constraint `Show a` would be enough to implement it.
 
 However, if we try this:
 
@@ -314,7 +314,7 @@ main = do
   func (appendFile "logfile.log" . show)
 ```
 
-We will see some nasty compiler errors.
+We will see this compiler error:
 
 ```none
   log username
@@ -322,21 +322,20 @@ We will see some nasty compiler errors.
 Couldn't match expected type `a` with actual type `String`...
 ```
 
-We're getting this error because:
+We get this error because:
 
-1. `func`'s type variable `a` is universally quantified, therefore it can only be instantiated at the use-site.
-2. We're trying to instantiate it at `func`'s definition-site (`log username` is trying to instantiate the type variable `a` with `String` and `log userCount` is trying to instantiate the type variable `b` with `Int`).
+1. `func`'s type variable `a` is universally quantified, therefore it can only be instantiated at the use site.
+2. We're trying to instantiate it at `func`'s definition site (`log username` is trying to instantiate the type variable `a` with `String` and `log userCount` is trying to instantiate the type variable `b` with `Int`).
 
-Because we want `a` to be instantiated at `func`'s definition-site (rather than its use-site), we need `a` to be existentially quantified instead.
+Because we want `a` to be instantiated at `func`'s definition site (rather than its use site), we need `a` to be existentially quantified instead.
 
 ```haskell
 {-# LANGUAGE RankNTypes #-}
 
 func :: (forall a. Show a => a -> IO ()) -> IO ()
 ```
-Now the compiler knows that no matter which function we pass to `func`, type variable `a` should be instantiated here, not outside.
-
-With this change, we can instantiate `a` when we call log.
+Now the compiler knows that no matter which function we pass to `func`, it must work for _any_ type `a`,
+and `func`'s definition will be responsible for instantiating it.
 
 ```haskell
 func :: (forall a. Show a => a -> IO ()) -> IO ()
@@ -348,12 +347,14 @@ func log = do
   log @Int userCount
 ```
 
-Note that this type applications is unnecessary.
-Compiler is smart enough to choose appropriate types.
+Note that type applications isn't strictly necessary here,
+the compiler is smart enough to infer the right types,
+but it does help with readability.
 
 ## Summary
 
 We have taken a look at universal and existential quantification in Haskell.
-While we didn't introduce many syntax constructions, quantification allows you to further expand the rich type system of the language and to create constructions that previously were impossible.
+With a few extensions and the `forall` keyword,
+quantification allows you to further expand the rich type system of the language and to express ideas that were previously impossible.
 
 For more Haskell tutorials, you can check out our [Haskell](https://serokell.io/blog/haskell) section or follow us on [Twitter](https://twitter.com/serokell).
