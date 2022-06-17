@@ -6,9 +6,7 @@ You might recognize them as $\forall$ (for all) and $\exists$ (there exists).
 
 The concepts these symbols stand for are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell.
 
-In this article, we will show how to explicitly write down both types of quantification via the `ExplicitForAll` extension.
-
-<!-- TODO: Introduce the contents of the article when reordering is finished -->
+In this article, we'll show how to explicitly write down both types of quantification. We'll cover extensions like `ExplicitForAll`, `ExistentialQuantification`, and `RankNTypes`. 
 
 ## Universal quantification
 
@@ -22,7 +20,7 @@ id :: a -> a
 
 We can think of it as "for all types $a$, this function takes a value of that type and returns a value of the same type".
 
-With the `ExplicitForAll` extension, we can write that down explicitly.
+With the [`ExplicitForAll`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/explicit_forall.html) extension, we can write that down explicitly.
 
 ```haskell
 {-# LANGUAGE ExplicitForAll #-}
