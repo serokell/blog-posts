@@ -289,6 +289,14 @@ getUsername = undefined
 
 getUserCount :: IO Int
 getUserCount = undefined
+
+main :: IO ()
+main = do
+  -- log to the console
+  func print
+
+  -- log to a logfile
+  func (appendFile "logfile.log" . show)
 ```
 
 What type should the `log` function have?
@@ -304,14 +312,6 @@ However, if we try this:
 ```haskell
 func :: Show a => (a -> IO ()) -> IO ()
 func log = ...
-
-main :: IO ()
-main = do
-  -- log to the console
-  func print
-
-  -- log to a logfile
-  func (appendFile "logfile.log" . show)
 ```
 
 We will see this compiler error:
