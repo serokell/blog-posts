@@ -1,10 +1,10 @@
 # Universal and Existential Quantification in Haskell
 
-In logic, there are two common symbols: universal quantifier and existential quantifier. 
+In logic, there are two common symbols: universal quantifier and existential quantifier.
 
-You might recognize them as $\forall$ (for all) and $\exists$ (there exists). 
+You might recognize them as $\forall$ (for all) and $\exists$ (there exists).
 
-The concepts these symbols stand for are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell. 
+The concepts these symbols stand for are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell.
 
 In this article, we will show how to explicitly write down both types of quantification via the `ExplicitForAll` extension.
 
@@ -12,7 +12,7 @@ In this article, we will show how to explicitly write down both types of quantif
 
 ## Universal quantification
 
-In Haskell, all type variables are universally quantified by default. It just happens implicitly. 
+In Haskell, all type variables are universally quantified by default. It just happens implicitly.
 
 As an example, look at the `id` function.
 
@@ -22,12 +22,12 @@ id :: a -> a
 
 We can think of it as "for all types $a$, this function takes a value of that type and returns a value of the same type".
 
-With the `ExplicitForAll` extension, we can write that down explicitly. 
+With the `ExplicitForAll` extension, we can write that down explicitly.
 
 ```haskell
 {-# LANGUAGE ExplicitForAll #-}
 
-id :: forall a. a -> a    
+id :: forall a. a -> a
 ```
 
 The syntax is simple – at the beginning of function or instance declaration, before any constraints or arguments are used, use
@@ -67,13 +67,13 @@ Some of them will work better, and some of them just won't work at all without t
 
 With `ExplicitForAll`, you can change the order of type variables.
 
-How can that be useful? 
+How can that be useful?
 Let's imagine you want to define a function with 10 type variables (yes, there are real-life [examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions).
 And when you use it, you want to specify the type of the last argument explicitly.
 
 By default, the order of type variables that you assign types to is the same as the order in which they are introduced in the function definition.
 
-Without `forall`, you would write something like this: 
+Without `forall`, you would write something like this:
 
 ```Haskell
 veryLongFunction :: a -> b -> c -> d -> e -> f -> g -> h -> i -> j
@@ -132,7 +132,7 @@ In this article, we'll look at existential quantification in data type and funct
 
 First, to declare existentially quantified data types, you need to enable either the [`ExistentialQuantification`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/existential_quantification.html) or the [`GADTs`](https://downloads.haskell.org/~ghc/6.4/docs/html/users_guide/gadt.html) extension.
 
-You can introduce an existentially quantified type variable in a data type by using `forall` on the left side of the constructor name. 
+You can introduce an existentially quantified type variable in a data type by using `forall` on the left side of the constructor name.
 
 ```haskell
 data Elem = forall a. Elem a
@@ -203,51 +203,74 @@ Luckily for users, module `Control.Exception` provides special function `fromExc
 
 ### Existential quantification in function signatures
 
-Existential quantification can also happen in function signatures. 
+A function's type variables can also be existentially quantified.
 
-In order to proceed further, you'll have to enable the [`RankNTypes`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/rank_polymorphism.html) extension. This enables us to create higher-rank types.
+Before proceeding further, let's first have a look at higher-rank types.
 
 <hr>
 
 **Higher-rank types**
 
-By default, all types are rank-1. In a rank-1 type, a `forall` cannot appear on the left of an arrow (keep in mind that the `->` operator has precedence over `.`)
+By default, Haskell98 supports rank-0 and rank-1 types.
 
-For example, this function has a rank-1 type:
+Rank-0 types are just monomorphic types (also called _monotypes_), i.e. they don't have any type variables:
 
-```haskell
-f :: forall a b. a -> b -> a
-
--- Or, to make the precedence explicit:
-f :: forall a b. (a -> b -> a)
+```hs
+f :: Int -> Int
 ```
 
-With the [`RankNTypes`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/rank_polymorphism.html) extension, we can write rank-2 types – types where `forall` appears to the left of one arrow:
+Rank-1 types have a `forall` that does not appear to the left of any arrow.
+The type variables bound by that `forall` are universally quantified.
 
-```haskell
-f :: (forall a. Show a => a -> IO ()) -> IO ()
+```hs
+f :: forall a. a -> a
+
+-- Keep in mind that the `->` operator has precedence over `.`
+-- so this is equivalent to:
+f :: forall a. (a -> a)
 ```
 
-If `forall a` appears to the left of one arrow, `a` is also said to be _existentially quantified_.
-It is also true for every `forall` that is introduced to the left of an odd number of functional arrows.
+By enabling the [`RankNTypes`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/rank_polymorphism.html) extension, we unlock _higher-rank_ types.
+Just like higher-order functions are functions that take other functions as arguments,
+higher-rank types take lower-rank types as arguments.
 
-<hr>
+Rank-2 types take a type of rank 1 (but no higher) as an argument.
+In other words, they may have a `forall` that appears to the left of 1 arrow.
+The type variables bound by that `forall` are _existentially_ quantified.
 
-Let's look at an example.
 
-```haskell
-func :: forall a c. a -> (forall b. (Show b) => b -> IO ()) -> IO c
+```hs
+f :: (forall a. (a -> a)) -> Int
 ```
 
-As before, the same variable can't be quantified more than once. In this example, `a` and `c` are universally quantified and `b` is existentially quantified.
+Similarly, rank-3 types take a type of rank 2 (but no higher) as an argument.
+The `forall` appears to the left of 2 arrows.
+Here, `a` is universally quantified.
 
-In contrast to the universal quantifier, the existential one means that the function is itself responsible for instantiating what a type variable should mean.
-You can choose the type for `b` only inside the definition of `func` and not when you call `func`.
+```hs
+f :: ((forall a. (a -> a)) -> Int) -> Int
+```
 
-So the result type of existentially quantified variable will become known when we address it at the 'definition-site' (i.e., in the function body).
-This also means that no one can specify its type outside of the function.
+In general:
+* A rank-n type is a function whose highest rank argument is n-1.
+* A type variable is universally quantified if it's bound by a forall appearing to the left of an even number of arrows.
+* A type variable is existentially quantified if it's bound by a forall appearing to the left of an odd number of arrows.
 
-Here's a real-life example of using existential types in functions.
+Here's another example for good measure:
+
+```hs
+f :: forall a. a -> (forall b. Show b => b -> IO ()) -> IO ()
+```
+
+Here, `f` is a rank-2 type with 2 type variables: a universal type variable `a` and an existential type variable `b`.
+
+But what does it _mean_ for a type variable to be existentially quantified?
+
+In short: whereas universally quantified type variables are instantiated at the "use site" (i.e. the _user_ of the function has to choose which type they want that type variable to be),
+existentially quantified type variables are instantiated at the "definition site" (where the function is defined).
+In other words, the function's definition is free to choose how to instantiate the type variable; but the user of the function is not.
+
+Let's look at a real life example.
 Imagine a function that prints some logs while calculating the result.
 You may want to write logs into a console or into some file.
 In order to do it, you pass a logging function as an argument.
