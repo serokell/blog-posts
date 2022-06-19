@@ -33,7 +33,7 @@ the `forall` quantifier to introduce all type variables that you will use later.
 
 Here, we introduce four variables: `a`, `b`, `c`, and `m`:
 
-```Haskell
+```haskell
 func :: forall a b c m. a -> b -> m c -- OK, it compiles
 ```
 
@@ -46,7 +46,7 @@ func :: forall a b c.   a -> b -> m c -- Error, type variable `m` is not introdu
 Of course, we can also add constraints.
 For example, we might want to specify that the `m` variable needs an instance of the `Monad` typeclass.
 
-```Haskell
+```haskell
 func :: forall a b c m. Monad m => a -> b -> m c
 ```
 So far, it might seem not very useful.
@@ -73,7 +73,7 @@ By default, the order of type variables that you assign types to is the same as 
 
 Without `forall`, you would write something like this:
 
-```Haskell
+```haskell
 veryLongFunction :: a -> b -> c -> d -> e -> f -> g -> h -> i -> j
 veryLongFunction = ...
 
@@ -83,7 +83,7 @@ func = veryLongFunction @_ @_ @_ @_ @_ @_ @_ @_ @_ @Integer ...
 Quite long, right?
 However, this can be simplified with explicit `forall`:
 
-```Haskell
+```haskell
 veryLongFunction :: forall j a b c d e f g h i. a -> b -> c -> d -> e -> f -> g -> h -> i -> j
 veryLongFunction = ...
 
