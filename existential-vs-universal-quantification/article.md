@@ -197,14 +197,14 @@ First, to declare existentially quantified data types, you need to enable either
 You can introduce an existentially quantified type variable in a data type by using `forall` on the left side of the constructor name.
 
 ```haskell
-data Elem = forall a. Elem a
+data Elem = forall a. MkElem a
 ```
 
 Existential types in data types allow you, for example, to have field in a data type without specifying its type.
 
 ```haskell
 multitypedList :: [Elem]
-multitypedList = [Elem "a", Elem 1, Elem (Just 5)]
+multitypedList = [MkElem "a", MkElem 1, MkElem (Just 5)]
 ```
 
 The above is a heterogeneous list that contains values of different types.
@@ -216,14 +216,14 @@ Since the type of elements is unknown at the use site, you can't address it, nor
 Adding constraints to the `a` variable may improve the situation:
 
 ```haskell
-data Elem = forall a. (Show a) => Elem a
+data Elem = forall a. (Show a) => MkElem a
 
 multitypedList :: [Elem]
-multitypedList = [Elem "a", Elem 1, Elem (Just 5)]
+multitypedList = [MkElem "a", MkElem 1, MkElem (Just 5)]
 
 -- We can use 'print' here because inner types of 'Elem' has 'Show' constraint
 printElem :: Elem -> IO ()
-printElem (Elem x) = print x
+printElem (MkElem x) = print x
 
 main :: IO ()
 main = forM_ multitypedList printElem
@@ -232,7 +232,10 @@ main = forM_ multitypedList printElem
 λ> 1
 λ> Just 5
 ```
-Note that since type variable `a` is hidden with a quantifier, you can't add constraints to it besides those added to the constructor.
+
+Note that, since the type variable `a` is "hidden" inside the `MkElem` constructor,
+you can only use the constraints declared in the constructor.
+You can't constrain it any further.
 
 ```haskell
 allEqual :: Eq ??? => [Elem] -> Bool -- There is no type variable that you can add a constraint to.
