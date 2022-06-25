@@ -226,7 +226,7 @@ printElem :: Elem -> IO ()
 printElem (Elem x) = print x
 
 main :: IO ()
-main = fmap printElem multitypedList
+main = forM_ multitypedList printElem
 
 λ> "a"
 λ> 1
