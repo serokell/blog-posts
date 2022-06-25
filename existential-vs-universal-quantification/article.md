@@ -235,8 +235,8 @@ main = fmap printElem multitypedList
 Note that since type variable `a` is hidden with a quantifier, you can't add constraints to it besides those added to the constructor.
 
 ```haskell
-showFunc :: Show ??? => [Elem] -> String -- There is no type variable, that you can add constraint to
-showFunc (x:xs) = (show x) ++ (showFunc xs)
+allEqual :: Eq ??? => [Elem] -> Bool -- There is no type variable that you can add a constraint to.
+allEqual = ...
 ```
 
 A useful example of hiding type variables is the `SomeException` wrapper.
