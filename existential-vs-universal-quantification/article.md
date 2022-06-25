@@ -61,17 +61,47 @@ Some of them will work better, and some of them just won't work at all without t
 
 #### Reordering type variables
 
-**Note:** Here and in the future examples, we will use the [`TypeApplications`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/type_applications.html) extension, which allows you to pass types as function arguments via the `@` sign. (If specifying concrete type is unnecessary, you can use the type wildcard `@_`.)
+Before we proceed, a quick note on _instantiation_ of type variables.
+
+Instantiation of a type variable is the process of _plugging in_ a type to replace a type variable.
+You can either let GHC do this implicitly:
+
+```hs
+fst :: forall a b. (a, b) -> a
+fst (x, _) = x
+
+pair :: (Int, String)
+pair = (1, "a")
+
+-- The argument of `fst` is of type `(Int, String)`,
+-- so GHC infers how to instantiate its type variables:
+-- a=Int, b=String.
+x = fst pair
+```
+
+Or explicitly with the [`TypeApplications`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/type_applications.html) extension:
+
+```hs
+{-# LANGUAGE TypeApplications #-}
+
+-- Explicitly instantiate fst's first type variable to Int
+-- and the second type variable to String.
+x = fst @Int @String pair
+```
+
+`TypeApplications` assigns types to type variables in the order they appear in the (implicit or explicit) `forall`.
+
+Explicit instantiation with `TypeApplications` is often used to give GHC a hand when it's having trouble inferring a type, or simply to make the code more readable.
+
+---
 
 With `ExplicitForAll`, you can change the order of type variables.
 
-How can that be useful?
+Why is that useful?
 Let's imagine you want to define a function with 10 type variables (yes, there are real-life [examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions).
-And when you use it, you want to specify the type of the last argument explicitly.
+And when you use it, you want to instantiate the last type variable explicitly.
 
-By default, the order of type variables that you assign types to is the same as the order in which they are introduced in the function definition.
-
-Without `forall`, you would write something like this:
+Without an explicit `forall`, you would write something like this:
 
 ```haskell
 veryLongFunction :: a -> b -> c -> d -> e -> f -> g -> h -> i -> j
