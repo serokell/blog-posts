@@ -125,9 +125,9 @@ This is useful not only in such big examples but also when your function require
 
 ### Supporting `ScopedTypeVariables`
 
-A common extension that needs `ExplicitForAll` is [`ScopedTypeVariables`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/exts/scoped_type_variables.html#), which allows you to pass a type variable from an outer function to one defined in a where clause.
+A common extension that needs `ExplicitForAll` is [`ScopedTypeVariables`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/exts/scoped_type_variables.html#).
 
-The code below will not compile because the compiler thinks that the `a` in `example`'s signature and the `a` in `pair`'s are two different types.
+The code below may seem reasonable, but it will not compile:
 
 ```haskell
 example :: a -> [a] -> [a]
@@ -137,10 +137,44 @@ example x rest = pair ++ rest
     pair = [x, x]
 ```
 
-To fix it, you need to use the `ScopedTypeVariables` extension and also add a `forall` quantifier to the `example` function, since the extension won't work without it.
+It seems reasonable because it _looks_ like both functions are referring to the _same_ type variable `a`.
+However, GHC is actually inserting an implicit `forall` in both functions.
+In other words, each function has its own type variable `a`.
+
+```hs
+example :: forall a. a -> [a] -> [a]
+example x rest = pair ++ rest
+  where
+    pair :: forall a. [a]
+    pair = [x, x]
+```
+
+We can rename one of those type variables to make the issue even more obvious:
+
+```hs
+example :: forall a. a -> [a] -> [a]
+example x rest = pair ++ rest
+  where
+    pair :: forall b. [b]
+    pair = [x, x]
+```
+
+Now it's clear that `pair` is a polymorphic function that promises to return a list of any type `b`,
+but its implementation actually returns a list of type `a`.
+
+What we _meant_ to say was that `pair` should be a monomorphic function that return a list of the type `a` declared in `example`.
+
+To fix this, we can enable the `ScopedTypeVariables` extension.
+With this, the type variables declared in an explicit `forall` will be scoped over any accompanying definitions, like `pair`.
 
 ```haskell
+{-# LANGUAGE ScopedTypeVariables #-}
+
 example :: forall a. a -> [a] -> [a]
+example x rest = pair ++ rest
+  where
+    pair :: [a]
+    pair = [x, x]
 ```
 
 The above are just two of many examples where `ExplicitForAll` is useful.
