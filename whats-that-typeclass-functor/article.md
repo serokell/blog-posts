@@ -1,13 +1,16 @@
 You might already know the `map` function for lists:
 
 ```haskell
-> map (+1) [1, 2, 3]
+> :t map
+map :: (a -> b) -> [a] -> [b]
+
+> map (\x -> x + 1) [1, 2, 3]
 [2, 3, 4]
 ```
 
-It takes a function of type `a -> b` and applies it to each element of a list of type `[a]`. The values change, but the context (`[]`) remains the same.
+It takes a function of type `a -> b` and applies it to each element of a list of type `[a]`. The values change, but the data type storing them (`[]`) remains the same. Such a data type, having another type inside, is named context here and later in the article.
 
-Transforming a value inside a fixed context like that is common in Haskell.
+Transforming a value inside a fixed context like that is common in programming languages. Haskell unifies such transformations and we're going to show you how exactly.
 
 For example, the optional data type ([`Maybe`](https://serokell.io/blog/algebraic-data-types-in-haskell#maybe)) could also be ‘mapped’ by trying to apply a function to the wrapped value without changing the context.
 
@@ -41,7 +44,7 @@ map' :: (a -> b) -> Maybe a -> Maybe b
 <hr>
 </details>
 
-Finally, we can write a `map'` for an arbitrary data type `f` with one type argument `a` — `f a`. By analogy, can you figure out how it would look like?
+Finally, we can generalize type signature of the `map'` for some data type `f` with one type argument `a` — `f a`. By analogy, can you figure out how it would look like?
 
 <details>
 <summary>The type of <code>map'</code> modifying <code>f</code></summary>
@@ -142,7 +145,7 @@ Functor, in particular, needs `fmap` to adhere to the following laws.
 
 1. **Identity**
 
-    `fmap id == id` — applying `id` function to the wrapped value changes nothing.
+    `fmap id x == id x` — applying `id` function to the wrapped value changes nothing.
 
     Example:
 
@@ -150,7 +153,7 @@ Functor, in particular, needs `fmap` to adhere to the following laws.
 
 2. **Composition**
 
-    `fmap f . fmap g == fmap (f . g)` — applying `fmap`s sequentially is the same as applying `fmap` with the composition of functions.
+    `fmap f (fmap g x) == fmap (f . g) x` — applying `fmap`s sequentially is the same as applying `fmap` with the composition of functions.
 
     Example:
 
@@ -238,7 +241,10 @@ Let’s see how you can implement your own instance of Functor. We’ll use the 
 `NonEmpty'` represents a list with at least one element. It has two components: a must-have head `a` and a tail `[a]`, which might be empty.
 
 ```haskell
-data NonEmpty' a = a :| [a]
+data NonEmpty' a = NonEmpty'
+  { neHead :: a
+  , neTail :: [a]
+  }
 ```
 
 To define the Functor instance, we need to implement `fmap`.
@@ -250,7 +256,7 @@ We define it by pattern matching on the head and the tail of the non-empty list.
 ```haskell
 instance Functor NonEmpty' where
   fmap :: (a -> b) -> NonEmpty' a -> NonEmpty' b
-  fmap f (x :| xs) = f x :| ??
+  fmap f (NonEmpty' x xs) = NonEmpty' (f x) :| ??
 ```
 
 The tail is a regular list, and `fmap` for list is already defined, so we can just use that:
@@ -258,7 +264,7 @@ The tail is a regular list, and `fmap` for list is already defined, so we can ju
 ```haskell
 instance Functor NonEmpty' where
   fmap :: (a -> b) -> NonEmpty' a -> NonEmpty' b
-  fmap f (x :| xs) = f x :| (fmap f xs)
+  fmap f (NonEmpty' x xs) = NonEmpty' (f x) (fmap f xs)
 ```
 
 However, let’s see how it could be implemented just to understand the mechanics of `fmap` better.
@@ -276,7 +282,7 @@ In the end, we need to cover the empty-list case — ‘fmapping’ an empty lis
 
 It’s done! You’ve just seen how to define your own instance of the Functor typeclass. You can practice this more with the exercises section.
 
-## Functor is not a container only
+## Functor is not always a container
 
 There is one noteworthy fact about Functor — it’s not always a container. For example, a function is a Functor too!
 
@@ -367,7 +373,7 @@ In fact, it’s uncommon to consider a function a Functor in Haskell, it’s mor
 
 ## Why do you need to know Functor?
 
-In general, Functor is not a really powerful typeclass. Its methods are easy to grasp and to implement.
+In general, Functor is not an extraordinary typeclass. Its methods are easy to grasp and to implement.
 
 Nevertheless, a Haskell project can hardly do without a couple Functor instances since `fmap` is helpful in operating on any kind of collection — performing several actions in the context of one data type is often the case.
 
