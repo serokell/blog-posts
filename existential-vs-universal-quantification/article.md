@@ -214,8 +214,16 @@ multitypedList = [MkElem "a", MkElem 1, MkElem (Just 5)]
 ```
 
 This is not very useful though.
-When we pattern match on `MkElem`, the type of the inner value is not known at compile-time,
-so there's nothing we can do with it, not even print it to stdout.
+When we pattern match on `MkElem`, the type of the inner value is not known at compile-time.
+
+```hs
+useElem :: Elem -> Int
+useElem (MkElem (x :: Int)) = x + 1
+                 ^^^^^^^^
+-- • Couldn't match expected type ‘a’ with actual type ‘Int’
+```
+
+There's nothing we can do with it, not even print it to stdout.
 
 ```hs
 printElem :: Elem -> IO ()
@@ -278,21 +286,9 @@ exceptionHandler (SomeException (ex :: e)) =
   ...
 ```
 
-These 3 instances are all the information we  have about `ex` at compile-time.
-Notably, when pattern matching on `SomeException`, the concrete type of `ex` is not known at compile-time.
-
-```hs
-data MyException = MkMyException deriving Show
-instance Exception MyException
-
-exceptionHandler :: SomeException -> IO ()
-exceptionHandler (SomeException (ex :: MyException)) = ...
-  --                             ^^^^^^^^^^^^^^^^^
-  -- • Couldn't match expected type ‘e’ with actual type ‘MyException’
-```
-
-(Luckily, we do have a `Typeable` instance in scope, which lets us perform a runtime cast,
-and that's exactly what functions like `catch` and `fromException` do under the hood).
+These 3 instances are all the information we have about `ex` at compile-time.
+Luckily, the `Typeable` instance we have in scope lets us perform a runtime cast,
+and that's exactly what functions like `catch` and `fromException` do under the hood.
 
 ### Existential quantification in function signatures
 
