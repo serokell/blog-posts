@@ -120,8 +120,7 @@ veryLongFunction = ...
 func = veryLongFunction @Integer ...
 ```
 
-Since `j` is the first type variable in the declaration of `veryLongFunction`, you can specify only it.
-This is useful not only in such big examples but also when your function requires any of its arguments to be specified on usage.
+Since `j` is the first type variable in the declaration of `veryLongFunction`, you can explicitly instantiate only `j` and omit the others.
 
 ### Supporting `ScopedTypeVariables`
 
@@ -244,9 +243,10 @@ data Elem = forall a. (Show a) => MkElem a
 multitypedList :: [Elem]
 multitypedList = [MkElem "a", MkElem 1, MkElem (Just 5)]
 
--- We can use 'print' here because inner types of 'Elem' has 'Show' constraint
 printElem :: Elem -> IO ()
-printElem (MkElem x) = print x
+printElem (MkElem x) =
+  -- We can use `print` here because we have a `Show a` instance in scope.
+  print x
 
 main :: IO ()
 main = forM_ multitypedList printElem
