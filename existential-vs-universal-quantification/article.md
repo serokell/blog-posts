@@ -1,12 +1,12 @@
 # Universal and Existential Quantification in Haskell
 
-In logic, there are two common symbols: universal quantifier and existential quantifier.
+In logic, there are two common symbols: the universal quantifier and the existential quantifier.
 
 You might recognize them as $\forall$ (for all) and $\exists$ (there exists).
 
 The concepts these symbols stand for are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell.
 
-In this article, we'll show how to explicitly write down both types of quantification. We'll cover extensions like `ExplicitForAll`, `ExistentialQuantification`, and `RankNTypes`. 
+In this article, we'll show how to explicitly write down both types of quantification. We'll cover extensions like `ExplicitForAll`, `ExistentialQuantification`, and `RankNTypes`.
 
 ## Universal quantification
 
@@ -28,8 +28,8 @@ With the [`ExplicitForAll`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/e
 id :: forall a. a -> a
 ```
 
-The syntax is simple – at the beginning of function or instance declaration, before any constraints or arguments are used, use
-the `forall` quantifier to introduce all type variables that you will use later.
+The syntax is simple – at the beginning of a function or instance declaration, before any constraints or arguments are used, we use
+the `forall` quantifier to introduce all type variables that we'll use later.
 
 Here, we introduce four variables: `a`, `b`, `c`, and `m`:
 
@@ -49,7 +49,7 @@ For example, we might want to specify that the `m` variable needs an instance of
 ```haskell
 func :: forall a b c m. Monad m => a -> b -> m c
 ```
-So far, it might seem not very useful.
+So far, it might not seem very useful.
 Nothing changed when we added the quantifier because it was already there (although implicit).
 On its own, `ExplicitForAll` doesn't do a lot.
 
@@ -111,7 +111,7 @@ func = veryLongFunction @_ @_ @_ @_ @_ @_ @_ @_ @_ @Integer ...
 ```
 
 Quite long, right?
-However, this can be simplified with explicit `forall`:
+However, this can be simplified with an explicit `forall`:
 
 ```haskell
 veryLongFunction :: forall j a b c d e f g h i. a -> b -> c -> d -> e -> f -> g -> h -> i -> j
@@ -177,7 +177,7 @@ example x rest = pair ++ rest
 ```
 
 The above are just two of many examples where `ExplicitForAll` is useful.
-Other extensions that somehow benefit from the usage of `ExplicitForAll` are `LiberalTypeSynonyms`, `RankNTypes`, and many more.
+Other extensions that benefit from the usage of `ExplicitForAll` are `LiberalTypeSynonyms`, `RankNTypes`, and many more.
 
 ## Existential quantification
 
@@ -187,7 +187,7 @@ This too can be done with the `forall` keyword.
 You can do it this way because these two constructions – `(exists x. p x) -> q` and `forall x. (p x -> q)` – are equivalent in terms of first-order predicate logic.
 For a theoretical proof of this statement, you can check this [thread](https://stackoverflow.com/questions/10753073/whats-the-theoretical-basis-for-existential-types?rq=1).
 
-In this article, we'll look at existential quantification in data type and function signatures.
+In this section, we'll look at existential quantification in data type and function signatures.
 
 ### Existential quantification in data types
 
@@ -265,7 +265,7 @@ allEqual :: Eq ??? => [Elem] -> Bool -- There is no type variable that you can a
 allEqual = ...
 ```
 
-A useful example of hiding type variables is the `SomeException` wrapper.
+Another useful example of hiding type variables is the `SomeException` wrapper.
 
 ```haskell
 data SomeException = forall e. Exception e => SomeException e
@@ -361,7 +361,7 @@ In other words, the function's definition is free to choose how to instantiate t
 
 Let's look at a real life example.
 Imagine a function that prints logs while calculating some result.
-You may want to write logs to the console or into some file.
+You may want to write logs to the console or to some file.
 In order to abstract over where the logs are written to, you pass a logging function as an argument.
 
 ```haskell
