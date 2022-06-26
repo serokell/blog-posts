@@ -245,26 +245,39 @@ allEqual = ...
 A useful example of hiding type variables is the `SomeException` wrapper.
 
 ```haskell
-data SomeException = forall a. Exception a => SomeException a
+data SomeException = forall e. Exception e => SomeException e
 ```
 
-It allows you to catch exceptions of any type.
-As long as you haven't specified its type (and it is not obvious to the compiler, for example, from the handler), all exceptions will be caught, wrapped in `SomeException`.
+All exceptions, upon being thrown, are wrapped in `SomeException`.
+If you want to catch all thrown exceptions, you can use `catchAll` to catch a `SomeException`.
 
-However, again, there is a limitation.
-We know nothing about the inner exception.
-We can, for example, print it, but sometimes we need more information.
-And we can't use type inheritance to describe what type we want to get.
+When you pattern match on the `SomeException` constructor, its `Exception` instance is brought into scope.
+`Exception` [implies `Typeable` and `Show`](https://hackage.haskell.org/package/base/docs/Control-Exception.html#t:Exception),
+so those instances are also brought into scope.
 
-```haskell
--- Something like that won't work.
--- We know too little about type inside,
--- to be sure that it is 'MyException'.
-myFromException :: SomeException -> MyException
-myFromException (SomeException (ex :: MyException)) = ex
+```hs
+exceptionHandler :: SomeException -> IO ()
+exceptionHandler (SomeException (ex :: e)) =
+  -- The following instances are in scope here:
+  -- `Exception e`, `Typeable e`, `Show e`
+  ...
 ```
 
-Luckily for users, module `Control.Exception` provides special function `fromException`, the purpose of which is to extract the inner value and cast to a specified type. But how that is done is a topic for a different article.
+These 3 instances are all the information we  have about `ex` at compile-time.
+Notably, when pattern matching on `SomeException`, the concrete type of `ex` is not known at compile-time.
+
+```hs
+data MyException = MkMyException deriving Show
+instance Exception MyException
+
+exceptionHandler :: SomeException -> IO ()
+exceptionHandler (SomeException (ex :: MyException)) = ...
+  --                             ^^^^^^^^^^^^^^^^^
+  -- • Couldn't match expected type ‘e’ with actual type ‘MyException’
+```
+
+(Luckily, we do have a `Typeable` instance in scope, which lets us perform a runtime cast,
+and that's exactly what functions like `catch` and `fromException` do under the hood).
 
 ### Existential quantification in function signatures
 
