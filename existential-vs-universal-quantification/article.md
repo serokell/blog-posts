@@ -213,10 +213,22 @@ multitypedList :: [Elem]
 multitypedList = [MkElem "a", MkElem 1, MkElem (Just 5)]
 ```
 
-But there are not many things you can do with elements of this list.
-Since the type of elements is unknown at the use site, you can't address it, nor can you pass it to functions that expect values of concrete type.
+This is not very useful though.
+When we pattern match on `MkElem`, the type of the inner value is not known at compile-time,
+so there's nothing we can do with it, not even print it to stdout.
 
-Adding constraints to the `a` variable may improve the situation:
+```hs
+printElem :: Elem -> IO ()
+printElem (MkElem x) =
+  print x
+  ^^^^^^^
+-- • No instance for (Show a) arising from a use of ‘print’
+--   Possible fix:
+--     add (Show a) to the context of the data constructor ‘MkElem’
+```
+
+GHC kindly suggests adding a `Show` constraint to the `MkElem` constructor.
+Now, when we match on `MkElem`, the `Show` instance is brought into scope, and we can print our values.
 
 ```haskell
 data Elem = forall a. (Show a) => MkElem a
