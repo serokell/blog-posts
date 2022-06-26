@@ -194,23 +194,26 @@ In this article, we'll look at existential quantification in data type and funct
 
 First, to declare existentially quantified data types, you need to enable either the [`ExistentialQuantification`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/existential_quantification.html) or the [`GADTs`](https://downloads.haskell.org/~ghc/6.4/docs/html/users_guide/gadt.html) extension.
 
-You can introduce an existentially quantified type variable in a data type by using `forall` on the left side of the constructor name.
+A classic motivating example are heterogeneous lists.
+Haskell's `[]` type represents an homogeneous list: a list whose elements are all of the same type.
+You can't have a list where the first element is an `Int` and the second is a `String`.
+
+However, you can emulate an heterogeneous list by wrapping all the elements in an existential type.
+
+You can define an existential type by using `forall` on the left side of the constructor name.
 
 ```haskell
 data Elem = forall a. MkElem a
 ```
 
-Existential types in data types allow you, for example, to have field in a data type without specifying its type.
+This effectively "hides" the element's type `a` inside the `MkElem` constructor.
 
 ```haskell
 multitypedList :: [Elem]
 multitypedList = [MkElem "a", MkElem 1, MkElem (Just 5)]
 ```
 
-The above is a heterogeneous list that contains values of different types.
-You can't do that with an universally quantified list because every element in that list would need to have the same type.
-
-But, there are not many things you can do with elements of this list.
+But there are not many things you can do with elements of this list.
 Since the type of elements is unknown at the use site, you can't address it, nor can you pass it to functions that expect values of concrete type.
 
 Adding constraints to the `a` variable may improve the situation:
