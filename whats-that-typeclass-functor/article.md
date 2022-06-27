@@ -33,7 +33,7 @@ map :: (a -> b) -> [a] -> [b]
 
 It takes a function `a -> b`. Then, it uses that function to turn its second argument (of type `[a]`) into a list of `b` — `[b]`.
 
-Now imagine we’re using the same type of function — `a -> b` — to change the contents of  `Maybe`. For now, it doesn’t matter how exactly we’d do it. What type would such a `map'` function have?
+Now imagine we’re using the same type of function — `a -> b` — to change the contents of `Maybe`. For now, it doesn’t matter how exactly we’d do it. What type would such a `map'` function have?
 
 <details>
 <summary>The type of <code>map'</code> modifying <code>Maybe</code></summary>
@@ -44,13 +44,13 @@ map' :: (a -> b) -> Maybe a -> Maybe b
 <hr>
 </details>
 
-Finally, we can generalize type signature of the `map'` for some data type `f` with one type argument `a` — `f a`. By analogy, can you figure out how it would look like?
+Finally, assume there is a data type `f` with one type argument `a` — `f a`. This data type is not arbitrary, cause `map'` implementation is data-type-specific, thus it has a constraint — `Functor f`. In terms of type signature, it means that there is a prefix `Functor f =>`. We won't delve into details now, as it's the matter of the next section. So by analogy, can you figure out how the `map'` type would look like for `f a`?
 
 <details>
 <summary>The type of <code>map'</code> modifying <code>f</code></summary>
 
 ```haskell
-map' :: (a -> b) -> f a -> f b
+map' :: Functor f => (a -> b) -> f a -> f b
 ```
 <hr>
 </details>
@@ -112,7 +112,7 @@ As you may have guessed, `map` is just a synonym of `fmap` for list. But it can 
 
 With `fmap`, we can reverse strings, convert numbers to strings, perform algebraic and boolean operations, and do other stuff with values inside data types like `[]`, `Maybe`, `Either a`, pair `((,) a)`, and others.
 
-The implementation of `fmap` is data-type-specific. So to use it on a data type, that data type needs to have an implementation for it.
+Since the implementation of `fmap` is data-type-specific, to use it on a data type, that data type needs to have an implementation for it.
 
 In Haskell, this means that the type needs to have an instance of the Functor typeclass.
 
