@@ -74,89 +74,96 @@ Cons:
 An in-depth explanation of how an LR(1) parser works is well beyond the scope of this tutorial. For this, we recommend you read our article on [how to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
 We will, however, introduce a few basic concepts required to understand this article better.
 
-### Terminology
+### High-level overview of parsing
 
-A **language** (formally) is a (likely infinite) set of all grammatically correct sentences.
+We are going to use Happy to build an **abstract syntax tree** (AST), which is a data structure that describes the exact structure of the language we're parsing.
+For an input like `-42 * f x`, we'd get a tree that looks like this:
 
-A **grammar** describes how to construct an arbitrary sentence of the language with simple string substitutions.
-Formally, a grammar consists of terminals, non-terminals, production rules and a designated starting non-terminal.
+```haskell
+EBinOp _ (ENeg _ (EInt _ 42)) (Times _) (EApp _ (EVar _ "f") (EVar "x"))
+```
 
-The process of constructing a sentence using the grammar is called a **derivation**.
+Or:
 
-Parsing is in some sense a process inverse to derivation, i.e. given the end result (the input string in parsing terms) we recover a derivation that produced it.
+```haskell
+                          EBinOp _
+                         /   |    \
+                  ENeg _     |     EApp _
+                 /       Times _  /      \
+        EInt _ 42                /        \
+                       EVar _ "f"          EVar _ "x"
+```
 
-A **terminal** is a lexical item of the language. In our case, they will be represented by tokens that were produced by Alex.
-They will represent the leaves of the syntax tree.
+To use Happy, we need to write a **grammar** which specifies how construct arbitrary sentences of the language using simple string substitutions. This process of constructing a sentence using the grammar is called a **derivation**.
+Formally, a **language** is a (likely infinite) set of all grammatically correct sentences, and a grammar consists of terminals, non-terminals, production rules and a designated starting non-terminal.
+
+Parsing is in some sense a process inverse to derivation, i.e., given the end result (the input string in parsing terms) we recover a derivation that produced it.
+During the derivation process, there may be terminals and non-terminals referenced in rules, and each non-terminal must be recursively replaced by terminals as sentences are built from terminals. The derivation process stops when there are no more non-terminals.
+
+With the tokens that were produced by Alex, we can describe the **terminals** of our language.
+In our case, they correspond to the leaves of the syntax tree (which correspond to `EInt`, `Times`, and `EVar` in the example above). This is how it looks like in Happy:
+
+```happy
+%token
+  identifier { L.RangedToken (L.Identifier _) _ }
+  string     { L.RangedToken (L.String _) _ }
+  integer    { L.RangedToken (L.Integer _) _ }
+  let        { L.RangedToken L.Let _ }
+  in         { L.RangedToken L.In _ }
+  '('        { L.RangedToken L.LPar _ }
+  ')'        { L.RangedToken L.RPar _ }
+  -- And others...
+```
 
 A **non-terminal** is a description of how the grammar can group symbols together. It's an arbitrary identifier that's replaced by other terminals and non-terminals (terminals and non-terminals together are called **symbols**) to produce derivations. A sequence that doesn't match any non-terminal is considered a syntax error.
-In the example below, `myNonTerminal` is non-terminal.
-They will represent the internal nodes of the abstract syntax tree.
+In the example below, `exp` is non-terminal.
+They correspond to the internal nodes of the abstract syntax tree.
+`EBinOp`, `ENeg`, and `EApp` are examples of nodes parsed from non-terminals.
 
-A **production rule** is a rule describing how to "produce" a string that is syntactically valid according to the grammar. It joins terminals together to form a sentence.
-This is how it looks in Happy:
+To actually write the grammar, we can create one ore more **production rules** describing how to "produce" a string that is syntactically valid according to the grammar. It joins terminals together to form a sentence.
+This is how it looks like in Happy:
 
 ```happy
-myNonTerminal
-  : bodyA1 bodyA2 ... { actionA }
-  | bodyB1 bodyB2 ... { actionB }
-  | ...
+exp :: { Exp L.Range }
+  : integer                  { unTok $1 (\range (L.Integer int) -> EInt range int) }
+  | name                     { EVar (info $1) $1 }
+  | string                   { unTok $1 (\range (L.String string) -> EString range string) }
+  | '(' ')'                  { EUnit (L.rtRange $1 <-> L.rtRange $2) }
+  | '[' sepBy(exp, ',') ']'  { EList (L.rtRange $1 <-> L.rtRange $3) $2 }
+  | '(' exp ')'              { EPar (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
-n.b.: The ellipses here are not correct Happy grammar. We use them to represent that more symbols may be present.
+To break down what this syntax means, let's look at each individual component:
 
-* `body@#` where `@` is some letter and `#` some number means that the parser must parse each body in succession.
+* `exp :: { Exp L.Range }` is the head of the production. With it, you can use `exp` to refer to this non-terminal in other parts of the grammar. The type signature is optional, meaning that only `exp` (without the ` :: { Exp L.Range }` would also be accepted.
+* Each sequence of symbols after the `:` or after `|` indicate how to form a sentence of the language. For instance, `'(' exp ')'` is an expression wrapped in parentheses.
 * The pipe (`|`) represents an alternation (an _or_). The parser may parse any of the given bodies, accepting the one that matches. A body of a production may be empty, meaning that `myNonTerminal : { action }` is also accepted.
-* `action@` represents what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it. Like in Alex, it may be any Haskell expression.
-
-In Happy, production rules may also have an optional type signature.
-For instance, the declaration of `myNonTerminal` could also have been written as such:
-
-```happy
-myNonTerminal :: { MyType }
-  : bodyA1 bodyA2 ... { actionA }
-  | bodyB1 bodyB2 ... { actionB }
-  | ...
-```
-
-In the example above, any Haskell type may replace `MyType`.
-
-As a concrete example, let's describe a non-terminal for arithmetic operations, the goal of which is to evaluate the operations.
-Here, the entire snippet contains a production rule forming the `arithmetic` non-terminal.
-Assume that `number`, `'('`, `')'`, `'+'`, `'-'`, `'*'`, and `'/'` are terminals.
-
-```happy
-arithmetic :: { Double }
-  : number                    { $1 }
-  | arithmetic '+' arithmetic { $1 + $3 }
-  | arithmetic '-' arithmetic { $1 - $3 }
-  | arithmetic '*' arithmetic { $1 * $3 }
-  | arithmetic '/' arithmetic { $1 / $3 }
-  | '(' arithmetic ')'        { $2 }
-  | '-' arithmetic            { negate $2 }
-```
-
-Each `$n` refers to a symbol in the corresponding production body, respectively.
-
-There are a few more steps to get this example running, such as dealing with operator precedence and associativity.
-Our goal is to provide arithmetic operations for MiniML as well, so we'll describe how to do it later in the tutorial. :)
+* Like in Alex, any expression betwen braces `{ }` indicate what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it.
 
 We'll also use the following notation to represent productions.
 This is not valid Happy code, but it's what it uses for debugging information.
+
+```
+exp -> integer
+exp -> name
+exp -> string
+exp -> '(' ')'
+exp -> ...
+```
+
 This notation is also closer to what's used in formal language theory.
 
-```
-myNonTerminal -> bodyA1 bodyA2 ...
-myNonTerminal -> bodyB1 bodyB2 ...
-myNonTerminal -> ...
-```
+Happy provides the symbols `$1`, `$2`, `$3`, etc., that allow accessing the **semantic value** of the parsed symbols.
+For terminals, the semantic values correspond to tokens, and for non-terminals, they correspond to the value that the corresponding action returned.
 
-There may be multiple productions in a single Happy file.
+In the semantic action `EVar (info $1) $1`, for example, `$1` will have the type `Name Range`, which results from parsing `name`.
+Likewise, in `'(' exp ')'`, `$1` will refer to the token `(`, `$2` to the parsed `exp` expression, and `$3` to the token `')'`.
 
 The **start non-terminal** is the rule from which the parser begins.
 Happy allows providing multiple start non-terminals with the `%name` directive, which looks like this:
 
 ```happy
-%name arithmetic
+%name exp
 ```
 
 ### Parser position
@@ -343,7 +350,6 @@ We'll cover how to do the latter in this tutorial.
 
 ### Abstract syntax trees
 
-An abstract syntax tree (AST) describes the exact structure of the expressions we're parsing.
 Before we continue parsing further, we should either define the AST in a new file and import it in our parser or define it at the trailer of the Happy file.
 We will keep the AST in `Parser.y` for simplicity.
 
@@ -425,12 +431,6 @@ exp :: { Exp L.Range }
   | name       { EVar (info $1) $1 }
   | string     { unTok $1 (\range (L.String string) -> EString range string) }
 ```
-
-Happy provides the symbols `$1`, `$2`, etc., that allow accessing the semantic value of the grammar symbols.
-For terminals, the semantic values correspond to tokens, and for non-terminals, they correspond to the value that the corresponding action returned.
-In the semantic action `EVar (info $1) $1`, for example, `$1` will have the type `Name Range`, which results from parsing `name`.
-
-Likewise, in `dec`, `$1` will refer to the token `let`, `$2` to the parsed variable name, `$3` to the token `'='`, and `$4` to the parsed expression.
 
 Notice that we have generalized `dec` to accept not only integers but any expression.
 Furthermore, we make it so that `dec`'s range starts from the start point of `let` and ends at the end point of `exp`.
