@@ -76,14 +76,29 @@ We will, however, introduce a few basic concepts required to understand this art
 
 ### High-level overview of parsing
 
-We are going to use Happy to build an **abstract syntax tree** (AST), which is a data structure that describes the exact structure of the language we're parsing.
+When talking about parsing, we generally imply we're parsing some language, a formal language in the case of programming languages.
+But what is a language?
+
+The formal theory of language offers a very simple answer: a **language** is a (likely infinite) set of all grammatically correct sentences.
+Now, a "sentence" is used in a very general sense in this case, as in a complete program in C would still constitute a "sentence".
+Well, but how do you describe an infinite set of sentences?
+By specifying how how to build any arbitrary sentence.
+
+This description is called a **formal grammar**.
+The usual approach uses strings substitutions to construct a sentence.
+The process of constructing a sentence itself is called a **derivation** process, which is represented as a sequence of substituions called a _derivation chain_.
+Either can be called simply _derivation_ for short.
+
+Parsing is in some sense a process inverse to derivation: instead of building an arbitrary sentence, we're given a sentence and want to recovery the derivation that produced it.
+
+In our case, at each parsing step, we want to build an **abstract syntax tree** (AST), which is a data structure that describes the exact structure of the language we're parsing.
 For an input like `-42 * f x`, we'd get a tree that looks like this:
 
 ```haskell
 EBinOp _ (ENeg _ (EInt _ 42)) (Times _) (EApp _ (EVar _ "f") (EVar "x"))
 ```
 
-Or:
+Or, better visualized like this:
 
 ```haskell
                           EBinOp _
@@ -94,14 +109,19 @@ Or:
                        EVar _ "f"          EVar _ "x"
 ```
 
-To use Happy, we need to write a **grammar** which specifies how construct arbitrary sentences of the language using simple string substitutions. This process of constructing a sentence using the grammar is called a **derivation**.
-Formally, a **language** is a (likely infinite) set of all grammatically correct sentences, and a grammar consists of terminals, non-terminals, production rules and a designated starting non-terminal.
+We start with a special symbol called **start non-terminal**, then we apply "find and replace" according to **production rules**, which actually define the grammar (and by extension, the language). We stop once we replaced everything we could have replaced.
+Happy allows providing multiple start non-terminals with the `%name` directive, which looks like this:
 
-Parsing is in some sense a process inverse to derivation, i.e., given the end result (the input string in parsing terms) we recover a derivation that produced it.
-During the derivation process, there may be terminals and non-terminals referenced in rules, and each non-terminal must be recursively replaced by terminals as sentences are built from terminals. The derivation process stops when there are no more non-terminals.
+```happy
+%name exp
+```
 
-With the tokens that were produced by Alex, we can describe the **terminals** of our language.
-In our case, they correspond to the leaves of the syntax tree (which correspond to `EInt`, `Times`, and `EVar` in the example above). This is how it looks like in Happy:
+The things to be replaced are called **non-terminals**, and the things that are replaced by are called **terminals**.
+Terminals are usually the _lexical items_ of the language.
+You can think of them being like "words" of the language.
+The reason for the name is that a derivation terminates on terminals.
+In our case, the terminals are going to be the tokens that were produced by Alex, and they will correspond to the leaves of the abstract syntax tree (which correspond to `EInt`, `Times`, and `EVar` in the example above).
+This is how we can create terminals in Happy:
 
 ```happy
 %token
@@ -115,21 +135,38 @@ In our case, they correspond to the leaves of the syntax tree (which correspond 
   -- And others...
 ```
 
-A **non-terminal** is a description of how the grammar can group symbols together. It's an arbitrary identifier that's replaced by other terminals and non-terminals (terminals and non-terminals together are called **symbols**) to produce derivations. A sequence that doesn't match any non-terminal is considered a syntax error.
-In the example below, `exp` is non-terminal.
-They correspond to the internal nodes of the abstract syntax tree.
+Likewise, the non-terminals will correspond to the internal nodes of the abstract syntax tree.
 `EBinOp`, `ENeg`, and `EApp` are examples of nodes parsed from non-terminals.
 
-To actually write the grammar, we can create one ore more **production rules** describing how to "produce" a string that is syntactically valid according to the grammar. It joins terminals together to form a sentence.
-This is how it looks like in Happy:
+There are two broad approaches to parsing. The first one is called _top-down parsing_, which tries to run the derivation process forward, at each step choosing the substitution that would get us closer to the input string.
+Not all grammars work well this approach, but it's often more straightforward.
+This is also the process used by Megaparsec.
+
+Alternatively, we could run the process backwards, in an approach called _bottom-up parsing_, finding some production _body_ in the input string and replacing it with the corresponding _head_, and do that until we're back at the starting terminal.
+This approach works well with more grammars (although still not all of them), and that's the approach Happy adheres to.
+
+We can use **symbols** to refer to terminals and non-terminals.
+
+To actually write the grammar, we can create one or more **production rules**.
+They are usually written as `alpha -> beta`, where `alpha` is called the **production head**, and `beta` the **production body**.
+They both represent sequences of symbols, and there may be multiple production rules with the same head, which is how we encode multiple choices.
+During the derivation, on each step, some head is replaced by its corresponding body.
+In context-free grammars (CFGs), which are what Happy supports, production heads always consist of a single non-terminal.
+
+As an example, this is how production rules for CFGs are frequently written like in formal language theory:
+
+```
+exp -> integer
+exp -> name
+exp -> '(' exp ')'
+```
+
+And this is how production rules look like in Happy:
 
 ```happy
 exp :: { Exp L.Range }
   : integer                  { unTok $1 (\range (L.Integer int) -> EInt range int) }
   | name                     { EVar (info $1) $1 }
-  | string                   { unTok $1 (\range (L.String string) -> EString range string) }
-  | '(' ')'                  { EUnit (L.rtRange $1 <-> L.rtRange $2) }
-  | '[' sepBy(exp, ',') ']'  { EList (L.rtRange $1 <-> L.rtRange $3) $2 }
   | '(' exp ')'              { EPar (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
@@ -140,31 +177,11 @@ To break down what this syntax means, let's look at each individual component:
 * The pipe (`|`) represents an alternation (an _or_). The parser may parse any of the given bodies, accepting the one that matches. A body of a production may be empty, meaning that `myNonTerminal : { action }` is also accepted.
 * Like in Alex, any expression betwen braces `{ }` indicate what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it.
 
-We'll also use the following notation to represent productions.
-This is not valid Happy code, but it's what it uses for debugging information.
-
-```
-exp -> integer
-exp -> name
-exp -> string
-exp -> '(' ')'
-exp -> ...
-```
-
-This notation is also closer to what's used in formal language theory.
-
 Happy provides the symbols `$1`, `$2`, `$3`, etc., that allow accessing the **semantic value** of the parsed symbols.
 For terminals, the semantic values correspond to tokens, and for non-terminals, they correspond to the value that the corresponding action returned.
 
 In the semantic action `EVar (info $1) $1`, for example, `$1` will have the type `Name Range`, which results from parsing `name`.
 Likewise, in `'(' exp ')'`, `$1` will refer to the token `(`, `$2` to the parsed `exp` expression, and `$3` to the token `')'`.
-
-The **start non-terminal** is the rule from which the parser begins.
-Happy allows providing multiple start non-terminals with the `%name` directive, which looks like this:
-
-```happy
-%name exp
-```
 
 ### Parser position
 
