@@ -63,7 +63,7 @@ To sum it up, here are some pros and cons of Happy in comparison to Megaparsec.
 **Pros:**
 * Parser generators report ambiguous grammars to the user, creating greater trust in the parser's output and saving from debugging headaches.
 * Bottom-up parsers can handle left recursion, while top-down parsers can't.
-* The performance will be more predictable, as Megaparsec can cause exponential time complexity with the use of `try`. In addition, Happy's "static" generated LALR algorithm has better known complexity constraints.
+* The performance will be more predictable, as Megaparsec can cause exponential time complexity with the use of `try`. In addition, Happy's generated LALR algorithm has better known complexity constraints.
 * Dealing with operator precedence and associativity requires less labor. In Megaparsec, there are standard tools like [`makeExprParser`](https://hackage.haskell.org/package/parser-combinators-1.3.0/docs/Control-Monad-Combinators-Expr.html#v:makeExprParser) to deal with them, but once you need something that is non-standard, you'll need to write more non-trivial parser rules by hand.
 
 **Cons:**
@@ -75,7 +75,7 @@ To sum it up, here are some pros and cons of Happy in comparison to Megaparsec.
 An in-depth explanation of how an LR(1) parser works is well beyond the scope of this tutorial. For more info on this, we recommend you read our article on [how to implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
 We will, however, introduce a few basic concepts required to understand this article better.
 
-### Formal grammar 
+### Formal grammar
 
 When talking about parsing, we generally imply we're parsing some language, a formal language in the case of programming languages.
 But what is a language?
@@ -91,9 +91,14 @@ The usual approach uses string substitutions to construct a sentence.
 The process of constructing a sentence itself is called the derivation process, which is represented as a sequence of substitutions called a derivation chain.
 We can refer to either as **derivation**.
 
-We start with a special symbol called the start non-terminal. Then, we find and replace symbols according to our substitution rules. Once we have replaced everything we could have replaced, we stop.
+We start with a special symbol called the start non-terminal.
+Then, we find and replace symbols according to our substitution rules.
+Once we have replaced everything we could have replaced, we stop.
 
-The symbols to be replaced are called **non-terminals**, and the symbols they are ultimately replaced by are called **terminals**. Non-terminals denote things that do not occur in the language itself. Terminals are usually the lexical items of the language – you can think of them being the "words" of the language. They are called so because derivation terminates on them.
+The symbols to be replaced are called **non-terminals**, and the symbols they are ultimately replaced by are called **terminals**.
+The symbols that we choose for non-terminals do not occur in the language, although the things they denote do.
+Terminals represent the lexical items of the language – you can think of them being the "words" of the language.
+They are called so because derivation terminates on them.
 
 The rules for substituting symbols are called **production rules**.
 They are the rules that define the grammar (and, by extension, the language).
@@ -102,13 +107,13 @@ In each step of derivation, some head is replaced by its corresponding body.
 
 ### Parsing with a grammar
 
-Parsing is, in a sense, a process inverse to derivation. Instead of building an arbitrary sentence, we're given a sentence and tasked with recovering the derivation that produced it. 
+Parsing is, in a sense, a process inverse to derivation. Instead of building an arbitrary sentence, we're given a sentence and tasked with recovering the derivation that produced it.
 
-There are two broad approaches to accomplish that. We could try to run the derivation process forwards, but at each step choose the substitution that would get us closer to the input string. This is top-down parsing. Not all grammars work well with this approach, but it is arguably more straightforward. 
+There are two broad approaches to accomplish that. We could try to run the derivation process forwards, but at each step choose the substitution that would get us closer to the input string. This is top-down parsing. Not all grammars work well with this approach, but it is arguably more straightforward.
 
 Or we could run the derivation process in reverse by finding a production rule whose body matches some of the input string. We do that until we're back at the starting non-terminal. This is bottom-up parsing. It works well with more grammars (still not all of them, though), and that's the approach Happy adheres to.
 
-In our case, we'll generate a bottom-up parser that will build an **abstract syntax tree** (AST), which is a data structure that describes the exact structure of the language we're parsing.
+In our case, we'll generate a bottom-up parser that will build an **abstract syntax tree** (AST), which is a data structure that describes the exact grammatical structure of the input.
 
 For an input like `-42 * f x`, we'll get a tree that looks like this:
 
@@ -127,11 +132,11 @@ It can be better visualized like this:
                        EVar _ "f"          EVar _ "x"
 ```
 
-So that Happy could generate the parser, we need to provide a grammar in terms of terminals, non-terminals, and production rules. 
+So that Happy could generate the parser, we need to provide a grammar in terms of terminals, non-terminals, and production rules.
 
 The terminals are going to be the tokens that were produced by Alex, and they will correspond to the leaves of the abstract syntax tree (`EInt`, `Times`, and `EVar` in the example above).
 
-This is how we can create terminals in Happy:
+This is how we define terminals in Happy:
 
 ```happy
 %token
@@ -170,13 +175,13 @@ There also may be multiple production rules with the same head, which is how we 
 
 Each sequence of symbols after `:` or after `|` indicates how to form a sentence of the language. For instance, `'(' exp ')'` is an expression wrapped in parentheses.
 
-The pipe (`|`) represents an alternative (an _or_). This means that the parser may parse any of the given bodies, accepting the one that matches. 
+The pipe (`|`) represents an alternative (an _or_). This means that the parser may parse any of the given bodies, accepting the one that matches.
 
 The body of a production may also be empty, meaning that `myNonTerminal : { action }` is accepted.
 
 **Action**
 
-Like in Alex, any expression betwen braces `{ }` indicates what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it. We'll use the actions to build our AST.
+Like in Alex, any expression betwen braces `{ }` indicates what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it. We'll use these actions to build our AST.
 
 Happy provides the symbols `$1`, `$2`, `$3`, etc., that allow accessing the semantic value of the parsed symbols.
 For terminals, the semantic values correspond to tokens, and for non-terminals, they correspond to the value that the corresponding action returned.
@@ -329,7 +334,7 @@ On the right side, we put a Haskell pattern between braces that indicates how Ha
 
 These aliases to tokens are the terminals we'll use while writing the grammar. They are first-class, and we can use them among other symbols.
 
-### Semantic actions
+### First production rule
 
 Now that we have the definitions of our tokens, we can now begin writing the parser itself.
 
@@ -671,12 +676,12 @@ exp -> exp '+' exp     (2)
 exp -> integer         (3)
 ```
 
-As well as the following states and actions: 
+As well as the following states and actions:
 
 <table>
   <tr>
     <td>State</td>
-	  <td>Position (signified by <code>.</code>)</td>
+      <td>Position (signified by <code>.</code>)</td>
     <td>Action</td>
   </tr>
   <tr>
@@ -1338,8 +1343,8 @@ You can find the complete grammar [here](https://gist.github.com/heitor-lassarot
 
 1. Change your lexer and parser to accept fractional numbers.
   Besides accepting numbers such as `3.14`, it should also accept exponents, like `12.5e-4`.
-  
-      <details>
+
+     <details>
      <summary><b>Hint</b></summary>
      Use the <a href=https://hackage.haskell.org/package/scientific-0.3.7.0><code>scientific</code></a> package to read and store the number in your list       of tokens and then in your abstract syntax tree. You may replace <code>Integer</code> with a new <code>Number</code> type if you prefer.
      </details>
@@ -1347,7 +1352,7 @@ You can find the complete grammar [here](https://gist.github.com/heitor-lassarot
 2. Support accessing list positions in your lexer and parser. For example, accessing the first element of a list would look like `my_list.(0)`. Note that it may also nest, e.g., `[[1, 2], [3]].(if foo then 0 else 1).(0)`.
 
 3. Change the grammar to support patterns in declarations. Patterns are mainly similar to a subset of expressions, like a few of the atoms, such as numbers, parentheses (although only accepting patterns inside), lists, and strings.
- 
+
      <details>
      <summary><b>Hint</b></summary>
      Rename <code>Argument</code> to <code>Pattern</code> and work from there. The case for <code>'(' pattern typeAnnotation ')'</code> may itself be an extra "annotation pattern".
@@ -1378,3 +1383,5 @@ If you liked this article, you might also enjoy these resources:
 * APPEL, A. W. (1998). _Modern Compiler Implementation in ML_, Cambridge University Press.
 
 For more Haskell tutorials, you can check out our [Haskell articles](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell).
+
+Found a typo in the article or a bug in the code? You can open an issue or a pull request in [our GitHub](https://github.com/serokell/blog-posts/blob/master/Alex%20and%20Happy%20Part%202/article.md).
