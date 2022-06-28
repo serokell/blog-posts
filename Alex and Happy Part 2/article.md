@@ -50,19 +50,19 @@ Happy is a [parser generator](https://web.mit.edu/6.005/www/fa15/classes/18-pars
 
 Meanwhile, Haskell libraries such as Megaparsec work best on LL(1) or LL(∞) grammars. They're implemented as recursive descent parsers (top-down parsers) with backtracking.
 
-As such, these libraries have caveats like not being able to handle left-recursion. Their performance can also exponentially degrade due to backtracking.
+As such, these libraries have caveats like not being able to handle [left recursion](https://en.wikipedia.org/wiki/Left_recursion). Their performance can also exponentially degrade due to backtracking.
 
 While comparing the implementations of both parsing techniques is beyond the scope of this post, you can read these two blog posts for more information: [From recursive descent to LR parsing](https://www.abubalay.com/blog/2021/12/31/lr-control-flow) and [Which Parsing Approach?](https://tratt.net/laurie/essays/entries/which_parsing_approach.html).
 
 Another difference between these libraries is that Happy is a parser generator.
-Instead of writing Haskell (`.hs`) files like you do with Megaparsec, you will write Happy (`.y`) files.
-They, in turn, will generate Haskell files with parsers for the described grammars.
+Instead of writing Haskell (`.hs`) files like you do with Megaparsec, you write Happy (`.y`) files.
+They, in turn, generate Haskell files with parsers for the described grammars.
 
 To sum it up, here are some pros and cons of Happy in comparison to Megaparsec.
 
 **Pros:**
 * Parser generators report ambiguous grammars to the user, creating greater trust in the parser's output and saving from debugging headaches.
-* Bottom-up parsers can handle left-recursion, while top-down parsers can't.
+* Bottom-up parsers can handle left recursion, while top-down parsers can't.
 * The performance will be more predictable, as Megaparsec can cause exponential time complexity with the use of `try`. In addition, Happy's "static" generated LALR algorithm has better known complexity constraints.
 * Dealing with operator precedence and associativity requires less labor. In Megaparsec, there are standard tools like [`makeExprParser`](https://hackage.haskell.org/package/parser-combinators-1.3.0/docs/Control-Monad-Combinators-Expr.html#v:makeExprParser) to deal with them, but once you need something that is non-standard, you'll need to write more non-trivial parser rules by hand.
 
@@ -72,7 +72,7 @@ To sum it up, here are some pros and cons of Happy in comparison to Megaparsec.
 
 ## How Happy's parsers work
 
-An in-depth explanation of how an LALR(1) parser works is well beyond the scope of this tutorial. For more info on this, we recommend you read our article on [how to implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
+An in-depth explanation of how an LR(1) parser works is well beyond the scope of this tutorial. For more info on this, we recommend you read our article on [how to implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
 We will, however, introduce a few basic concepts required to understand this article better.
 
 ### Formal grammar 
@@ -100,7 +100,7 @@ They are the rules that define the grammar (and, by extension, the language).
 In formal language theory, we usually write them as `alpha -> beta`, where `alpha` is called the production head, and `beta` the production body.
 In each step of derivation, some head is replaced by its corresponding body.
 
-### Bottom-up parsing
+### Parsing with a grammar
 
 Parsing is, in a sense, a process inverse to derivation. Instead of building an arbitrary sentence, we're given a sentence and tasked with recovering the derivation that produced it. 
 
@@ -108,9 +108,9 @@ There are two broad approaches to accomplish that. We could try to run the deriv
 
 Or we could run the derivation process in reverse by finding a production rule whose body matches some of the input string. We do that until we're back at the starting non-terminal. This is bottom-up parsing. It works well with more grammars (still not all of them, though), and that's the approach Happy adheres to.
 
-In our case, we want to generate a bottom-up parser that will build an **abstract syntax tree** (AST), which is a data structure that describes the exact structure of the language we're parsing.
+In our case, we'll generate a bottom-up parser that will build an **abstract syntax tree** (AST), which is a data structure that describes the exact structure of the language we're parsing.
 
-For an input like `-42 * f x`, we'd get a tree that looks like this:
+For an input like `-42 * f x`, we'll get a tree that looks like this:
 
 ```haskell
 EBinOp _ (ENeg _ (EInt _ 42)) (Times _) (EApp _ (EVar _ "f") (EVar "x"))
@@ -127,7 +127,7 @@ It can be better visualized like this:
                        EVar _ "f"          EVar _ "x"
 ```
 
-So that Happy could generate the parser, we need to provide a formal grammar in terms of terminals, non-terminals, and production rules. 
+So that Happy could generate the parser, we need to provide a grammar in terms of terminals, non-terminals, and production rules. 
 
 The terminals are going to be the tokens that were produced by Alex, and they will correspond to the leaves of the abstract syntax tree (`EInt`, `Times`, and `EVar` in the example above).
 
@@ -145,7 +145,7 @@ This is how we can create terminals in Happy:
   -- And others...
 ```
 
-Likewise, the non-terminals will correspond to the internal nodes of the abstract syntax tree.
+Likewise, non-terminals will correspond to the internal nodes of the abstract syntax tree.
 `EBinOp`, `ENeg`, and `EApp` are examples of nodes parsed from non-terminals.
 
 Finally, this is how production rules look like in Happy:
@@ -161,14 +161,14 @@ To break down this syntax, let's look at each individual component.
 
 **Head**
 
-`exp :: { Exp L.Range }` is the head of the production. With it, you can use `exp` to refer to this non-terminal in other parts of the grammar. The type signature is optional, meaning that only `exp` without the ` :: { Exp L.Range }` would also be accepted.
+`exp :: { Exp L.Range }` is the head of the production. With it, you can use `exp` to refer to this non-terminal in other parts of the grammar. The type signature is optional, meaning that only `exp` without ` :: { Exp L.Range }` would also be accepted.
 
 In context-free grammars (CFGs), which are what Happy supports, production heads always consist of a single non-terminal.
 There also may be multiple production rules with the same head, which is how we encode multiple choices.
 
 **Body**
 
-Each sequence of symbols after the `:` or after `|` indicates how to form a sentence of the language. For instance, `'(' exp ')'` is an expression wrapped in parentheses.
+Each sequence of symbols after `:` or after `|` indicates how to form a sentence of the language. For instance, `'(' exp ')'` is an expression wrapped in parentheses.
 
 The pipe (`|`) represents an alternative (an _or_). This means that the parser may parse any of the given bodies, accepting the one that matches. 
 
@@ -272,7 +272,7 @@ Let's quickly visit each part of this file, from top to bottom.
   * `DeriveFoldable` allows us to write `deriving (Foldable)`, which will be helpful later.
   * We also import some extra things that will be useful in utilities later.
 * The following lines instruct Happy on how exactly to generate the parser. The things we should provide to it include:
-  * One or more names for our parser. The syntax should be `%name PARSER_NAME [PRODUCTION]`. If the `PRODUCTION` is not given, it uses the first non-terminal that appears in the file.
+  * One or more names for our parser. The syntax should be `%name PARSER_NAME [PRODUCTION]`. If `PRODUCTION` is not given, it uses the first non-terminal that appears in the file.
   * What is the type of our tokens with `%tokentype`.
   * Which function should it call if there is a parse error with `%error`.
   * What is the monad that should be used and its canonical operations with `%monad` (we reuse `Alex` for simplicity).
@@ -336,7 +336,7 @@ Now that we have the definitions of our tokens, we can now begin writing the par
 We'll start with top-level definitions of format `let example = 0`.
 This will be a simplistic definition for now, but we will elaborate on it shortly.
 
-Note that production rules must be placed after the `%%` in the file.
+Note that production rules must be placed after `%%` in the file.
 You may delete the `empty` production after inserting the one below.
 
 ```happy
@@ -441,7 +441,7 @@ exp :: { Exp L.Range }
 Notice that we have generalized `dec` to accept not only integers but any expression.
 Furthermore, we make it so that `dec`'s range starts from the start point of `let` and ends at the end point of `exp`.
 
-We've omitted the type annotation for the declaration (inserting `Nothing` in its place) as well as the function arguments, but we will fill those in shortly.
+We've omitted the type annotation for the declaration (inserting `Nothing` in its place) as well as the function arguments, but we'll fill those in shortly.
 
 At the top of your file, do the following substitution:
 
@@ -506,7 +506,7 @@ I'm not personally a fan of doing this, but if this is clearer to you, feel free
 
 Even though this code works, it leads to some undesirable repetition.
 Notably, we repeat two productions for accepting an optional type annotation.
-Thankfully, Happy allows for _parameterized productions_, which you can think of as being similar to a function taking parsers as arguments.
+Thankfully, Happy allows for _parameterized productions_, which you can think of as being similar to functions taking parsers as arguments.
 
 Let us define a utility called `optional`:
 
@@ -784,7 +784,7 @@ For example, the first position in state 7 means that the parser has just finish
 State 7 happens after we have consumed a `*` in state 6, while state 8 happens after consuming a `+` in state 5.
 
 Suppose we use `1 + 2 * 3` as the input and that the parser has arrived at `1 + 2 . * 3` in state 8 (coming from state 5).
-It may either _shift_ to consume the `*` and go to state 6 or _reduce_ to accept that it has finished consuming the addition.
+It may either _shift_ to consume `*` and go to state 6 or _reduce_ to accept that it has finished consuming the addition.
 
 In other words, if it shifts, it will parse `1 + (2 * 3)`, giving priority to `*`.
 If it reduces, it will parse `(1 + 2) * 3`, giving priority to `+`.
@@ -883,7 +883,7 @@ Thus, our example could be modified like so:
 
 2. Indicate the precedence with `%left`, `%right`, or `%nonassoc`.
 
-Alternatively, at the top of your grammar, somewhere before the `%%`, you may place the following directive:
+Alternatively, at the top part of your grammar, somewhere before `%%`, you may place the following directive:
 
 ```happy
 %right '->'
@@ -907,7 +907,7 @@ Addition and subtraction bind less tightly than division and multiplication.
 
 \* Instead of shifting or reducing, they will cause a parse error.
 
-There will be a few more precedences that we will indicate later, but for now, let's continue with this.
+There will be a few more precedences that we will indicate later, but for now, let's continue with what we have.
 
 Let's test it and see how it goes:
 
@@ -927,7 +927,7 @@ Simplifying this code a bit gives us:
 ]
 ```
 
-So we succesfully parsed the example as `int -> ([int] -> ())`.
+So we have succesfully parsed the example as `int -> ([int] -> ())`.
 
 The complete code for this section may be found [here](https://gist.github.com/heitor-lassarote/d9d6cd856584ab60cf7b3da4932dfc01).
 
@@ -973,7 +973,7 @@ data Exp a
   deriving (Foldable, Show)
 ```
 
-A few words and an example about each production:
+A few words about each production, together with an example:
 
 * `EInt`: An integer. `42`.
 * `EVar`: A variable. `my_variable`.
@@ -1031,7 +1031,7 @@ If you analyze the output of `happy -i src/Parser.y`, you should see that it can
 
 Remember, shifting asks Happy to continue parsing, making the output right-associative, while reducing asks Happy to accept what we have so far, making the output left-associative.
 
-Since shifting is the default action, we will get the incorrect output with `let x = a b c`:
+Since shifting is the default action, we'll get an incorrect output with `let x = a b c`:
 
 ```haskell
 Right
@@ -1039,10 +1039,11 @@ Right
   ]
 ```
 
-Unfortunately, Happy doesn't have a `%reduce` directive, only a `%shift` directive.
+Unfortunately, Happy doesn't have a `%reduce` directive, only a `%shift` one.
 
 One feature supported by Happy is the `%prec` directive, which allows creating a placeholder precedence such as `%left APP`, and then using it like this:  `| exp exp %prec APP` (see [2.3.2](https://monlih.github.io/happy-docs/#_sec_precedences) in the Happy User Guide).
-It might cause shift/reduce conflicts later on, though, that could be fixed by listing all terminals in the precedence table.
+It might cause shift/reduce conflicts later on.
+That could be fixed by listing all terminals in the precedence table, though.
 Sometimes it might be less annoying than refactoring the grammar, but it's not our case here.
 
 Instead of messing with precedences, we will make an observation that will allow us to refactor our grammar in an intelligent way to resolve this ambiguity: the right side of a function application will always be an "atom".
@@ -1050,7 +1051,7 @@ Instead of messing with precedences, we will make an observation that will allow
 To be more precise, ambiguities, in general, should appear every time we have a production such as `A B C ... exp` or `exp ... X Y Z`.
 Had we placed another token to the left or the right of `exp exp`, such as `exp exp in`, the ambiguity would be eliminated (in this specific case).
 
-The solution is to extract all "atoms" into one production, and use `atom` on the right side of the application:
+The solution is to extract all atoms into one production and use `atom` on the right side of the application:
 
 ```happy
 exp :: { Exp L.Range }
@@ -1073,8 +1074,9 @@ With this, function application should now be left-associative.
 
 #### Parsing conditional expressions
 
-Let's see another case where we will get ambiguities.
-Adding these rules to `exp` will indicate 11 shift/reduce conflicts:
+Let's look at another case where we get ambiguities: conditional expressions.
+
+Adding these rules to `exp` will make Happy indicate 11 shift/reduce conflicts:
 
 ```happy
   | if exp then exp          { EIfThen (L.rtRange $1 <-> info $4) $2 $4 }
@@ -1191,10 +1193,10 @@ First, add new productions to parse each existing operator to `exp`:
   | exp '|'  exp             { EBinOp (info $1 <-> info $3) $1 (Or (L.rtRange $2)) $3 }
 ```
 
-n.b.: Do NOT extract these operators to a new production and change it to `exp operator exp` because of a limitation in Happy. This will cause conflicts that will be pretty difficult to resolve.
+**NB**: Do NOT extract these operators to a new production and change it to `exp operator exp` because of a limitation in Happy. This will cause conflicts that will be pretty difficult to resolve.
 You could work around it by using `%prec`, but you will have to list all lookahead terminals in the operator precedence table.
 
-Remember that we previously defined the precedences and associativities of each operator; otherwise, Happy would generate 168 shift/reduce conflicts. I will copy and paste them here yet again in case you've missed them:
+Remember that we previously defined the precedences and associativities of each operator. Otherwise, Happy would generate 168 shift/reduce conflicts. I will copy and paste them here yet again in case you've missed them:
 
 ```happy
 %right '->'
@@ -1205,11 +1207,11 @@ Remember that we previously defined the precedences and associativities of each 
 %left '*' '/'
 ```
 
-With it, we now have 12 shift/reduce conflicts.
+With this, we now have 12 shift/reduce conflicts.
 
 You could observe that the left-hand side of an operator is always an `atom` and change it accordingly, but this will be no good.
-Even though it would remove all of the shift/reduce conflicts, it would also have the side-effect that the tree would always be right-biased.
-You could live with it and properly balance the tree afterward (see the "rotation" method for [_Dynamic infix operators with Alex and Happy_](https://gist.github.com/heitor-lassarote/b20d6da0a9042d31e439befb8c236a4e) at the end of the article on how to do it). Still, in this case, it's possible to resolve this only by tweaking the grammar, so let's do it.
+Even though it would remove all of the shift/reduce conflicts, it would also have the side effect of the tree always being right-biased.
+You could live with that and properly balance the tree afterward (see the "rotation" method for [Dynamic infix operators with Alex and Happy](https://gist.github.com/heitor-lassarote/b20d6da0a9042d31e439befb8c236a4e) at the end of the article on how to do it). Still, in this case, it's possible to resolve this only by tweaking the grammar, so let's do it.
 
 The reason we need to keep `exp operator exp` and not `atom operator exp` is because the first alternative can have ambiguities, such as parsing `1 + 2 + 3` as either `(1 + 2) + 3` or `1 + (2 + 3)`. The `%left`, `%nonassoc`, and `%right` directives will properly reduce, error, or shift based on the conflicts.
 The second alternative would have no ambiguities and always build a right-biased tree with a chain of `atom operator (atom operator atom)`, similar to function application.
@@ -1336,20 +1338,20 @@ You can find the complete grammar [here](https://gist.github.com/heitor-lassarot
 
 1. Change your lexer and parser to accept fractional numbers.
   Besides accepting numbers such as `3.14`, it should also accept exponents, like `12.5e-4`.
-
-<details>
-<summary><b>Hint</b></summary>
-Use the <a href=https://hackage.haskell.org/package/scientific-0.3.7.0><code>scientific</code></a> package to read and store the number in your list of tokens and then in your abstract syntax tree. You may replace <code>Integer</code> with a new <code>Number</code> type if you prefer.
-</details>
+  
+      <details>
+     <summary><b>Hint</b></summary>
+     Use the <a href=https://hackage.haskell.org/package/scientific-0.3.7.0><code>scientific</code></a> package to read and store the number in your list       of tokens and then in your abstract syntax tree. You may replace <code>Integer</code> with a new <code>Number</code> type if you prefer.
+     </details>
 
 2. Support accessing list positions in your lexer and parser. For example, accessing the first element of a list would look like `my_list.(0)`. Note that it may also nest, e.g., `[[1, 2], [3]].(if foo then 0 else 1).(0)`.
 
 3. Change the grammar to support patterns in declarations. Patterns are mainly similar to a subset of expressions, like a few of the atoms, such as numbers, parentheses (although only accepting patterns inside), lists, and strings.
-
-<details>
-<summary><b>Hint</b></summary>
-Rename <code>Argument</code> to <code>Pattern</code> and work from there. The case for <code>'(' pattern typeAnnotation ')'</code> may itself be an extra "annotation pattern".
-</details>
+ 
+     <details>
+     <summary><b>Hint</b></summary>
+     Rename <code>Argument</code> to <code>Pattern</code> and work from there. The case for <code>'(' pattern typeAnnotation ')'</code> may itself be an extra "annotation pattern".
+     </details>
 
 Bonus: Support `match...with...` in your grammar.
 
