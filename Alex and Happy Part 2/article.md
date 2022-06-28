@@ -6,12 +6,12 @@
 -->
 
 This is the second and final part of the Parsing with Haskell series.
-Haven't read the first part yet? You can find it [here](https://serokell.io/blog/lexing-with-alex).
+If you haven't read the first part yet, you can find it [here](https://serokell.io/blog/lexing-with-alex).
 
-In this article, we will use [Happy](https://www.haskell.org/happy/) to generate a parser that will consume the token stream from the lexer that Alex has generated for us.
+In this article, we will use [Happy](https://www.haskell.org/happy/) to generate a parser that will consume the token stream from the lexer created by Alex.
 
-As with Alex, our goal is to provide enough information to be productive with Happy.
-Hence, we won't cover every single feature of it.
+As with Alex, our goal is to provide enough information to be productive.
+Hence, we won't cover all the features of Happy.
 Please refer to the [Happy User Guide](https://monlih.github.io/happy-docs/) for more information.
 
 This tutorial was written using GHC version 9.0.2, Stack resolver LTS-19.8, Alex version 3.2.7.1, and Happy version 1.20.0.
@@ -46,59 +46,77 @@ In addition, exercises will guide you through extending the language with patter
 
 ## Happy vs. Megaparsec
 
-Happy is a parser generator that generates LALR(1) (bottom-up) parsers, which is a more performant yet less powerful version of LR(1) parsers.
+Happy is a [parser generator](https://web.mit.edu/6.005/www/fa15/classes/18-parser-generators/) that generates LALR(1) (bottom-up) parsers, which are more performant yet less powerful than regular LR(1) parsers.
 
 Meanwhile, Haskell libraries such as Megaparsec work best on LL(1) or LL(∞) grammars. They're implemented as recursive descent parsers (top-down parsers) with backtracking.
 
 As such, these libraries have caveats like not being able to handle left-recursion. Their performance can also exponentially degrade due to backtracking.
 
-While comparing the implementations of both parsing techniques is beyond the scope of this post, you can read two suggested blog posts for more information: [From recursive descent to LR parsing](https://www.abubalay.com/blog/2021/12/31/lr-control-flow) and [Which Parsing Approach?](https://tratt.net/laurie/essays/entries/which_parsing_approach.html).
+While comparing the implementations of both parsing techniques is beyond the scope of this post, you can read these two blog posts for more information: [From recursive descent to LR parsing](https://www.abubalay.com/blog/2021/12/31/lr-control-flow) and [Which Parsing Approach?](https://tratt.net/laurie/essays/entries/which_parsing_approach.html).
 
 Another difference between these libraries is that Happy is a parser generator.
-It means that instead of writing Haskell files (`.hs`) like you do with Megaparsec, you will write Happy (`.y`) files. Those will generate Haskell files with implementations of the parser recognizing the described grammar.
+Instead of writing Haskell (`.hs`) files like you do with Megaparsec, you will write Happy (`.y`) files.
+They, in turn, will generate Haskell files with parsers for the described grammars.
 
-To sum it up, here are some pros and cons of Happy in comparison to Megaparsec:
+To sum it up, here are some pros and cons of Happy in comparison to Megaparsec.
 
-Pros:
+**Pros:**
 * Parser generators report ambiguous grammars to the user, creating greater trust in the parser's output and saving from debugging headaches.
 * Bottom-up parsers can handle left-recursion, while top-down parsers can't.
 * The performance will be more predictable, as Megaparsec can cause exponential time complexity with the use of `try`. In addition, Happy's "static" generated LALR algorithm has better known complexity constraints.
 * Dealing with operator precedence and associativity requires less labor. In Megaparsec, there are standard tools like [`makeExprParser`](https://hackage.haskell.org/package/parser-combinators-1.3.0/docs/Control-Monad-Combinators-Expr.html#v:makeExprParser) to deal with them, but once you need something that is non-standard, you'll need to write more non-trivial parser rules by hand.
 
-Cons:
+**Cons:**
 * Less idiomatic, as you need to write Happy grammars instead of Haskell code.
 * Less flexible since you can't change Happy’s algorithm. Meanwhile, parser combinators enable you to easily create your own functions.
 
-## How it works
+## How Happy's parsers work
 
-An in-depth explanation of how an LR(1) parser works is well beyond the scope of this tutorial. For this, we recommend you read our article on [how to Implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
+An in-depth explanation of how an LALR(1) parser works is well beyond the scope of this tutorial. For more info on this, we recommend you read our article on [how to implement an LR(1) Parser](https://serokell.io/blog/how-to-implement-lr1-parser).
 We will, however, introduce a few basic concepts required to understand this article better.
 
-### High-level overview of parsing
+### Formal grammar 
 
 When talking about parsing, we generally imply we're parsing some language, a formal language in the case of programming languages.
 But what is a language?
 
-The formal theory of language offers a very simple answer: a **language** is a (likely infinite) set of all grammatically correct sentences.
-Now, a "sentence" is used in a very general sense in this case, as in a complete program in C would still constitute a "sentence".
+Formal language theory offers a very simple answer: a language is a (likely infinite) set of all grammatically correct sentences.
+Now, the word "sentence" is used in a very general sense here – a complete MiniML program would still constitute a sentence.
+
 Well, but how do you describe an infinite set of sentences?
-By specifying how how to build any arbitrary sentence.
+You do that by specifying how how to build any arbitrary sentence.
 
-This description is called a **formal grammar**.
-The usual approach uses strings substitutions to construct a sentence.
-The process of constructing a sentence itself is called a **derivation** process, which is represented as a sequence of substituions called a _derivation chain_.
-Either can be called simply _derivation_ for short.
+This description is called the formal grammar of the language.
+The usual approach uses string substitutions to construct a sentence.
+The process of constructing a sentence itself is called the derivation process, which is represented as a sequence of substitutions called a derivation chain.
+We can refer to either as **derivation**.
 
-Parsing is in some sense a process inverse to derivation: instead of building an arbitrary sentence, we're given a sentence and want to recovery the derivation that produced it.
+We start with a special symbol called the start non-terminal. Then, we find and replace symbols according to our substitution rules. Once we have replaced everything we could have replaced, we stop.
 
-In our case, at each parsing step, we want to build an **abstract syntax tree** (AST), which is a data structure that describes the exact structure of the language we're parsing.
+The symbols to be replaced are called **non-terminals**, and the symbols they are ultimately replaced by are called **terminals**. Non-terminals denote things that do not occur in the language itself. Terminals are usually the lexical items of the language – you can think of them being the "words" of the language. They are called so because derivation terminates on them.
+
+The rules for substituting symbols are called **production rules**.
+They are the rules that define the grammar (and, by extension, the language).
+In formal language theory, we usually write them as `alpha -> beta`, where `alpha` is called the production head, and `beta` the production body.
+In each step of derivation, some head is replaced by its corresponding body.
+
+### Bottom-up parsing
+
+Parsing is, in a sense, a process inverse to derivation. Instead of building an arbitrary sentence, we're given a sentence and tasked with recovering the derivation that produced it. 
+
+There are two broad approaches to accomplish that. We could try to run the derivation process forwards, but at each step choose the substitution that would get us closer to the input string. This is top-down parsing. Not all grammars work well with this approach, but it is arguably more straightforward. 
+
+Or we could run the derivation process in reverse by finding a production rule whose body matches some of the input string. We do that until we're back at the starting non-terminal. This is bottom-up parsing. It works well with more grammars (still not all of them, though), and that's the approach Happy adheres to.
+
+In our case, we want to generate a bottom-up parser that will build an **abstract syntax tree** (AST), which is a data structure that describes the exact structure of the language we're parsing.
+
 For an input like `-42 * f x`, we'd get a tree that looks like this:
 
 ```haskell
 EBinOp _ (ENeg _ (EInt _ 42)) (Times _) (EApp _ (EVar _ "f") (EVar "x"))
 ```
 
-Or, better visualized like this:
+It can be better visualized like this:
 
 ```haskell
                           EBinOp _
@@ -109,18 +127,10 @@ Or, better visualized like this:
                        EVar _ "f"          EVar _ "x"
 ```
 
-We start with a special symbol called **start non-terminal**, then we apply "find and replace" according to **production rules**, which actually define the grammar (and by extension, the language). We stop once we replaced everything we could have replaced.
-Happy allows providing multiple start non-terminals with the `%name` directive, which looks like this:
+So that Happy could generate the parser, we need to provide a formal grammar in terms of terminals, non-terminals, and production rules. 
 
-```happy
-%name exp
-```
+The terminals are going to be the tokens that were produced by Alex, and they will correspond to the leaves of the abstract syntax tree (`EInt`, `Times`, and `EVar` in the example above).
 
-The things to be replaced are called **non-terminals**, and the things that are replaced by are called **terminals**.
-Terminals are usually the _lexical items_ of the language.
-You can think of them being like "words" of the language.
-The reason for the name is that a derivation terminates on terminals.
-In our case, the terminals are going to be the tokens that were produced by Alex, and they will correspond to the leaves of the abstract syntax tree (which correspond to `EInt`, `Times`, and `EVar` in the example above).
 This is how we can create terminals in Happy:
 
 ```happy
@@ -138,30 +148,7 @@ This is how we can create terminals in Happy:
 Likewise, the non-terminals will correspond to the internal nodes of the abstract syntax tree.
 `EBinOp`, `ENeg`, and `EApp` are examples of nodes parsed from non-terminals.
 
-There are two broad approaches to parsing. The first one is called _top-down parsing_, which tries to run the derivation process forward, at each step choosing the substitution that would get us closer to the input string.
-Not all grammars work well this approach, but it's often more straightforward.
-This is also the process used by Megaparsec.
-
-Alternatively, we could run the process backwards, in an approach called _bottom-up parsing_, finding some production _body_ in the input string and replacing it with the corresponding _head_, and do that until we're back at the starting terminal.
-This approach works well with more grammars (although still not all of them), and that's the approach Happy adheres to.
-
-We can use **symbols** to refer to terminals and non-terminals.
-
-To actually write the grammar, we can create one or more **production rules**.
-They are usually written as `alpha -> beta`, where `alpha` is called the **production head**, and `beta` the **production body**.
-They both represent sequences of symbols, and there may be multiple production rules with the same head, which is how we encode multiple choices.
-During the derivation, on each step, some head is replaced by its corresponding body.
-In context-free grammars (CFGs), which are what Happy supports, production heads always consist of a single non-terminal.
-
-As an example, this is how production rules for CFGs are frequently written like in formal language theory:
-
-```
-exp -> integer
-exp -> name
-exp -> '(' exp ')'
-```
-
-And this is how production rules look like in Happy:
+Finally, this is how production rules look like in Happy:
 
 ```happy
 exp :: { Exp L.Range }
@@ -170,43 +157,45 @@ exp :: { Exp L.Range }
   | '(' exp ')'              { EPar (L.rtRange $1 <-> L.rtRange $3) $2 }
 ```
 
-To break down what this syntax means, let's look at each individual component:
+To break down this syntax, let's look at each individual component.
 
-* `exp :: { Exp L.Range }` is the head of the production. With it, you can use `exp` to refer to this non-terminal in other parts of the grammar. The type signature is optional, meaning that only `exp` (without the ` :: { Exp L.Range }` would also be accepted.
-* Each sequence of symbols after the `:` or after `|` indicate how to form a sentence of the language. For instance, `'(' exp ')'` is an expression wrapped in parentheses.
-* The pipe (`|`) represents an alternation (an _or_). The parser may parse any of the given bodies, accepting the one that matches. A body of a production may be empty, meaning that `myNonTerminal : { action }` is also accepted.
-* Like in Alex, any expression betwen braces `{ }` indicate what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it.
+**Head**
 
-Happy provides the symbols `$1`, `$2`, `$3`, etc., that allow accessing the **semantic value** of the parsed symbols.
+`exp :: { Exp L.Range }` is the head of the production. With it, you can use `exp` to refer to this non-terminal in other parts of the grammar. The type signature is optional, meaning that only `exp` without the ` :: { Exp L.Range }` would also be accepted.
+
+In context-free grammars (CFGs), which are what Happy supports, production heads always consist of a single non-terminal.
+There also may be multiple production rules with the same head, which is how we encode multiple choices.
+
+**Body**
+
+Each sequence of symbols after the `:` or after `|` indicates how to form a sentence of the language. For instance, `'(' exp ')'` is an expression wrapped in parentheses.
+
+The pipe (`|`) represents an alternative (an _or_). This means that the parser may parse any of the given bodies, accepting the one that matches. 
+
+The body of a production may also be empty, meaning that `myNonTerminal : { action }` is accepted.
+
+**Action**
+
+Like in Alex, any expression betwen braces `{ }` indicates what the parser should do once it successfully parses that rule, such as how to interpret what it has parsed or how to build a data structure with it. We'll use the actions to build our AST.
+
+Happy provides the symbols `$1`, `$2`, `$3`, etc., that allow accessing the semantic value of the parsed symbols.
 For terminals, the semantic values correspond to tokens, and for non-terminals, they correspond to the value that the corresponding action returned.
 
 In the semantic action `EVar (info $1) $1`, for example, `$1` will have the type `Name Range`, which results from parsing `name`.
 Likewise, in `'(' exp ')'`, `$1` will refer to the token `(`, `$2` to the parsed `exp` expression, and `$3` to the token `')'`.
 
-### Parser position
-
-It's essential to introduce a notation that will be used later in this article.
-We use a dot (`.`) to represent the current position of the parser.
-For example, suppose we have the following:
-
-```
-exp -> exp . '+' exp
-```
-
-In this case, the parser has finished consuming the first `exp`, and it's about to consume the `+`.
-
 ### Look-ahead
 
 The **look-ahead** represents the sequence of symbols that will be consumed next by the parser.
-Happy is an LALR(1) parser, which means its look-ahead is 1, so it can see one incoming symbol.
-In the `exp` example above, the look-ahead symbol will be `+`.
+Happy generates LALR(1) parsers, which means their look-ahead is 1, so they can see one incoming symbol.
 
-### Components of an LR parser
+### Components of a Happy parser
 
-Similarly to lexers generated by Alex, an LR parser also contains a state machine.
-This finite-state machine is used to make parsing decisions. It is a [deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton), and we call it an _LR automaton_.
+Similarly to lexers generated by Alex, a Happy parser also contains a state machine.
+This finite-state machine is used to make parsing decisions.
+It's a [deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton) that we call an **LR automaton**.
 
-At the same time, the parser contains a stack with all the tokens consumed during parsing, making it a [_pushdown automaton_](https://en.wikipedia.org/wiki/Pushdown_automaton).
+At the same time, the parser contains a stack with all the tokens consumed during parsing, making it a [pushdown automaton](https://en.wikipedia.org/wiki/Pushdown_automaton).
 The parser generates an action table describing how to make parsing decisions while consuming the input stream, in accordance to the current stack and look-ahead.
 
 Here are the possible actions in the action table:
@@ -224,8 +213,8 @@ In the demo, the current stack is on the left, the current tree is on the right,
 You can input arbitrary strings and write arbitrary grammars, but there's no lexer, so the input string is a sequence of terminals separated by whitespace.
 
 The control table is divided in two parts:
-* To the left, there is the _action_ table with the terminals.
-* To the right, there is the _goto_ table, which is used to decide what state to push at the top of the stack after reducing.
+* To the left, there is the action table with the terminals.
+* To the right, there is the goto table, which is used to decide what state to push at the top of the stack after reducing.
 </details>
 
 When working with Happy, shifting and reducing are two core concepts which we will come into contact later.
@@ -235,7 +224,7 @@ But enough with theory, let's go to the practice and learn more concepts as we g
 ## Our first parser
 
 Below is a minimal definition of a grammar file that Happy can compile.
-In addition, we inserted an extra `empty` rule that we'll delete later.
+We've inserted an extra `empty` rule that we'll delete later.
 It's only there to make Happy happy.
 
 Make sure to put it in a new `Parser.y` file.
@@ -682,12 +671,12 @@ exp -> exp '+' exp     (2)
 exp -> integer         (3)
 ```
 
-As well as the following states and actions:
+As well as the following states and actions: 
 
 <table>
   <tr>
     <td>State</td>
-    <td>Position</td>
+	  <td>Position (signified by <code>.</code>)</td>
     <td>Action</td>
   </tr>
   <tr>
