@@ -844,3 +844,5 @@ If you liked this article, you might also enjoy these resources:
 * APPEL, A. W. (1998). _Modern Compiler Implementation in ML_, Cambridge University Press.
 
 For more Haskell tutorials, you can check out our [Haskell articles](https://serokell.io/blog/haskell) or follow us on [Twitter](https://twitter.com/serokell) or [Dev](https://dev.to/serokell).
+
+Found a typo in the article or a bug in the code? You can open an issue or a pull request in [our GitHub](https://github.com/serokell/blog-posts).
