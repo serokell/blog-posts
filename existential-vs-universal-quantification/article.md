@@ -440,6 +440,30 @@ Note that type applications isn't strictly necessary here,
 the compiler is smart enough to infer the right types,
 but it does help with readability.
 
+---
+
+Lastly, we should point out that existential types are isomorphic to functions with existentially quantified variables
+(i.e. they're equivalent), hence their name.
+
+For example, the `Elem` type we saw earlier is equivalent to the
+following [CPS](https://en.wikibooks.org/wiki/Haskell/Continuation_passing_style) function:
+
+```hs
+data Elem = forall a. Show a => MkElem a
+
+type Elem' = forall r. (forall a. Show a => a -> r) -> r
+```
+
+And we can prove this isomorphism:
+
+```hs
+elemToElem' :: Elem -> Elem'
+elemToElem' (MkElem a) f = f a
+
+elem'ToElem :: Elem' -> Elem
+elem'ToElem f = f (\a -> MkElem a)
+```
+
 ## Summary
 
 We have taken a look at universal and existential quantification in Haskell.
