@@ -135,7 +135,18 @@ The kind of Functor is `(* -> *) -> Constraint`, where `* -> *` is the kind of d
 
 Functor provides methods for structure-preserving transformations.
 
-You’re already familiar with `fmap`. However, just any `fmap` is not enough for a correct Functor instance. Some Haskell typeclasses have laws — conditions that instances have to meet. Only this guarantees that the instance is correct.
+You’re already familiar with `fmap`. However, just any `fmap` is not enough for a correct Functor instance. The former should follow some laws.
+
+### Laws of Haskell typeclasses
+
+Some of Haskell typeclasses have laws — conditions that instances have to meet. Usually, these laws come from self-titled math concept. E.g. Functor is [a mapping in the category theory](https://en.wikipedia.org/w/index.php?title=Functor&oldid=1093605134).
+
+You may wonder why to follow these laws. The answer is simple — only if the implemented instance meets these conditions, the methods of typeclass work as expected. Otherwise, you can run into unpredictable behaviour and confuse people working with your code as well.
+
+Checking the laws satisfiability isn't enforced by the language, hence you need to provide that yourself. It may be a bit difficult at the beginning, but after a couple of instances you will feel quite easy and natural about it.
+
+There is one tool that could be used to verify the instance's laws, though — [QuickCheck](https://hackage.haskell.org/package/QuickCheck). It does random testing, so a property (typeclass law in our case) is checked on the large number of randomly generated values. You may look at "Checking the laws" section of [this article](https://mmhaskell.com/blog/2017/3/13/obey-the-type-laws) as an illustration.
+
 
 Functor, in particular, needs `fmap` to adhere to the following laws.
 
@@ -179,14 +190,6 @@ Now, let’s try to guess the definition of `(<$)` using the provided descriptio
 ```haskell
 -- replace an `Int` value
 -- inside `Maybe Int`
--- with another `Int`
-> 1 <$ Just 2
-Just 1
-> 1 <$ Nothing
-Nothing
-
--- replace an `Int` value
--- inside `Maybe Int`
 -- with a `String`
 > "abc" <$ Just 123
 Just "abc"
@@ -202,18 +205,6 @@ Nothing
 [1]
 > 1 <$ [1..5]
 [1,1,1,1,1]
-
--- replace each element
--- of the list `[Int]`
--- with a `Char`
--- Note: the resulted type
--- is `String` as `type String = [Char]`
-> '1' <$ []
-""
-> '1' <$ [0]
-"1"
-> '1' <$ [1..5]
-"11111"
 ```
 
 Pay attention to list examples. `y <$ [x1, x2, x3]` matches `[y, y, y]` but not `[y]`, as list’s inside is many values, not a single one. So that each element of the list is transformed, but not the single value is wrapped in `[]`.
@@ -375,7 +366,7 @@ In fact, it’s uncommon to consider a function a Functor in Haskell, it’s mor
 
 In general, Functor is not an extraordinary typeclass. Its methods are easy to grasp and to implement.
 
-Nevertheless, a Haskell project can hardly do without a couple Functor instances since `fmap` is helpful in operating on any kind of collection — performing several actions in the context of one data type is often the case.
+Nevertheless, a Haskell project can hardly do without a couple Functor instances. It enables one to apply transformation on the wrapped type without knowing anything about the wrapper, and it's very beneficial.
 
 Moreover, Functor is a solid basis and the predecessor of the **Applicative** typeclass, which further leads to monads. Hence, it brings you one step closer to the dream of many — understanding monads.
 
