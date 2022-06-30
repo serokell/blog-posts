@@ -286,7 +286,8 @@ exceptionHandler (SomeException (ex :: e)) =
 ```
 
 These three instances are all the information we have about `ex` at compile time.
-Luckily, the `Typeable` instance we have in scope lets us perform a runtime cast,
+Luckily, the `Typeable` instance we have in scope lets us perform a
+[runtime cast](https://hackage.haskell.org/package/base/docs/Data-Typeable.html#v:cast),
 and that's exactly what functions like `catch` and `fromException` do under the hood.
 
 ### Existential quantification in function signatures
