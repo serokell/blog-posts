@@ -395,7 +395,7 @@ In conclusion, let’s make sure `fmap` is `(.)` for one-argument function `a ->
 5
 ```
 
-In fact, it’s uncommon to consider a function a Functor in Haskell. It’s more of a fancy case. However, you’ll not be puzzled when you come across this magical and strange usage of `fmap` in the future!
+It’s uncommon to consider a function a Functor in Haskell. In fact, it’s more of a fancy case. However, you’ll not be puzzled when you come across this magical and strange usage of `fmap` in the future!
 
 ## Why is Functor useful?
 
@@ -404,7 +404,6 @@ In general, Functor is not an extraordinary typeclass. Its methods are easy to g
 Nevertheless, a Haskell project can hardly do without a couple of Functor instances. It enables one to do transformations on the wrapped type without knowing anything about the wrapper, and that's very beneficial.
 
 Moreover, Functor is a solid basis and the predecessor of the Applicative typeclass, which further leads to monads. Hence, it brings you one step closer to the dream of many – understanding monads.
-	
 	
 ## Conclusion 
 	
