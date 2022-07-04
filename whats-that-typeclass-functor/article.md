@@ -43,7 +43,6 @@ After reading this article, you will know:
 
 We'll also provide a set of exercises to consolidate your knowledge.
 
-
 ## How to generalize `map`
 
 Look at the type signature of `map`:
@@ -52,35 +51,23 @@ Look at the type signature of `map`:
 map :: (a -> b) -> [a] -> [b]
 ```
 
-It takes a function `a -> b`. Then, it uses that function to turn its second argument (of type `[a]`) into a list of `b` — `[b]`.
+It takes a function `a -> b`. Then, it uses that function to change the contents of a list.
 
-Now imagine we’re using the same type of function — `a -> b` — to change the contents of `Maybe`. For now, it doesn’t matter how exactly we’d do it. What type would such a `map'` function have?
-
-<details>
-<summary>The type of <code>map'</code> modifying <code>Maybe</code></summary>
+Now look at the type of our map for `Maybe`. We use the same type of function — `a -> b` — to change the contents of `Maybe`. 
 
 ```haskell
 map' :: (a -> b) -> Maybe a -> Maybe b
 ```
-<hr>
-</details>
 
-Finally, assume there is a data type `f` with one type argument `a` — `f a`. This data type is not arbitrary, cause `map'` implementation is data-type-specific, thus it has a constraint — `Functor f`. In terms of type signature, it means that there is a prefix `Functor f =>`. We won't delve into details now, as it's the matter of the next section. So by analogy, can you figure out how the `map'` type would look like for `f a`?
+The type signatures are kind of similar! 
 
-<details>
-<summary>The type of <code>map'</code> modifying <code>f</code></summary>
+Could we have a more general function that works for many different contexts? Absolutely, it's Haskell after all. 
 
 ```haskell
-map' :: Functor f => (a -> b) -> f a -> f b
+fmap :: Functor f => (a -> b) -> f a -> f b
 ```
-<hr>
-</details>
 
-Great! This `map'` is called `fmap` or `(<$>)` in Haskell.
-
-Here’s how it works: `fmap` takes an  `a -> b` function and an `f a` data type (`a` wrapped in a context `f`), then the function is applied to what’s inside the context, and finally, a value of type `b` wrapped in `f` is returned.
-
-Therefore, the value changes, but the context remains the same.
+Here’s how it works: `fmap` takes an  `a -> b` function and an `f a` data type (`a` wrapped in any context `f`), then the function is applied to what’s inside the context, and finally, a value of type `b` wrapped in `f` is returned. The value can change, but the context remains the same.
 
 Here are a few examples:
 
@@ -129,13 +116,9 @@ Nothing
 ('a','a')
 ```
 
-As you may have guessed, `map` is just a synonym of `fmap` for list. But it can do much more.
+As you may have guessed, `map` is just a synonym of `fmap` for lists. But it can do much more. With `fmap`, we can do all kinds of actions inside data types like `[]`, `Maybe`, `Either a`, pair `((,) a)`, and others. 
 
-With `fmap`, we can reverse strings, convert numbers to strings, perform algebraic and boolean operations, and do other stuff with values inside data types like `[]`, `Maybe`, `Either a`, pair `((,) a)`, and others.
-
-Since the implementation of `fmap` is data-type-specific, to use it on a data type, that data type needs to have an implementation for it.
-
-In Haskell, this means that the type needs to have an instance of the Functor typeclass.
+All that we need to use it on a data type is for that type to have an instance of the Functor typeclass. 
 
 ## The Functor typeclass
 
