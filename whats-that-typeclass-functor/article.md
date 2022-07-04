@@ -1,27 +1,47 @@
 You might already know the `map` function for lists:
 
 ```haskell
-> :t map
 map :: (a -> b) -> [a] -> [b]
+map _ []     = []
+map f (x:xs) = f x : map f xs
+```
 
+```none
 > map (\x -> x + 1) [1, 2, 3]
 [2, 3, 4]
 ```
 
-It takes a function of type `a -> b` and applies it to each element of a list of type `[a]`. The values change, but the data type storing them (`[]`) remains the same. Such a data type, having another type inside, is named context here and later in the article.
+It takes a function of type `a -> b` and applies it to each element of a list. The elements change, but the data type storing them (`[]`) remains the same. 
 
-Transforming a value inside a fixed context like that is common in programming languages. Haskell unifies such transformations and we're going to show you how exactly.
+In this article, we'll call such a data type with another type inside a _context_, while the elements inside it we'll call _values_.
 
-For example, the optional data type ([`Maybe`](https://serokell.io/blog/algebraic-data-types-in-haskell#maybe)) could also be ‘mapped’ by trying to apply a function to the wrapped value without changing the context.
+Transforming values inside fixed contexts like we do with `map` is common in programming. 
 
-In Haskell, we have a typeclass providing common functionality for such an action. It’s called Functor.
+For example, the optional data type ([`Maybe`](https://serokell.io/blog/algebraic-data-types-in-haskell#maybe)) provides a context of a possibly failed computation. It can also be "mapped" by trying to apply a function to the wrapped value without changing the context. 
 
-After reading this article, you will:
+```haskell
+map' :: (a -> b) -> Maybe a -> Maybe b
 
-- know what Functor is in Haskell;
-- understand how to define and use your own Functor instances;
-- see why functors are useful and where they could be used;
-- be able to consolidate your knowledge with exercises.
+map' f (Just x) = Just (f x)
+map' f Nothing = Nothing
+```
+
+```none
+*Main> map' (\x -> x + 1) (Just 1)
+Just 2
+*Main> map' (\x -> x + 1) (Nothing)
+Nothing
+```
+
+In Haskell, a typeclass called Functor unifies these kinds of transformations and provides common functionality for them. 
+
+After reading this article, you will know:
+
+- what Functor is in Haskell;
+- how to define and use your own Functor instances;
+- why and where functors are useful.
+
+We'll also provide a set of exercises to consolidate your knowledge.
 
 ## How to generalize `map`
 
