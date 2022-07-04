@@ -13,9 +13,9 @@ map f (x:xs) = f x : map f xs
 
 It takes a function of type `a -> b` and applies it to each element of a list. The elements change, but the data type storing them (`[]`) remains the same. 
 
-In this article, we'll call such a data type with another type inside a _context_, while the elements inside it we'll call _values_.
+In this article, we'll call such a data type with another type inside it a _context_, while the elements inside it we'll call _values_.
 
-Transforming values inside fixed contexts like we do with `map` is common in programming. 
+Transforming values inside fixed contexts is common in programming. 
 
 For example, the optional data type ([`Maybe`](https://serokell.io/blog/algebraic-data-types-in-haskell#maybe)) provides a context of a possibly failed computation. It can also be "mapped" by trying to apply a function to the wrapped value without changing the context. 
 
@@ -27,9 +27,9 @@ map' f Nothing = Nothing
 ```
 
 ```none
-*Main> map' (\x -> x + 1) (Just 1)
+> map' (\x -> x + 1) (Just 1)
 Just 2
-*Main> map' (\x -> x + 1) (Nothing)
+> map' (\x -> x + 1) (Nothing)
 Nothing
 ```
 
@@ -39,9 +39,10 @@ After reading this article, you will know:
 
 - what Functor is in Haskell;
 - how to define and use your own Functor instances;
-- why and where functors are useful.
+- why and where Functor is useful.
 
 We'll also provide a set of exercises to consolidate your knowledge.
+
 
 ## How to generalize `map`
 
