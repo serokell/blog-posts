@@ -122,7 +122,7 @@ All that we need to use it on a data type is for that type to have an instance o
 
 ## The Functor typeclass
 
-What’s Functor? Let’s ask GHCi.
+What's the Functor typeclass? Let’s ask GHCi.
 
 ```haskell
 > :info Functor
@@ -133,30 +133,31 @@ class Functor f where
   {-# MINIMAL fmap #-}
 ```
 
-Functor in Haskell is a [typeclass](https://serokell.io/blog/haskell-typeclasses) that describes two common functions — `fmap` and `(<$)`.
+Functor in Haskell is a [typeclass](https://serokell.io/blog/haskell-typeclasses) with two methods – `fmap` and `(<$)`. It provides methods for structure-preserving (or, as we saw, context-preserving) transformations.
 
 The kind of Functor is `(* -> *) -> Constraint`, where `* -> *` is the kind of data type which could be a Functor. You can read about kinds and the `* -> *` kind especially in our [previous article](https://serokell.io/blog/whats-that-typeclass-foldable?nocache=#generalization-of-foldr-and-foldl).
 
-Functor provides methods for structure-preserving transformations.
+To have a Functor instance for a data type, you need a type-specific implementation of `fmap` – the function we already introduced. 
 
-You’re already familiar with `fmap`. However, just any `fmap` is not enough for a correct Functor instance. The former should follow some laws.
+For most common data types, instances of Functor are already implemented. For your own data types, you'll need to define it yourself. 
 
-### Laws of Haskell typeclasses
+```haskell
+data Option a = Some a | None
 
-Some of Haskell typeclasses have laws — conditions that instances have to meet. Usually, these laws come from self-titled math concept. E.g. Functor is [a mapping in the category theory](https://en.wikipedia.org/w/index.php?title=Functor&oldid=1093605134).
+instance Functor Option where
+  fmap f (Some a) = Some (f a)
+  fmap f None  = None
+```
 
-You may wonder why to follow these laws. The answer is simple — only if the implemented instance meets these conditions, the methods of typeclass work as expected. Otherwise, you can run into unpredictable behaviour and confuse people working with your code as well.
+We'll cover how to do this in more depth a few sections below.
 
-Checking the laws satisfiability isn't enforced by the language, hence you need to provide that yourself. It may be a bit difficult at the beginning, but after a couple of instances you will feel quite easy and natural about it.
+However, just any implementation of `fmap` isn't enough: it should also follow the functor laws.
 
-There is one tool that could be used to verify the instance's laws, though — [QuickCheck](https://hackage.haskell.org/package/QuickCheck). It does random testing, so a property (typeclass law in our case) is checked on the large number of randomly generated values. You may look at "Checking the laws" section of [this article](https://mmhaskell.com/blog/2017/3/13/obey-the-type-laws) as an illustration.
+### Functor laws
 
+Some of Haskell typeclasses have laws – conditions that instances have to meet. Usually, these laws come from the math concept of the same name. 
 
-Functor, in particular, needs `fmap` to adhere to the following laws.
-
----
-
-### Laws of Functor
+For example, a functor is a [mapping](https://en.wikipedia.org/w/index.php?title=Functor&oldid=1093605134) in category theory. Hence, it needs `fmap` to adhere to the following laws.
 
 1. **Identity**
 
@@ -175,13 +176,17 @@ Functor, in particular, needs `fmap` to adhere to the following laws.
     `fmap (+1) (fmap (*2) (Just 1)) == fmap ((+1) . (*2)) (Just 1) == Just 3`
 
 
----
+You may wonder why you should follow these laws. The answer is simple – if the instance doesn't meet these conditions, the methods of typeclass won't work as expected. You might run into unpredictable behaviour and confuse people that work with your code as well.
 
-`fmap` is all you need to define a `Functor` instance. However, the `(<$)` operator is worth looking at too.
+Laws aren't enforced by the compiler, hence you need to ensure their correctness yourself. It may be a bit difficult at the beginning, but after a couple of instances, it will start to feel natural.
+
+There is a tool that can verify whether an instance follows laws – [QuickCheck](https://hackage.haskell.org/package/QuickCheck). It checks properties by random testing. You can provide it a property the code needs to satisfy (a typeclass law, in our case), which is then checked on the large number of randomly generated values. You may look at "Checking the laws" section of [this article](https://mmhaskell.com/blog/2017/3/13/obey-the-type-laws) as an illustration.
 
 ### The `(<$)` operator
 
-Take a look at the type signature of `(<$)`:
+`fmap` is all you need to define a `Functor` instance. However, the `(<$)` operator is worth looking at too.
+
+Here's the type signature of `(<$)`:
 
 ```haskell
 (<$) :: a -> f b -> f a
