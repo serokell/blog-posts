@@ -529,7 +529,7 @@ Pretty cool stuff.
 
 If you are stuck or want to check that we're on the same page, the code for the lexer up to this section may be found [here](https://gist.github.com/heitor-lassarote/c8f12feab735439a50015b7c60d4f21a).
 
-#### Lexing keywords and operators
+### Lexing keywords and operators
 
 We can now lex identifiers, but a programming language typically consists of much more than just this.
 Let's now scan other keywords that we defined.
@@ -650,7 +650,7 @@ Right
   ]
 ```
 
-#### Lexing comments
+### Lexing comments
 
 Lexing comments will require us to use an extra start code besides just `0`.
 Surely, we could make something as simple as the following:
@@ -779,7 +779,7 @@ Right
   ]
 ```
 
-#### Lexing strings
+### Lexing strings
 
 Lexing strings should have no surprises. Just stick this in your lexer:
 
@@ -807,7 +807,7 @@ We invite the reader to extend the string lexer to be more useful in the exercis
 
 You can find the complete code for the lexer until now [here](https://gist.github.com/heitor-lassarote/e56e5330368f2cf9265a6eefa8a7a880).
 
-#### Exercises
+## Exercises
 
 1. We support block comments with `(* *)`. Change the scanner to accept line comments, such as `# foo`, which end when they find a newline or EOF.
 
