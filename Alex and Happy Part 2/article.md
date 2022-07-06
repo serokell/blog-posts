@@ -1160,7 +1160,7 @@ Right
 
 You can find the source code up to this point [here](https://gist.github.com/heitor-lassarote/ebfddb9b354bb63dda2f952947d09f84).
 
-### Parsing negations
+#### Parsing negations
 
 Now, let's make it so we're able to negate expressions.
 
@@ -1339,7 +1339,7 @@ Happy will always expect no reduce/reduce conflicts when this directive is prese
 
 You can find the complete grammar [here](https://gist.github.com/heitor-lassarote/5f24f40c8625f25c6108ee59dc10e6d5).
 
-### Exercises
+## Exercises
 
 1. Change your lexer and parser to accept fractional numbers.
   Besides accepting numbers such as `3.14`, it should also accept exponents, like `12.5e-4`.
