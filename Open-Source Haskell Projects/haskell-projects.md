@@ -115,6 +115,11 @@ Well, you might end up with something similar to [Taskell](https://github.com/sm
 
 Underneath, it uses Haskell’s [Brick](https://github.com/jtdaugherty/brick) library, which has also been used to create cool TUI apps like [Matterhorn](https://github.com/matterhorn-chat/matterhorn) and command-line [tetris](https://github.com/SamTay/tetris).
 
+## Wasp
+
+[Wasp](https://github.com/wasp-lang/wasp) is an open-source configuration language for developing full-stack web apps with less code.
+You describe high-level features of your web app with Wasp DSL and then write the rest of your logic in existing technologies like React, Node.js, Prisma, ... .
+While Wasp users don't have any interaction with Haskell, it is the main language used in the Wasp codebase, primarily for implementing Wasp DSL compiler and Wasp CLI.
 
 ## Compilers written in Haskell
 
