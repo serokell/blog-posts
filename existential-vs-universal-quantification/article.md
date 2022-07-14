@@ -1,12 +1,16 @@
 # Universal and Existential Quantification in Haskell
 
-In logic, there are two common symbols: the universal quantifier and the existential quantifier.
+In logic, there are two common quantifiers: the universal quantifier and the existential quantifier. You might recognize them as $\forall$ (for all) and $\exists$ (there exists).
 
-You might recognize them as $\forall$ (for all) and $\exists$ (there exists).
+They are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell.
 
-The concepts these symbols stand for are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell.
+In this article, we'll cover both types of quantification.
 
-In this article, we'll show how to explicitly write down both types of quantification. We'll cover extensions like `ExplicitForAll`, `ExistentialQuantification`, and `RankNTypes`.
+You'll learn how to:
+
+* Make universal quantification explicit with  `ExplicitForAll`.
+* Create a heterogeneous list with existential data types.
+* Use existentially quantified type variables to make instantiation happpen at the definition site.
 
 ## Universal quantification
 
@@ -61,6 +65,23 @@ Some of them will work better, and some of them just won't work at all without t
 
 #### Reordering type variables
 
+With `ExplicitForAll`, you can change the order that type variables appear in the `forall` quantifier.
+
+Why is that useful?
+Let's imagine you want to define a function with 10 type variables. 
+
+```haskell
+veryLongFunction :: a -> b -> c -> d -> e -> f -> g -> h -> i -> j
+veryLongFunction = ...
+```
+
+(Yes, there are [real-life examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions.)
+
+And when you use it, you want to instantiate the last type variable explicitly.
+
+---
+**Instantiation** 
+
 Before we proceed, a quick note on the _instantiation_ of type variables – the process of _plugging in_ a type to replace a type variable.
 
 You can either let GHC do instantiation implicitly:
@@ -90,17 +111,11 @@ x = fst @Int @String pair
 
 `TypeApplications` assigns types to type variables in the order they appear in the (implicit or explicit) `forall`.
 
-Explicit instantiation with `TypeApplications` is often used to give GHC a hand when it's having trouble inferring a type or simply to make the code more readable.
+Explicit instantiation with `TypeApplications` is often used to give GHC a hand when it's having trouble inferring a type or simply to make code more readable.
 
 ---
 
-With `ExplicitForAll`, you can change the order of type variables appearing in the `forall`.
-
-Why is that useful?
-Let's imagine you want to define a function with 10 type variables (yes, there are real-life [examples](https://hackage.haskell.org/package/leancheck-0.9.10/docs/Test-LeanCheck-Utils-TypeBinding.html#v:-45--62--62--62--62--62--62--62--62--62--62--62--62-:) of such functions).
-And when you use it, you want to instantiate the last type variable explicitly.
-
-Without an explicit `forall`, you would write something like this:
+Now, without an explicit `forall`, you would write something like this:
 
 ```haskell
 veryLongFunction :: a -> b -> c -> d -> e -> f -> g -> h -> i -> j
@@ -125,7 +140,7 @@ Since `j` is the first type variable in the declaration of `veryLongFunction`, y
 
 A common extension that needs `ExplicitForAll` is [`ScopedTypeVariables`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/exts/scoped_type_variables.html#).
 
-The code below may seem reasonable, but it will not compile:
+The code below may seem reasonable, but it will not compile.
 
 ```haskell
 example :: a -> [a] -> [a]
@@ -438,9 +453,9 @@ func log = do
   log @Int userCount
 ```
 
-Note that type applications isn't strictly necessary here,
+Note that type applications aren't strictly necessary here,
 the compiler is smart enough to infer the right types,
-but it does help with readability.
+but they do help with readability.
 
 ### Connection between existential types and existentially quantified variables
 
@@ -474,4 +489,4 @@ quantification allows you to further expand the rich type system of the language
 
 For more Haskell tutorials, you can check out our [Haskell](https://serokell.io/blog/haskell) section or follow us on [Twitter](https://twitter.com/serokell).
 
-If you see any issues with the text of the blog or need some help understanding it, you're welcome to submit an issue in blog's [GitHub repo](https://github.com/serokell/blog-posts). 
+If you see any issues with the text of the blog or need some help understanding it, you're welcome to submit an issue in blog's [GitHub repo](https://github.com/serokell/blog-posts).
