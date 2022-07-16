@@ -403,7 +403,7 @@ In general, Functor is not an extraordinary typeclass. Its methods are easy to g
 
 Nevertheless, a Haskell project can hardly do without a couple of Functor instances. It enables one to do transformations on the wrapped type without knowing anything about the wrapper, and that's very beneficial.
 
-Moreover, Functor is a solid basis and the predecessor of the Applicative typeclass, which further leads to monads. Hence, it brings you one step closer to the dream of many – understanding monads.
+Moreover, Functor is a solid basis and the predecessor of the Applicative typeclass, which further leads to Monad. The latter is a famous and widely used typeclass in Haskell. Understanding it will give you considerably greater command of the language.
 	
 ## Conclusion 
 	
