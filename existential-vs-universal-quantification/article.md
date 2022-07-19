@@ -2,7 +2,7 @@
 
 In logic, there are two common quantifiers: the universal quantifier and the existential quantifier. You might recognize them as $\forall$ (for all) and $\exists$ (there exists).
 
-They are relevant to Haskellers as well, since both universal and existential quantification is possible in Haskell.
+They are relevant to Haskellers as well, since both universal and existential quantification are possible in Haskell.
 
 In this article, we'll cover both types of quantification.
 
