@@ -10,7 +10,7 @@ You'll learn how to:
 
 * Make universal quantification explicit with  `ExplicitForAll`.
 * Create a heterogeneous list with existential data types.
-* Use existentially quantified type variables to make instantiation happpen at the definition site.
+* Use existentially quantified type variables to make instantiation happen at the definition site.
 
 ## Universal quantification
 
