@@ -339,7 +339,7 @@ assert_eq!(double_bool, DoubleBool(false, false));
 
 The most important lines in this snippet are those where we create `point` and `double_bool`. Because both `Point` and `DoubleBool` implement `Default`, we can invoke the `default()` method of the `Default` trait in each case to generate an empty value of type `Point` and `DoubleBool` respectively.
 
-*Exercise: try to remove explicit type annotations from lines 3 and 4 and see what the compiler tells you.*
+*Exercise: remove explicit type annotations from lines 3 and 4 and see what the compiler tells you. Why so?*
 
 ## Struct methods
 
