@@ -2,7 +2,7 @@
 
 Almost every programming language allows the creation of some kind of data structure – like class, record, or data – that can pack a group of things together. Rust is no exception to this with structs.
 
-This article will introduce you to structs, traits, and struct methods. 
+This article will introduce you to structs, traits, and struct methods.
 
 By the end of this article, you'll know:
 
@@ -31,7 +31,7 @@ struct Point {
 // [4]: both of type "i32"
 ```
 
-Struct in Rust reflects the same idea as a struct in C or a class in Java. 
+Struct in Rust reflects the same idea as a struct in C or a class in Java.
 
 Consider the analogue of the above code in the mentioned languages:
 
@@ -160,7 +160,12 @@ There are two options:
 
 ### Convenient field init syntax
 
-Let's define another struct and create its instance.
+Two features reduce boilerplate code while initializing struct fields:
+
+- struct update syntax
+- field init shorthand
+
+To illustrate their essence we need to first define a new struct and create its instance (using regular syntax).
 
 ```
 struct Bicycle {
@@ -210,8 +215,7 @@ let b2 = Bicycle {
 It is possible to omit the *field* in `field: value` initialization syntax if the value is a variable (or function argument) with a name that matches the field:
 
 ```
-fn new_bicycle(brand: String) -> Bicycle {
-    let kind = String::from("road");
+fn new_bicycle(brand: String, kind: String) -> Bicycle {
     Bicycle {
         brand,
 //      ^^^ instead of "brand: brand"
@@ -236,7 +240,7 @@ println!("{}", p);
 //             Compile error
 ```
 
-Suddenly, the compiler says `"Point" doesn't implement "std::fmt::Display"` and suggests we use `{:?}` instead of `{}`. 
+Suddenly, the compiler says `"Point" doesn't implement "std::fmt::Display"` and suggests we use `{:?}` instead of `{}`.
 
 Ok, why not:
 
@@ -247,7 +251,7 @@ println!("{:?}", p);
 //              Compile error
 ```
 
-Unfortunately, it did not help, we still get the error message `"Point" doesn't implement "Debug"`. 
+Unfortunately, it did not help, we still get the error message `"Point" doesn't implement "Debug"`.
 
 Though, we received a note:
 
@@ -277,7 +281,7 @@ There are two ways to implement a trait.
 - Manually write an implementation.
 - **Derive** it. The compiler is capable of providing basic implementations for a fixed list of traits via the `#[derive]` macro.
 
-In this article, we'll cover only the second option because it is the shortest way to achieve our needs. 
+In this article, we'll cover only the second option because it is the shortest way to achieve our needs.
 
 Let's add a new line before the `Point` definition:
 
@@ -397,7 +401,7 @@ There are at least two reasons.
 
 ## Methods vs traits
 
-A method can be invoked only on a type it is being associated with. Traits, on the other hand, overcome this limitation, as they are usually meant to be implemented by multiple different types. It allows certain functions to be generalized, not focus on one type, but to require just enough constraints from their arguments to be able to complete the implementation. 
+A method can be invoked only on a type it is being associated with. Traits, on the other hand, overcome this limitation, as they are usually meant to be implemented by multiple different types. It allows certain functions to be generalized, not focus on one type, but to require just enough constraints from their arguments to be able to complete the implementation.
 
 We have already seen such examples:
 - `println!("{:?}", ...)`. It doesn't care what object we want to print as long as it implements the `Debug` trait.
