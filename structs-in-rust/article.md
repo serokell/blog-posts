@@ -8,8 +8,8 @@ By the end of this article, you'll know:
 
 - what a struct is
 - how to define and initialize a struct
-- what are tuple and unit structs
-- what are traits and how to derive them
+- what is a tuple struct
+- what are traits and how to implement them
 - what are struct methods and how to use them
 
 Code from this post is available at [Gist](https://gist.github.com/sancho20021/d6faa25ef319db2442cdfbb0aef6b9a0).
@@ -48,16 +48,6 @@ class Point {
     int y;
 }
 ```
-
-### Unit struct
-
-Unit struct is a trivial example of struct that contains zero fields:
-
-```
-struct A;
-```
-
-Don't be afraid if you see such strange struct definitions. You may wonder what is the purpose of unit structs when they don't contain any information. In reality, they are being used (see [std::fmt::Error](https://doc.rust-lang.org/std/fmt/struct.Error.html), [chrono::offset::Utc](https://docs.rs/chrono/0.4.19/chrono/offset/struct.Utc.html)), as they can have methods and different trait implementations. Both things I just mentioned will be discussed further in the article.
 
 ### Tuple struct
 
