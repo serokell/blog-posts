@@ -281,9 +281,7 @@ There are two ways to implement a trait.
 - Manually write an implementation.
 - **Derive** it. The compiler is capable of providing basic implementations for a fixed list of traits via the `#[derive]` macro.
 
-In this article, we'll cover only the second option because it is the shortest way to achieve our needs.
-
-Let's add a new line before the `Point` definition:
+Let's start with the second option. We need to add a special line before the `Point` definition:
 
 ```
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -340,6 +338,38 @@ assert_eq!(double_bool, DoubleBool(false, false));
 The most important lines in this snippet are those where we create `point` and `double_bool`. Because both `Point` and `DoubleBool` implement `Default`, we can invoke the `default()` method of the `Default` trait in each case to generate an empty value of type `Point` and `DoubleBool` respectively.
 
 *Exercise: remove explicit type annotations from lines 3 and 4 and see what the compiler tells you. Why so?*
+
+Traits deriving has its disadvantages.
+- Only a [small number of traits](https://doc.rust-lang.org/book/appendix-03-derivable-traits.html) is derivable. Though, [procedural macros](https://doc.rust-lang.org/stable/book/ch19-06-macros.html) allow for creation of custom `derive` attributes.
+- Sometimes the derived implementation doesn't match your expectations.
+
+That's why it is possible to implement a trait by yourself.
+
+### Implementing a trait
+
+When we tried to print a `Point` instance using `"{}"`, the compiler said that `Point` doesn't implement `std::fmt::Display`. This trait is similar to `std::fmt::Debug` but has a few differences:
+- It must be implemented manually.
+- It is expected to format values in a more pretty way, without containing any unnecessary information.
+
+You can think of the `Debug` and the `Display` as the formatters for programmers and users respectively.
+
+Let's add the manual implementation of the `Display`:
+
+```
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+let p = Point::new(0, 1);
+
+// format a pair
+assert_eq!(format!("{:?}", p), String::from("Point { x: 0, y: 0 }"));
+assert_eq!(format!("{}", p), String::from("(0, 0)"));
+```
+
+The syntax seems pretty natural. We `impl`ement the trait `std::fmt::Display` `for` the struct called `Point`. In the opened code block we then have to define every function that is declared in the trait. In our case, there are only one — `fmt`.
 
 ## Struct methods
 
