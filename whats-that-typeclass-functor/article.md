@@ -1,4 +1,4 @@
-You might already know the `map` function for lists:
+You might already know the `map` function:
 
 ```haskell
 map :: (a -> b) -> [a] -> [b]
@@ -38,7 +38,7 @@ After reading this article, you will know:
 
 - what Functor is in Haskell;
 - how to define and use your own Functor instances;
-- why and where Functor is useful.
+- why and where Functors are useful.
 
 We'll also provide a set of exercises to consolidate your knowledge.
 
@@ -52,7 +52,7 @@ map :: (a -> b) -> [a] -> [b]
 
 It takes a function `a -> b`. Then, it uses that function to change the contents of a list.
 
-Now look at the type of `map'`. It uses the same type of function – `a -> b` – to change the contents of `Maybe`. 
+Now, look at the type of `map'`. It uses the same type of function – `a -> b` – to change the contents of `Maybe`. 
 
 ```haskell
 map' :: (a -> b) -> Maybe a -> Maybe b
@@ -66,38 +66,38 @@ Could we have a more general function that works for many different contexts? Ab
 fmap :: Functor f => (a -> b) -> f a -> f b
 ```
 
-Here’s how it works. `fmap` takes an  `a -> b` function and an `f a` data type (`a` wrapped in any context `f`), then the function is applied to what’s inside the context, and finally, a value of type `b` wrapped in `f` is returned. The value can change, but the context remains the same.
+Here’s how it works. `fmap` takes an `a -> b` function and an `f a` data type (`a` wrapped in any context `f`). The function is applied to what’s inside the context, and a value of type `b` wrapped in `f` is returned. The value can change, but the context remains the same.
 
-Here are a few examples:
+Let's look at a few examples:
 
 ```haskell
--- apply `reverse :: String -> String` function
--- to the list of `String`s
--- to get the list of `String`s
+-- Apply `reverse :: String -> String`
+-- to a list of `String`s
+-- to get a list of `String`s.
 > fmap reverse ["abc", "def", "ghi"]
 ["cba","fed","ihg"]
 > fmap reverse []
 []
 
--- apply `show :: Int -> String` function
--- to the list of `Int`s
--- to get the list of `String`s
+-- Apply `show :: Int -> String`
+-- to a list of `Int`s
+-- to get a list of `String`s.
 > fmap show [1..3]
 ["1","2","3"]
 > fmap show []
 []
 
--- apply `(+1) :: Int -> Int` function
+-- Apply `(+1) :: Int -> Int` 
 -- to `Maybe Int`
--- to get `Maybe Int`
+-- to get `Maybe Int`.
 > fmap (+1) $ Just 1
 Just 2
 > fmap (+1) Nothing
 Nothing
 
--- apply `(> 0) :: Int -> Bool` function
+-- Apply `(> 0) :: Int -> Bool` 
 -- to `Maybe Int`
--- to get `Maybe Bool`
+-- to get `Maybe Bool`.
 > fmap (> 0) $ Just (-1)
 Just False
 > fmap (> 0) $ Just 1
@@ -105,19 +105,19 @@ Just True
 > fmap (> 0) Nothing
 Nothing
 
--- apply `chr :: Int -> Char` function
--- to pair `(a, Int)`
--- to get pair `(a, Char)`
--- Note that only the second value is being fmap'ed
+-- Apply `chr :: Int -> Char`
+-- to a pair `(a, Int)`
+-- to get a pair `(a, Char)`.
+-- Note that only the second value is mapped.
 > fmap chr (65,65)
 (65,'A')
 > fmap chr ('a',97)
 ('a','a')
 ```
 
-As you may have guessed, `map` is just a synonym of `fmap` for lists. But it can do much more. With `fmap`, we can do all kinds of actions inside data types like `[]`, `Maybe`, `Either a`, `((,) a)`, and others. 
+As you may have guessed, `map` is just a synonym of `fmap` for lists. But it can do much more. With `fmap`, we can do actions inside data types like `[]`, `Maybe`, `Either a`, `((,) a)`, and others. 
 
-Of course, we cannot provide an actual implementation of `fmap` that would work for all contexts. Instead, to use it on a data type, that type needs to have an instance of the Functor typeclass. As we'll see, Functor is the thing that provides the said implementation.
+Of course, we cannot provide an implementation of `fmap` that works for all contexts. Instead, to use it on a data type, that type needs to have an instance of the Functor typeclass. As we'll see, Functor is the thing that provides the implementation.
 
 ## The Functor typeclass
 
@@ -204,7 +204,7 @@ A functor is a [mapping](https://en.wikipedia.org/w/index.php?title=Functor&oldi
     `fmap (+1) (fmap (*2) (Just 1)) == fmap ((+1) . (*2)) (Just 1) == Just 3`
 
 
-You may wonder why you should follow these laws. The answer is simple – if the instance doesn't meet these conditions, the methods of typeclass won't work as expected. You might run into unpredictable behaviour and confuse people that work with your code as well.
+You may wonder why you should follow these laws. The answer is simple – if the instance doesn't meet these conditions, the typeclass' methods won't work as expected. You might run into unpredictable behaviour and confuse people that work with your code as well.
 
 Laws aren't enforced by the compiler, hence you need to ensure their correctness yourself. It may be a bit difficult at the beginning, but after a couple of instances, it will start to feel natural.
 
@@ -260,7 +260,7 @@ x <$ f = fmap (const x) f
 <hr>
 </details>
 
-Now that we've seen the basic components of Functor, it’s time to create our own instance of this type class!
+Now that we've seen the basic components of Functor, it’s time to create our own instance of this typeclass!
 
 ## How to implement a Functor instance
 
@@ -295,7 +295,7 @@ instance Functor NonEmpty' where
   fmap f (NonEmpty' x xs) = NonEmpty' (f x) (fmap f xs)
 ```
 	
-However, let’s explore the implementation to better understand the mechanics of `fmap`.
+However, let’s explore the implementation to understand the mechanics of `fmap` better.
 
 ```haskell
 instance Functor [] where
@@ -324,7 +324,7 @@ data (->) a b
 
 We know that Functor can only be implemented for types with the  `* -> *` kind. Unfortunately, the kind of `(->)` is `* -> * -> *`. It doesn’t satisfy the Functor instance in this form because a Functor can only have one type argument.
 
-Hence, it’s required to apply it once, like we do with `Either a` or `((,) a)`. In the `(->)` case, it means providing the function argument’s type – `(->) a` or `a ->` (the latter is not valid syntax in Haskell, though).
+Hence, it’s required to apply it once, as we do with `Either a` or `((,) a)`. In the `(->)` case, it means providing the function argument’s type – `(->) a` or `a ->` (the latter is not valid syntax in Haskell, though).
 
 For example, functions with the following type signatures have Functor instances:
 
@@ -403,11 +403,11 @@ In general, Functor is not an extraordinary typeclass. Its methods are easy to g
 
 Nevertheless, a Haskell project can hardly do without a couple of Functor instances. It enables one to do transformations on the wrapped type without knowing anything about the wrapper, and that's very beneficial.
 
-Moreover, Functor is a solid basis and the predecessor of the Applicative typeclass, which further leads to Monad. The latter is a famous and widely used typeclass in Haskell. Understanding it will give you considerably greater command of the language.
+Moreover, Functor is a solid basis and the predecessor of the Applicative typeclass, which further leads to Monad. The latter is a famous and widely used typeclass in Haskell. Understanding it will give you a considerably greater command of the language.
 	
 ## Conclusion 
 	
-In this article, we have covered the Functor typeclass: what it is, where it can be used, and how to implement your own instances of Functor. It's a part of larger [What's That Typeclass](https://serokell.io/blog/what's-that-typeclass) series, where we introduce readers to commonly used Haskell typeclasses. 
+In this article, we have covered the Functor typeclass: what it is, where it can be used, and how to implement your own instances of Functor. It's a part of the [What's That Typeclass](https://serokell.io/blog/what's-that-typeclass) series, where we introduce readers to commonly used Haskell typeclasses. 
 	
 If you want to read more articles from Serokell, be sure to follow us on [Twitter](https://twitter.com/serokell) or subscribe to the newsletter via the form below.
 	
@@ -415,7 +415,7 @@ And finally, if you see anything that's wrong with the article or if there's som
 
 ## Exercises
 
-1. Implement Functor for the [binary search tree](https://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=1053783914).
+1. Implement Functor for [binary search trees](https://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=1053783914).
 
     ```haskell
     data BinarySearchTree a
