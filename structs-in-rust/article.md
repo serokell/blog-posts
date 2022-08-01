@@ -116,7 +116,7 @@ let x = p_named.x;
 let y = p_named.y;
 ```
 
-One may wonder: what is the syntax to address a specific field of a tuple struct? Fortunately, Rust has chosen the simplest way possible, by enumerating tuple components from *0* to *n*.
+One may wonder: what is the syntax to address a specific field of a tuple struct? Fortunately, Rust has chosen the simplest way possible, by numbering  tuple components starting from zero.
 
 ```
 let x = p_unnamed.0;
@@ -124,7 +124,7 @@ let y = p_unnamed.1;
 ```
 #### Set
 
-It is possible to change the value of a field using the same dot notation, but the struct instance **must be defined as mutable**.
+It is possible to change the value of a field using the same dot notation, but the struct variable **must be defined as mutable**.
 
 ```
 let mut p = PointTuple(1, 2);
@@ -145,8 +145,9 @@ struct Struct {
 ```
 
 There are two options:
+
 - Have an immutable binding to the struct. Then you cannot change any of its fields.
-- Have a mutable binding, in which case you can set whichever field you choose.
+- Have a mutable binding and set whichever field you choose.
 
 ### Convenient field init syntax
 
@@ -261,7 +262,6 @@ Here is a list of commonly-used traits from the standard library:
 
 - [`Debug`](https://doc.rust-lang.org/std/fmt/trait.Debug.html). Used to format (and print) a value using `{:?}`.
 - [`Clone`](https://doc.rust-lang.org/std/clone/trait.Clone.html). Used to get a duplicate of a value.
-- [`Default`](https://doc.rust-lang.org/std/default/trait.Default.html). Used to create a default instance of type.
 - [`Eq`](https://doc.rust-lang.org/std/cmp/trait.Eq.html). Used to compare values for equality.
 
 In our example, the `Point` needs an implementation of the `Debug` trait. It is required by the `println!()` macro.
@@ -274,7 +274,7 @@ There are two ways to implement a trait.
 Let's start with the second option. We need to add a special line before the `Point` definition:
 
 ```
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq)]
 struct Point {
     x: i32,
     y: i32,
@@ -310,26 +310,8 @@ assert!(a != b);
 assert!(b != c);
 ```
 
-#### Usage of Default
-
-For this example, we need to define another struct.
-
-```
-#[derive(Debug, PartialEq, Eq, Default)]
-struct DoubleBool(bool, bool);
-
-let point: Point = Default::default();
-let double_bool: DoubleBool = Default::default();
-
-assert_eq!(point, Point { x: 0, y: 0 });
-assert_eq!(double_bool, DoubleBool(false, false));
-```
-
-The most important lines in this snippet are those where we create `point` and `double_bool`. Because both `Point` and `DoubleBool` implement `Default`, we can invoke the `default()` method of the `Default` trait in each case to generate an empty value of type `Point` and `DoubleBool` respectively.
-
-*Exercise: remove explicit type annotations from lines 3 and 4 and see what the compiler tells you. Why so?*
-
 Traits deriving has its disadvantages.
+
 - Only a [small number of traits](https://doc.rust-lang.org/book/appendix-03-derivable-traits.html) is derivable. Though, [procedural macros](https://doc.rust-lang.org/stable/book/ch19-06-macros.html) allow for creation of custom `derive` attributes.
 - Sometimes the derived implementation doesn't match your expectations.
 
@@ -338,6 +320,7 @@ That's why it is possible to implement a trait by yourself.
 ### Implementing a trait
 
 When we tried to print a `Point` instance using `"{}"`, the compiler said that `Point` doesn't implement `std::fmt::Display`. This trait is similar to `std::fmt::Debug` but has a few differences:
+
 - It must be implemented manually.
 - It is expected to format values in a more pretty way, without containing any unnecessary information.
 
@@ -355,11 +338,11 @@ impl std::fmt::Display for Point {
 let p = Point::new(0, 1);
 
 // format a pair
-assert_eq!(format!("{:?}", p), String::from("Point { x: 0, y: 0 }"));
-assert_eq!(format!("{}", p), String::from("(0, 0)"));
+assert_eq!(format!("{:?}", p), "Point { x: 0, y: 0 }");
+assert_eq!(format!("{}", p), "(0, 0)");
 ```
 
-The syntax seems pretty natural. We `impl`ement the trait `std::fmt::Display` `for` the struct called `Point`. In the opened code block we then have to define every function that is declared in the trait. In our case, there are only one — `fmt`.
+We `impl`ement the trait `std::fmt::Display` `for` the struct called `Point`. In the opened code block we then have to define every function that is declared in the trait. In our case, there are only one — `fmt`.
 
 ## Struct methods
 
@@ -372,12 +355,12 @@ impl Point {
         Point { x, y }
     }
 
-    // Immutable method
+    // Method that can't modify the struct instance
     fn has_same_x(&self, other: &Self) -> bool {
         self.x == other.x
     }
 
-    // Mutable method
+    // Method that can modify the struct instance
     fn shift_right(&mut self, dx: i32) {
         self.x += dx;
     }
@@ -416,10 +399,77 @@ Methods can mutate the struct instance they are associated with, but this requir
 
 There are at least two reasons.
 
-1. Nice-looking dot notation.
-2. Code organization. It is a lot more convenient for the user of your library to see all functionality of the struct inside one impl block instead of tens of functions spread all across the module.
+#### 1. Nice-looking dot notation
+Besides beautiful syntax, dot notation imperceptibly provides an additional property — autoreferencing:
+
+You can write
+
+```
+point.shift_right(3);
+```
+
+instead of
+
+```
+(&mut point).shift_right(3);
+```
+
+Functions don't have this advantage, you always have to reference:
+
+```
+shift_right(&mut point, 3);
+```
+
+#### 2. Code organization
+
+All methods are placed inside one or multiple impl blocks. This implies two things:
+
+1. You don't have to import methods:
+
+```
+use my_module::MyStruct;
+
+...
+let s = MyStruct::new();
+s.do_stuff();
+s.do_other_stuff();
+```
+
+vs
+
+```
+use my_module::{MyStruct, do_stuff, do_other_stuff};  // ugly
+
+...
+let s = MyStruct::new();
+do_stuff(&s);
+do_other_stuff(&s);
+```
+
+2. Methods are namespaced. You don't have name collisions and can write
+
+```
+my_rectangle.area()
+my_circle.area()
+```
+
+instead of verbose and redundant
+
+```
+rectangle_area(my_rectangle)
+circle_area(my_circle)
+```
 
 ## Methods vs traits
+
+### When to use traits and when to use methods?
+
+The general rule is simple:
+
+- If you are implementing a common functionality for which a trait exists (converting to string, comparison, etc.), try to implement that trait.
+- If you are doing something specific to your application, probably use methods in regular impl blocks.
+
+### A few more words about traits
 
 A method can be invoked only on a type it is being associated with. Traits, on the other hand, overcome this limitation, as they are usually meant to be implemented by multiple different types. It allows certain functions to be generalized, not focus on one type, but to require just enough constraints from their arguments to be able to complete the implementation.
 
@@ -427,17 +477,8 @@ We have already seen such examples:
 - `println!("{:?}", ...)`. It doesn't care what object we want to print as long as it implements the `Debug` trait.
 - `assert_eq!(...)`.
 
-<!-- ### Extending functionality
-Though it was not mentioned in this post, you can [define your own traits](https://doc.rust-lang.org/book/ch10-02-traits.html), and add an implementation of your trait to **existing types**.
-
-### Operators
-Want to add, subtract or compare instances of your struct? Overload operators that you need: `+`, `-`, `<`, etc. Implementing traits from modules [ops](https://doc.rust-lang.org/stable/std/ops/) and [cmp](https://doc.rust-lang.org/stable/std/cmp/) will do the job!
-
-### Trait usage doesn't end here
-Traits form a strong concept that supports a wide range of different patterns. This post covers just a tiny bit of basic use cases. -->
-
 ## Conclusion
 
-In this article, we learnt the basics of structs in Rust. We explored the ways of defining, initializing, and adding implementation blocks to both structs and tuple structs. We also looked at traits and traits deriving.
+In this article, we learnt the basics of structs in Rust. We explored the ways of defining, initializing, and adding implementation blocks to both structs and tuple structs. We also looked at traits and how to implement or derive them.
 
 Struct is not the only way to create custom types. Rust also has [`enum`](https://doc.rust-lang.org/book/ch06-00-enums.html). We did not cover it in this blog post, but such concepts as methods, traits, and deriving can be applied to enums in a similar way.
