@@ -387,7 +387,7 @@ impl Point {
 }
 ```
 
-You can call these kinds of functions by using a double semicolon (`::`) like this:
+You can call these functions by using a double semicolon (`::`):
 
 ```rust
 let point = Point::new(1, 2);
