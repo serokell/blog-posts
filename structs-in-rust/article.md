@@ -1,4 +1,4 @@
-# How to Use Structs in Rust
+# Get Started With Rust: Structs
 
 In almost any programming language, you can create data structures – like classes or records – that pack a group of things together. Rust is no exception to this with structs.
 
@@ -387,7 +387,7 @@ impl Point {
 }
 ```
 
-To call an associated function, use double semicolon syntax like so:
+You can call these kinds of functions by using a double semicolon (`::`) like this:
 
 ```rust
 let point = Point::new(1, 2);
