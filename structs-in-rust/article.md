@@ -362,7 +362,21 @@ assert_eq!(point.x, 28);
 
 Methods can mutate the struct instance they are associated with, but this requires `&mut self` as the first argument. This way, they can be called only via mutable binding.
 
-You can also use the `impl` block to define functions that don't take an instance of the associated type, like static functions in Java. They are commonly used for constructing new instances of the type.
+### Self
+
+You may have noticed that methods have `self` as their first argument. It represents the instance of the struct the method is being called on, similar to how it's done in Python. Some syntax sugar is involved here. Let's desugar it in two steps.
+
+|     |                                              |                                             |
+| --- | -------------------------------------------- | ------------------------------------------- |
+| 1   | `fn has_same_x(&self, other: &Self)`         | `fn shift_right(&mut self, dx: i32)`        |
+| 2   | `fn has_same_x(self: &Self, other: &Self)`   | `fn shift_right(self: &mut Self, dx: i32)`  |
+| 3   | `fn has_same_x(self: &Point, other: &Point)` | `fn shift_right(self: &mut Point, dx: i32)` |
+
+Don't confuse `self` with `Self`. The latter is an alias for the type of the `impl` block. In our case, it's `Point`.
+
+### Associated functions
+
+You can also use the `impl` block to define functions that don't take an instance of `Self`, like static functions in Java. They are commonly used for constructing new instances of the type.
 
 ```rust
 impl Point {
@@ -378,18 +392,6 @@ To call an associated function, use double semicolon syntax like so:
 ```rust
 let point = Point::new(1, 2);
 ```
-
-### Self
-
-You may have noticed that methods have `self` as their first argument. It represents the instance of the struct the method is being called on, similar to how it's done in Python. Some syntax sugar is involved here. Let's desugar it in two steps.
-
-|     |                                              |                                             |
-| --- | -------------------------------------------- | ------------------------------------------- |
-| 1   | `fn has_same_x(&self, other: &Self)`         | `fn shift_right(&mut self, dx: i32)`        |
-| 2   | `fn has_same_x(self: &Self, other: &Self)`   | `fn shift_right(self: &mut Self, dx: i32)`  |
-| 3   | `fn has_same_x(self: &Point, other: &Point)` | `fn shift_right(self: &mut Point, dx: i32)` |
-
-Don't confuse `self` with `Self`. The latter is an alias for the type of the `impl` block. In our case, it's `Point`.
 
 ### Why use methods instead of regular functions?
 
