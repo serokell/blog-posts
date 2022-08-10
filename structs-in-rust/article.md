@@ -2,7 +2,7 @@
 
 In almost any programming language, you can create data structures – like classes or records – that pack a group of things together. Rust is no exception to this with structs.
 
-This article will show you how to use structs in Rust. 
+This article will show you how to use structs in Rust.
 
 By the end of this article, you'll know:
 
@@ -14,7 +14,7 @@ All the code from this post is available [here](https://gist.github.com/sancho20
 
 ## What is a struct in Rust?
 
-In Rust, a struct is a custom data type that holds multiple related values. 
+In Rust, a struct is a custom data type that holds multiple related values.
 
 Let's jump straight into our first example and define `Point` – a wrapper for two coordinates.
 
@@ -36,7 +36,7 @@ struct Point {
 
 ### Tuple structs
 
-You can use a tuple struct to group multiple values together without naming them. 
+You can use a tuple struct to group multiple values together without naming them.
 
 Tuple structs are defined like this:
 
@@ -51,7 +51,7 @@ struct Point(i32, i32);
 
 ### How to create an instance of a struct?
 
-Here are the structs that we defined previously. 
+Here are the structs that we defined previously.
 
 ```rust
 // Ordinary struct
@@ -278,7 +278,7 @@ We didn't write anything related to formatting `Point` ourselves, but we already
 
 #### `Eq` and `PartialEq`
 
-You may have noticed that we also derived the `Eq` and `PartialEq` traits.  
+You may have noticed that we also derived the `Eq` and `PartialEq` traits.
 
 Because of that, we can compare two `Point`s for equality:
 
@@ -348,14 +348,12 @@ impl Point {
 }
 ```
 
-You can call these methods via dot notation. 
-
-<!-- TODO: use the old instantiation syntax to instantiate structs here -->
+You can call these methods via dot notation.
 
 ```rust
 // Mutable binding
-let mut point = Point::new(25, 25);
-assert!(!point.has_same_x(&Point::new(30, 25)));
+let mut point = Point { x: 25, y: 25 };
+assert!(!point.has_same_x(&Point { x: 30, y: 25 }));
 
 // Calling a method that changes the object state
 point.shift_right(3);
@@ -364,7 +362,7 @@ assert_eq!(point.x, 28);
 
 Methods can mutate the struct instance they are associated with, but this requires `&mut self` as the first argument. This way, they can be called only via mutable binding.
 
-You can also use the `impl` block to define functions that don't take an instance of the associated type, like static functions in Java. They are commonly used for constructing new instances of the type. 
+You can also use the `impl` block to define functions that don't take an instance of the associated type, like static functions in Java. They are commonly used for constructing new instances of the type.
 
 ```rust
 impl Point {
@@ -372,12 +370,14 @@ impl Point {
     fn new(x: i32, y: i32) -> Point {
         Point { x, y }
     }
-	
-	//...   
 }
 ```
 
-<!-- TODO: Put an example of how Point::new can be called and works -->
+To call an associated function, use double semicolon syntax like so:
+
+```rust
+let point = Point::new(1, 2);
+```
 
 ### Self
 
@@ -389,7 +389,7 @@ You may have noticed that methods have `self` as their first argument. It repres
 | 2   | `fn has_same_x(self: &Self, other: &Self)`   | `fn shift_right(self: &mut Self, dx: i32)`  |
 | 3   | `fn has_same_x(self: &Point, other: &Point)` | `fn shift_right(self: &mut Point, dx: i32)` |
 
-As you can see, `self` is an alias for the type of the `impl` block. In our case, it's `Point`.
+Don't confuse `self` with `Self`. The latter is an alias for the type of the `impl` block. In our case, it's `Point`.
 
 ### Why use methods instead of regular functions?
 
@@ -440,7 +440,7 @@ my_rectangle.area()
 my_circle.area()
 ```
 
-Without methods, you would need to write something like this: 
+Without methods, you would need to write something like this:
 
 ```rust
 rectangle_area(my_rectangle)
@@ -449,14 +449,14 @@ circle_area(my_circle)
 
 ## Methods vs. traits
 
-Methods and traits are somewhat similar, so beginners can mix them up. 
+Methods and traits are somewhat similar, so beginners can mix them up.
 
 The general rule for when to use which is simple for beginners:
 
 - If you are implementing a common functionality for which a trait exists (converting to string, comparison, etc.), try to implement that trait.
 - If you are doing something specific to your application, probably use methods in regular `impl` blocks.
 
-A method can be invoked only on the type it is defined for. Traits, on the other hand, overcome this limitation, as they are usually meant to be implemented by multiple different types. 
+A method can be invoked only on the type it is defined for. Traits, on the other hand, overcome this limitation, as they are usually meant to be implemented by multiple different types.
 
 So traits allow certain functions to be generalized. These functions don't take just one type, but a set of types that is constrained by a trait.
 
