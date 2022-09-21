@@ -285,6 +285,15 @@ Let's quickly visit each part of this file, from top to bottom.
 * `%%`, after which we must specify the production rules for the grammar.
 * The bottom of the file (trailer) to include more Haskell definitions, such as auxiliary files and the AST that will be built by the parser. You can also define those in another module if you prefer.
 
+<details>
+  <summary>A note about the <code>StrictData</code> language extension</summary>
+  There is one pitfall you should be aware of while using Happy: you should not compile the parser module using <code>StrictData</code>, as it may cause an internal Happy exception.
+
+  If you'd like to make your data types strict, you may either use bangs (<code>!</code>) in your data type or define them in another module.
+
+  If you've enabled <code>StrictData</code> in your Cabal file, you may place a <code>NoStrictData</code> pragma in your Happy module.
+</details>
+
 ### Tokens
 
 Since Happy operates on tokens, we must tell it how to match each token.
