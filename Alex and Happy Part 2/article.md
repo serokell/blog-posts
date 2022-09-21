@@ -287,6 +287,7 @@ Let's quickly visit each part of this file, from top to bottom.
 
 <details>
   <summary>A note about the <code>StrictData</code> language extension</summary>
+  
   There is one pitfall you should be aware of while using Happy: you should not compile the parser module using <code>StrictData</code>, as it may cause an internal Happy exception.
 
   If you'd like to make your data types strict, you may either use bangs (<code>!</code>) in your data type or define them in another module.
