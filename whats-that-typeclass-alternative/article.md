@@ -288,9 +288,9 @@ If you want to dive deeper into the topic of parser combinators in Haskell, take
 ## MonadPlus
 
 There is a typeclass called [`MonadPlus m`](https://wiki.haskell.org/MonadPlus)
-which has the same semantics as `Alternative` but for types that implement `Monad`.
+that has the same semantics as `Alternative` but for types that implement `Monad`.
 So it can be seen as a "monoid on monads". It comes with a default implementation
-based on `Alternative`, so you don't have to implement any of the methods.
+based on `Alternative`, so you don't need to implement any of the methods.
 
 ```haskell
 -- The MonadPlus class definition
@@ -338,8 +338,8 @@ Nothing
 * `Alternative` is a useful instance to implement for your applicative functor
   if it has a semantic of _try this or, alternatively, that_.
 * `Alternative` can be seen as a monoid on applicative functors. In the
-  `Data.Monoid` module there even exists a
-  [wrapper `Alt`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Data-Monoid.html)
+  `Data.Monoid` module there even exists an
+  [`Alt`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Data-Monoid.html) wrapper
   that further shows this idea.
 * If you implement a parser (combinator), you almost always want to implement
   an `Alternative` instance for it.
