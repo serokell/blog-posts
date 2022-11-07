@@ -1,11 +1,11 @@
-You may come across a programming task where you want to implement something like:
+You may come across a programming task where you want to implement the following pattern: try _this_ and, if it doesn't work out, try _the other thing_. 
 
-Try _this_ and, if it doesn't work out, try _that_ - or one could say a computation composed of two (or more) alternatives which should be tried
+In other words, you want a computation composed of two (or more) alternatives which should be tried
 one after the other until one of them produces a useful result.
 
-As an example, lets build a function which takes a `String` as input and returns `Just String` if that input is either `"bob"` or `"alice"`.
+As an example, let's build a function that takes a `String` as input and returns `Just String` if that input is either `"bob"` or `"alice"`.
 
-Although there might be a lot of other ways to solve this task, we'll do it by defining two functions:
+First, we'll define two functions:
 
 ```haskell
 isAlice :: String -> Maybe String
@@ -15,7 +15,8 @@ isBob :: String -> Maybe String
 isBob a = if a == "bob" then Just a else Nothing
 ```
 
-We can then compose these two functions like this:
+We can then compose them like this:
+
 ```haskell
 isAliceOrBob :: String -> Maybe String
 isAliceOrBob a =
@@ -35,37 +36,38 @@ Just "bob"
 Nothing
 ```
 
-This works well, but it will become ugly when we add more alternatives to the computation  f.e. a `isCharly :: String -> Maybe String`.
-
-It would be nice if we could have an operator to write it in a nice way like this:
+This works fine for two functions, but becomes ugly when we add more alternatives. 
 
 ```haskell
 isCharly :: String -> Maybe String
 isCharly a = if a == "charly" then Just a else Nothing
 
-isAliceOrBobOrCharly :: String -> Maybe String
-isAliceOrBobOrCharly a = isAlice a <|> isBob a <|> isCharly a
--- or
-isAliceOrBobOrCharly a = isAliceOrBob a <|> isCharly a
+isAliceOrBoborCharly :: String -> Maybe String
+isAliceOrBoborCharly a =
+  case isAlice a of
+    Just _ -> Just a
+    Nothing -> case isBob a of
+                 Just _ -> Just a
+                 Nothing -> case isCharly a of 
+                              Just _ -> Just a 
+                              Nothing -> Nothing
 ```
 
+It would be better if we could use an operator (such as `<|>`) for this pattern:
+
+```haskell
+isAliceOrBobOrCharly :: String -> Maybe String
+isAliceOrBobOrCharly a = isAlice a <|> isBob a <|> isCharly a
+```
+
+Actually, the code above is valid Haskell. All you need to do to 
+make use of the `<|>` operator is to import it from [`Control.Applicative`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Applicative.html).
+
+It's the main method of the [`Alternative`](https://hackage.haskell.org/package/monadplus-1.4.2/docs/Control-Applicative-Alternative.html) typeclass, which we'll cover in this article.
 
 ## The Alternative typeclass
 
-Actually, the code above is valid Haskell. All you need to do to make use of the `<|>` operator is to import it from `Control.Aplicative`:
-
-```none
-λ> :info (<|>)
-type Alternative :: (* -> *) -> Constraint
-class Applicative f => Alternative f where
-  ...
-  (<|>) :: f a -> f a -> f a
-  ...
-  	-- Defined in ‘GHC.Base’
-infixl 3 <|>
-```
-
-It's a method of the `Alternative` typeclass. Let's look at what information GHCI can provide us about this typeclass:
+Let's look at what GHCi can tell us about the `Alternative` typeclass:
 
 ```haskell
 type Alternative :: (* -> *) -> Constraint
@@ -82,15 +84,18 @@ instance Alternative Maybe -- Defined in ‘GHC.Base’
 instance Alternative IO -- Defined in ‘GHC.Base’
 ```
 
-This already gives us a lot of useful facts:
+This gives us some useful facts:
 
 1. A type implementing `Alternative` must be of [kind](https://serokell.io/blog/kinds-and-hkts-in-haskell) `* -> *`.
 2. It must also implement `Applicative` (and, with that, also `Functor`).
 3. To implement it, you must implement `<|>` and `empty`.
 4. In addition to those methods, it gives you `some` and `many`, which we'll discuss further below.
-5. It's already defined for the `Maybe` type that we used in the example above.
 
-Lets take a look on the implementation of `Alternative Maybe`:
+### Alternative for Maybe
+
+`Alternative` is already defined for the `Maybe` type that we used in the example at the start.
+
+Let's take a look at the implementation:
 
 ```haskell
 instance Alternative Maybe where
@@ -99,10 +104,11 @@ instance Alternative Maybe where
     l       <|> _ = l
 ```
 
-If you take a look at the definitions you can see that `empty :: f a` is
-the identity of `<|>` (very much like `mempty :: a` is the identity of
-`mappend :: a -> a -> a` in case of `Monoid`.) `Alternative` is also
-said to be _a monoid on applicative functors_.
+If you take a look at the definitions, you can see that `empty :: f a` is
+the identity of `(<|>) :: f a -> f a -> f a`, very much like `mempty :: a` is
+the identity of `mappend :: a -> a -> a` in case of `Monoid`.
+
+In fact, `Alternative` is said to be _a monoid on applicative functors_.
 
 The truth table of `Alternative Maybe` looks like this:
 
@@ -112,15 +118,19 @@ The truth table of `Alternative Maybe` looks like this:
 | **Just l**  | Just l      | Just l     |
 
 
+### Alternative for IO
+
 Another interesting `Alternative` instance is `IO`.
-Here, the first alternative from left to right that succeeds wins, f.e.
+
+Here, the first alternative from left to right that succeeds wins:
 
 ```haskell
 test :: IO String
 test = fail "foo" <|> pure "bar" <|> fail "baz"
 ```
 
-When executed the first computation `fail "foo"` obviously fails, so the second one `pure "bar"` succeeds, which is why the third `fail "baz"` isn't executed at all.
+When executed, the first alternative (`fail "foo"`) fails. The second one
+(`pure "bar"`) succeeds, which is why the third isn't executed at all.
 
 ```none
 λ> test
@@ -131,28 +141,29 @@ When executed the first computation `fail "foo"` obviously fails, so the second 
 
 A very common use case of the `Alternative` typeclass is in parsers.
 
-Lets assume we want to implement a simple parser which reads a stream of 'i' and possibly returns a value of type `a` if the input matches.
+Let's assume we want to implement a simple parser that reads a
+stream of type 'i' and possibly returns a value of type `a` if the input matches.
 
 ```haskell
 newtype Parser i a
   Parser { runParser :: [i] -> (Maybe a, [i]) }
+```
 
+This `Parser` type wraps a function that takes an input and gives back
+`Just a` if it matches and `Nothing` if it doesn't, together with the
+remaining unused input.
+
+```haskell
 evalParser :: (Show i) => Parser i a -> [i] -> Either String a
 evalParser p is = case runParser p is of
                     (Nothing, is) -> Left $ "parser failed on " ++ show is
                     (Just a, _)   -> Right a
 ```
+`evalParser` runs such a parser and returns a more convenient `Either` with an error string or the result.
 
-This `Parser` type wraps a function which takes an input and gives back `Just a` in case it matches and `Nothing` if it doesn't, together with the remaining unused input.
-
-`evalParser` runs such a parser and returns a more convenient `Either` with
-an error string or the result.
-
-
-An implementation of the parser could be one which consumes a numeric input
-and succeeds if it smaller then a given number of fails if it is equal
-or greater that number:
-
+A concrete implementation of the parser could, for example,
+consume a numeric input and succeed if it is smaller than a given number
+or fail if it is equal or greater than that number:
 
 ```haskell
 parseLT :: Ord a => a -> Parser a a
@@ -163,7 +174,7 @@ parseLT a = Parser f
           f input         = (Nothing, input) -- empty input - parser also fails
 ```
 
-Running it shows the expected results:
+Running it shows that it works as expected:
 
 ```
 λ> evalParser (parseLT 10) [2,3,10,20]
@@ -176,12 +187,9 @@ Left "parser failed on []"
 
 ### Implementing an Alternative instance for our parser
 
-
-First we need a `Functor` instance for our `Parser i a` type, which is pretty
+First, we need a [`Functor`](https://serokell.io/blog/whats-that-typeclass-functor)
+instance for our `Parser i a` type, which is pretty
 straightforward and reuses the `Functor` instance for our inner `Maybe a`.
-
-For more details on the `Functor` type class check out
-[this article](https://serokell.io/blog/whats-that-typeclass-functor).
 
 ```haskell
 {-# LANGUAGE InstanceSigs  #-}
@@ -194,9 +202,10 @@ instance Functor (Parser i) where
             in (fmap f aM, rest)  -- reuse the functor instance on the 'Maybe a`
 ```
 
-Note: Above I've explicitly written the `fmap` function signature in the instance
-deceleration. It isn't required but makes it more easy to understand what
-is going on. To be able to do that, you need to enable the `InstanceSigs` language extension.
+**Note:** Above, I've explicitly written the `fmap` function signature in the instance
+declaration. It isn't required but it makes it easier to understand what
+is going on. To do that, you need to enable the [`InstanceSigs`](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/instances.html#instance-signatures-type-signatures-in-instance-declarations)
+language extension.
 
 Before we can implement `Alternative`, we also need to implement
 `Applicative`:
@@ -217,7 +226,7 @@ instance Applicative (Parser i) where
                         (Nothing, rest') -> (Nothing, rest')
 ```
 
-I won't go into the details of `Applicative` here, as there are [excellent other
+I won't go into the details of `Applicative` here, as there are [excellent 
 articles](https://serokell.io/blog/whats-that-typeclass-applicative) on the idea
 and use of applicative functors. But with that out of the way, we're finally able
 to define the `Alternative` typeclass for our parser.
@@ -237,11 +246,11 @@ instance Alternative (Parser i) where
            _                 -> (Nothing, is)
 ```
 
-But why should we actually want an `Alternative` instance for the parser?
+But why do we want an `Alternative` instance for the parser?
 First of all, because of the possibility to compose multiple `Parser i a` with
 the `<|>` operator.
 
-Another reason is two methods of `Alternative` that we haven't
+Another reason is the two methods of `Alternative` that we haven't
 discussed so far, which we get for free:
 
 * `some :: f a -> f [a]` which means: _one or more_
@@ -249,14 +258,13 @@ discussed so far, which we get for free:
 
 In our case, `some (parseLT 10)` will create a new parser of type
 `parseLT :: Int -> Parser Int [Int]` that expects at least one integer
-that is smaller 10 and then will consume all following numbers which are
-smaller 10 as well.
+that is smaller than ten and will consume all the following numbers which are
+smaller than ten as well.
 
-In case of `many (parseLT 10)`, the type signature looks the same as in the
-`some` case, but it does not fail if the first element in the input isn't a
-number smaller 10. In that case, it will just return the empty list `[]`.
+`many (parseLT 10)` is similar, but it doesn't fail if the first element in the input doesn't match.
+In that case, it will just return the empty list `[]`.
 
-So lets try out these methods:
+Let's try out these methods:
 
 ```none
 λ> evalParser (some $ parseLT 10) [2,3,10,20]
@@ -272,27 +280,17 @@ Left "parser failed on [10,2,3,20]"
 Right []
 ```
 
-`some` and `many` are a very common and useful pattern in parser combinators.
+`some` and `many` are very common and useful patterns in parser combinators.
 
-If you want to dive deeper into the topic of parsers in Haskell, take a look
+If you want to dive deeper into the topic of parser combinators in Haskell, take a look
 [at this post](https://serokell.io/blog/parser-combinators-in-haskell).
 
-## Conclusion and outlook
+## MonadPlus
 
-* `Alternative` is a useful instance to implement for your applicative functor
-  if it has a semantic of _try this or alternatively that_.
-* `Alternative` can be seen as a monoid on applicative functors. In the
-  `Data.Monoid` module there even exists a
-  [wrapper `Alt`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Data-Monoid.html)
-  which further shows this idea.
-* If you implement a parser (combinator), you almost always want to implement
-  an `Alternative` instance for it.
-
-
-Another very closely related typeclass is [`MonadPlus m`](https://wiki.haskell.org/MonadPlus)
-which has the same semantics as `Alternative` but for types which also implement `Monad`.
+There is a typeclass called [`MonadPlus m`](https://wiki.haskell.org/MonadPlus)
+which has the same semantics as `Alternative` but for types that implement `Monad`.
 So it can be seen as a "monoid on monads". It comes with a default implementation
-based on `Alternative`, so you don't have to actually implement any methods:
+based on `Alternative`, so you don't have to implement any of the methods.
 
 ```haskell
 -- The MonadPlus class definition
@@ -321,10 +319,10 @@ class (Alternative m, Monad m) => MonadPlus m where
    mplus = (<|>)
 ```
 
-Altough you could use the `Alternative` machinery everywhere where you could use `MonadPlus`
-(as every `Monad` is also an `Applicative`) there are useful functions which only work in the
-context of a `MonadPlus` f.e. [`mfilter :: MonadPlus m => (a -> Bool) -> m a -> m a`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Monad.html#v:mfilter)
-which filters a `MonadPlus` with a predicate:
+Although you could use the `Alternative` machinery everywhere where you could use `MonadPlus`
+(as every `Monad` is also an `Applicative`), there are useful functions that only work in the
+context of a `MonadPlus`. For example, [`mfilter`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Monad.html#v:mfilter),
+which filters a `MonadPlus` with a predicate.
 
 ```
 λ> mfilter odd (Just 1)
@@ -335,6 +333,18 @@ Nothing
 Nothing
 ```
 
+## Summary
+
+* `Alternative` is a useful instance to implement for your applicative functor
+  if it has a semantic of _try this or, alternatively, that_.
+* `Alternative` can be seen as a monoid on applicative functors. In the
+  `Data.Monoid` module there even exists a
+  [wrapper `Alt`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Data-Monoid.html)
+  that further shows this idea.
+* If you implement a parser (combinator), you almost always want to implement
+  an `Alternative` instance for it.
+
+If you would like to read more Haskell articles about topics like this, be sure to follow us on [Twitter](https://twitter.com/serokell) or subscribe to our newsletter via the form below.
 
 ## Exercises
 
@@ -348,7 +358,7 @@ Nothing
    parseAliceBobCarly = ...
    ```
 
-   You are allowed to utilize functions from `Data.List`
+   You're allowed to utilize functions from `Data.List`.
 
    <details>
    <summary>Solution</summary>
@@ -368,13 +378,13 @@ Nothing
        parseString "charly"
    ```
 
-   As mentioned above there is a very close realtionship between `Alternative` and
-   the `Monoid` typeclass which provides the semantics of _concatination_ of
+   As mentioned above, there is a very close relationship between `Alternative` and
+   `Monoid` typeclasses, which provides the semantics of _concatenation_ of
    elements of a list using  `Monoid`s `mappend`
    named [`mconcat`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Prelude.html#v:mconcat).
-   The module `Data.Foldable` provides a useful function with the same semantics
+   The `Data.Foldable` module provides a useful function with the same semantics
    on `Alternative` named
-   [`asum :: (Foldable t, Alternative f) => t (f a) -> f a`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Applicative.html#v:asum). With that we could write the the function above also as:
+   [`asum :: (Foldable t, Alternative f) => t (f a) -> f a`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Applicative.html#v:asum). With that, we could write the function above also as:
 
    ```haskell
    parseAliceBobCarley' :: Parser Char String
@@ -384,9 +394,9 @@ Nothing
    <hr />
    </details>
 
-2. To be able to give the user better information about what actually went wrong
-   in case of parser failure (parser didn't match? parser reached end of input?)
-   replace the inner the `Maybe a` with a `Either err a` and fix class instances:
+2. To be able to give the user better information about what went wrong
+   in case of parser failure (parser didn't match? parser reached the end of input?),
+   replace the inner `Maybe a` with a `Either err a` and fix class instances:
 
    ```haskell
    newtype Parser2 err i a =
