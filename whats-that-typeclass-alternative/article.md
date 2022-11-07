@@ -287,8 +287,8 @@ If you want to dive deeper into the topic of parser combinators in Haskell, take
 
 ## MonadPlus
 
-There is a typeclass called [`MonadPlus m`](https://wiki.haskell.org/MonadPlus)
-that has the same semantics as `Alternative` but for types that implement `Monad`.
+There's a typeclass called [`MonadPlus m`](https://wiki.haskell.org/MonadPlus)
+with the same semantics as `Alternative` but for types that implement `Monad`.
 So it can be seen as a "monoid on monads". It comes with a default implementation
 based on `Alternative`, so you don't need to implement any of the methods.
 
@@ -336,7 +336,7 @@ Nothing
 ## Summary
 
 * `Alternative` is a useful instance to implement for your applicative functor
-  if it has a semantic of _try this or, alternatively, that_.
+  if it has the semantics of _try this or, alternatively, that_.
 * `Alternative` can be seen as a monoid on applicative functors. In the
   `Data.Monoid` module there even exists an
   [`Alt`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Data-Monoid.html) wrapper
@@ -351,7 +351,7 @@ If you would like to read more Haskell articles about topics like this, be sure 
 1. Implement the `isAliceOrBobOrCharly` example from the beginning in terms of
    our new `Parser i a` type.
 
-   So you come up with a parser:
+   It should look like this:
 
    ```haskell
    parseAliceBobCarly :: Parser Char String
@@ -384,7 +384,7 @@ If you would like to read more Haskell articles about topics like this, be sure 
    named [`mconcat`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Prelude.html#v:mconcat).
    The `Data.Foldable` module provides a useful function with the same semantics
    on `Alternative` named
-   [`asum :: (Foldable t, Alternative f) => t (f a) -> f a`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Applicative.html#v:asum). With that, we could write the function above also as:
+   [`asum :: (Foldable t, Alternative f) => t (f a) -> f a`](https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Applicative.html#v:asum). With that, we could write the function above as:
 
    ```haskell
    parseAliceBobCarley' :: Parser Char String
