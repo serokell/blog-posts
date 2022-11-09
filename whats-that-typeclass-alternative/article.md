@@ -145,7 +145,7 @@ Let's assume we want to implement a simple parser that reads a
 stream of type 'i' and possibly returns a value of type `a` if the input matches.
 
 ```haskell
-newtype Parser i a
+newtype Parser i a =
   Parser { runParser :: [i] -> (Maybe a, [i]) }
 ```
 
