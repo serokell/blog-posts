@@ -84,7 +84,7 @@ Formal language theory offers a very simple answer: a language is a (likely infi
 Now, the word "sentence" is used in a very general sense here – a complete MiniML program would still constitute a sentence.
 
 Well, but how do you describe an infinite set of sentences?
-You do that by specifying how how to build any arbitrary sentence.
+You do that by specifying how to build any arbitrary sentence.
 
 This description is called the formal grammar of the language.
 The usual approach uses string substitutions to construct a sentence.
