@@ -993,7 +993,7 @@ A few words about each production, together with an example:
 * `EInt`: An integer. `42`.
 * `EVar`: A variable. `my_variable`.
 * `EString`: A string. `"this is a string"`.
-* `EUnit`: The unit literal, with type `()`. `()`.
+* `EUnit`: The unit literal, with type `()`.
 * `EList`: A list literal. `[1, my_var, if true then 1 else 0]`.
 * `EPar`: An expression within parentheses. Like `TPar`, it could have been omitted as well. `(1 + foo bar)`.
 * `EApp`: The application of an expression in a function. `my_func 1 "foo"`.
