@@ -249,6 +249,6 @@ Notice, however, that we now have only one base instance: `MonadSMT SMT`, which 
 
 ### Summary
 
-The unification of `OldSMT` (originally referred to as `SMT` before defining the combined datatype) and `NoSMT` is the first step of the monomorphization and specialization task. Along the way, we have simplified the definition of the `MonadSMT` typeclass by introducing `liftSMT :: SMT a -> m a` and defining the majority of the functions in terms of it, bringing them outside the scope of the typclass.
+The unification of `OldSMT` (originally referred to as `SMT` before defining the combined datatype) and `NoSMT` is the first step of the monomorphization and specialization task. Along the way, we have simplified the definition of the `MonadSMT` typeclass by introducing `liftSMT :: SMT a -> m a` and defining the majority of the functions in terms of it, bringing them outside of the typeclass' scope.
 
 # Results
