@@ -251,4 +251,156 @@ Notice, however, that we now have only one base instance: `MonadSMT SMT`, which 
 
 The unification of `OldSMT` (originally referred to as `SMT` before defining the combined datatype) and `NoSMT` is the first step of the monomorphization and specialization task. Along the way, we have simplified the definition of the `MonadSMT` typeclass by introducing `liftSMT :: SMT a -> m a` and defining the majority of the functions in terms of it, bringing them outside of the typeclass' scope.
 
+## String interning
+
+An analysis of the profiling report showed that `Id` datatype values are subject to many operations.
+
+`Id` is a record type, one of the fields of which has the type `Text`:
+```hs
+data Id = Id
+    { getId :: !Text
+    , idLocation :: !AstLocation
+    }
+```
+This means operations such as `==` or `hashWithSalt` operate over `Text` values, which can be slow.
+
+The [first attempt](https://github.com/runtimeverification/haskell-backend/pull/3122) to solve this problem was to use the [intern](https://hackage.haskell.org/package/intern) package. Modification of `Eq` instance for type `Id` to take advantage of interning resulted in approximately 8% speedup on the integration test suite. 
+
+In our attempt to modify the `Ord` instance to take advantage of interning as well, some of our unit and integration tests failed because they assumed that the `Id`s would be sorted alphabetically.  When we profiled it, we noticed that `Kore.Syntax.Id.compare` doesn't play much of a role there, it isn't one of the most expensive cost centers. Moreover, some data persists between invocations of the backend via serialization, and the ordering of `Id`s may change between runs if they are interned in a different order.
+
+However, we also wanted to compare the intern package solution with our [custom interning solution](https://github.com/runtimeverification/haskell-backend/pull/3217).
+
+### `InternedTextCache`
+
+To begin, let's define a datatype for our interned strings:
+```hs
+data InternedText = UnsafeMkInternedText
+    { internedText :: {-# UNPACK #-} !Text
+    , internedId :: {-# UNPACK #-} !Word
+    }
+```
+In addition to the original `Text`, the datatype aslo contains a unique ID associated with this string. The constructor of this datatype should not be used directly to create values; instead we will introduce an interface to interact with our interned text cache.
+
+We then define a datatype for the global cache, which will contain all of the process' interned strings:
+```hs
+data InternedTextCache = InternedTextCache
+    { internedTexts :: !(HashMap Text InternedText)
+    , counter :: {-# UNPACK #-} !Word
+    }
+```
+The `InternalTextChache` has two fields:
+  - `internedTexts` is a `HashMap` that stores all the interned strings
+  - `counter` is an incremental counter used to generate new unique IDs
+
+Finally, we define instances for our `InternedText`:
+
+```hs
+instance Eq InternedText where
+    a == b = internedId a == internedId b
+    {-# INLINE (==) #-}
+
+instance Hashable InternedText where
+    hashWithSalt salt = hashWithSalt salt . internedId
+    {-# INLINE hashWithSalt #-}
+    hash = hash . internedId
+    {-# INLINE hash #-}
+
+instance Ord InternedText where
+    a `compare` b
+        | internedId a == internedId b = EQ
+        | otherwise = internedText a `compare` internedText b
+    {-# INLINE compare #-}
+```
+
+The `Eq` and `Hashable` instances are straight forward – we use the ID of the interned string for equality comparison and hashing operations.
+
+Our `Ord` instance quickly checks if the IDs of interned strings are equal, if not, we use lexical order to compare the strings themselves.
+
+### `internText`
+
+The next step is to create a function to intern our strings. To start, let's define a function that initializes the cache.
+
+With the `unsafePerformIO` hack, we can define global `IORef` value to store our cache outside the `IO` monad:
+```hs
+globalInternedTextCache :: IORef InternedTextCache
+globalInternedTextCache = unsafePerformIO $ newIORef $ InternedTextCache HashMap.empty 0
+{-# NOINLINE globalInternedTextCache #-}
+```
+
+In order to avoid cache duplication, we must ensure that `globalInternedTextCache` is evaluated only once. So we add the `NOINLINE` pragma, which will prevent GHC from inlining our definition.
+
+As soon as we have a global cache, we can define a function to intern `Text` values:
+```hs
+internText :: Text -> InternedText
+internText text =
+  unsafePerformIO do
+    atomicModifyIORef' globalInternedTextCache \InternedTextCache{counter, internedTexts} ->
+      let ((internedText, newCounter), newInternedTexts) =
+          HashMap.alterF
+            \case
+              -- If this text is already interned, reuse it.
+              existing@(Just interned) -> ((interned, counter), existing)
+              -- Otherwise, create a new ID for it and intern it.
+              Nothing ->
+                let newIden = counter
+                  !newInterned = UnsafeMkInternedText text newIden
+                 in ((newInterned, counter + 1), Just newInterned)
+            text
+            internedTexts
+       in (InternedTextCache newInternedTexts newCounter, internedText)
+```
+
+Using `atomicModifyIORef'`, we can modify our global cache thread-safely. We use the strict version to avoid space leaks.
+
+The function works as follows:
+  - if the argument `text` has been interned previously, we return the existing `InternedText` instance
+  - otherwise, we allocate a new `InternedText` and return it 
+In other words, multiple evaluations of `internText` with the same argument should return a pointer to the exact same `InternedText` object.
+
+### `Id`
+
+Now that we have a custom interning solution in place, it's time to modify the `Id` datatype:
+```hs
+data Id = InternedId
+    { getInternedId :: !InternedText
+    , internedIdLocation :: !AstLocation
+    }
+
+instance Ord Id where
+    compare first second =
+        compare (getInternedId first) (getInternedId second)
+    {-# INLINE compare #-}
+
+instance Eq Id where
+    first == second = getInternedId first == getInternedId second
+    {-# INLINE (==) #-}
+    
+instance Hashable Id where
+    hashWithSalt salt iden = hashWithSalt salt $ getInternedId iden
+    {-# INLINE hashWithSalt #-}
+```
+
+The final step is to define a pattern synonym to abstract away `InternedText`:
+```hs
+pattern Id :: Text -> AstLocation -> Id
+pattern Id{getId, idLocation} <-
+    InternedId (internedText -> getId) idLocation
+    where
+        Id text location = InternedId (internText text) location
+
+{-# COMPLETE Id #-}
+```
+
+This pattern allows us to use the `Id` as it was before the modification.
+
+### Summary
+
+Instead of keeping many copies of the same `Text` in memory, we keep only one shared `InternedText`. Each `InternedText` has a unique ID. 
+
+As a result:
+  - the `Eq` instance can more quickly check if the ID of two `InternedText`s are equal, instead of checking every single character.
+  - the `Hashable` instance can hash the ID, which is a lot faster than hashing the string's contents.
+
+In total, the above changes improve performance by approximately 10%.
+
 # Results
