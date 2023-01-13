@@ -264,11 +264,13 @@ data Id = Id
 ```
 This means operations such as `==` or `hashWithSalt` operate over `Text` values, which can be slow.
 
-The [first attempt](https://github.com/runtimeverification/haskell-backend/pull/3122) to solve this problem was to use the [intern](https://hackage.haskell.org/package/intern) package. Modification of `Eq` instance for type `Id` to take advantage of interning resulted in approximately 8% speedup on the integration test suite. 
+The [first attempt](https://github.com/runtimeverification/haskell-backend/pull/3122) to solve this problem was to use the [intern](https://hackage.haskell.org/package/intern) package. Modification of `Eq` instance for type `Id` to take advantage of interning resulted in approximately 8% speedup on the integration test suite.
 
 In our attempt to modify the `Ord` instance to take advantage of interning as well, some of our unit and integration tests failed because they assumed that the `Id`s would be sorted alphabetically.  When we profiled it, we noticed that `Kore.Syntax.Id.compare` doesn't play much of a role there, it isn't one of the most expensive cost centers. Moreover, some data persists between invocations of the backend via serialization, and the ordering of `Id`s may change between runs if they are interned in a different order.
 
-However, we also wanted to compare the intern package solution with our [custom interning solution](https://github.com/runtimeverification/haskell-backend/pull/3217).
+However, we wanted to have an easier way to modify or debug the code responsible for string interning. There is a `cacheWidth` parameter in `interned` typeclass of `inern` package, it creates multiple maps to speed up concurrent access. As we didn't need that, we had to create a [newtype](https://github.com/runtimeverification/haskell-backend/blob/75ae33172a2d221a3c8c0aa2434b6aeea3c0bf69/kore/src/Kore/Syntax/Id.hs#L51-L68) and redefine the `intered` instance with `chacheWidth` set to 1.
+
+Moreover, since the `intern` library is quite small, is seemed easier to implement a [custom interning solution](https://github.com/runtimeverification/haskell-backend/pull/3217) in our code.
 
 ### `InternedTextCache`
 
@@ -290,7 +292,7 @@ data InternedTextCache = InternedTextCache
 ```
 The `InternalTextChache` has two fields:
   - `internedTexts` is a `HashMap` that stores all the interned strings
-  - `counter` is an incremental counter used to generate new unique IDs
+  - `counter` is an incremental counter used to generate new unique IDs since `HashMap.size` isn't a constant-time operation
 
 Finally, we define instances for our `InternedText`:
 
@@ -354,7 +356,7 @@ Using `atomicModifyIORef'`, we can modify our global cache thread-safely. We use
 
 The function works as follows:
   - if the argument `text` has been interned previously, we return the existing `InternedText` instance
-  - otherwise, we allocate a new `InternedText` and return it 
+  - otherwise, we allocate a new `InternedText` and return it
 In other words, multiple evaluations of `internText` with the same argument should return a pointer to the exact same `InternedText` object.
 
 ### `Id`
@@ -374,7 +376,7 @@ instance Ord Id where
 instance Eq Id where
     first == second = getInternedId first == getInternedId second
     {-# INLINE (==) #-}
-    
+
 instance Hashable Id where
     hashWithSalt salt iden = hashWithSalt salt $ getInternedId iden
     {-# INLINE hashWithSalt #-}
@@ -395,7 +397,7 @@ This pattern allows us to use the `Id` as it was before the modification.
 
 ### Summary
 
-Instead of keeping many copies of the same `Text` in memory, we keep only one shared `InternedText`. Each `InternedText` has a unique ID. 
+Instead of keeping many copies of the same `Text` in memory, we keep only one shared `InternedText`. Each `InternedText` has a unique ID.
 
 As a result:
   - the `Eq` instance can more quickly check if the ID of two `InternedText`s are equal, instead of checking every single character.
