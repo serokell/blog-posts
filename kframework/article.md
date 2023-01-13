@@ -270,7 +270,7 @@ In our attempt to modify the `Ord` instance to take advantage of interning as we
 
 However, we wanted to have an easier way to modify or debug the code responsible for string interning. There is a `cacheWidth` parameter in `interned` typeclass of `inern` package, it creates multiple maps to speed up concurrent access. As we didn't need that, we had to create a [newtype](https://github.com/runtimeverification/haskell-backend/blob/75ae33172a2d221a3c8c0aa2434b6aeea3c0bf69/kore/src/Kore/Syntax/Id.hs#L51-L68) and redefine the `intered` instance with `chacheWidth` set to 1.
 
-Moreover, since the `intern` library is quite small, is seemed easier to implement a [custom interning solution](https://github.com/runtimeverification/haskell-backend/pull/3217) in our code.
+Moreover, since the `intern` library is quite small, it seemed easier to implement a [custom interning solution](https://github.com/runtimeverification/haskell-backend/pull/3217) in our code.
 
 ### `InternedTextCache`
 
