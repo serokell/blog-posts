@@ -1,3 +1,5 @@
+In this blog post we will be exploring, describing, and dissecting the first phase of the collaboration between Runtime Verification and Serokell! The collaboration involved the work on making optimizations to [K](https://kframework.org/), a rewrite-based executable semantic framework in which programming languages, type systems and formal analysis tools can be defined with the help of configurations and rewrite rules. The blog post will contain the details and the results of the discovery phase, the recommendations which are introduced in the Findings section, and the implementation of 2 global tasks, alongside their performance results.
+
 # Discovery phase
 
 ## Profiling
