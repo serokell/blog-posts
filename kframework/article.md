@@ -116,7 +116,7 @@ execute options metadataTools lemmas worker =
     None -> withoutSMT
 ```
 
-For the purposes of this investigation we removed the support of `NoSMT`.
+For the purposes of this discovery phase investigation we removed the support of `NoSMT`.
 
 Turned out, the `simplifier` type variable is instantiated to different monad transformer stacks and could not be easily monomorphized in some functions. We developed a custom tool, [Debug.Trace.Usage](https://github.com/serokell/trace-usage), in order to determine how the monad is being instantiated in practice. Here is the summary of its results on one of the test cases:
 
@@ -238,8 +238,8 @@ Notice, however, that we now have only one base instance: `MonadSMT SMT`, which 
 
 1. Declare `liftSMT :: SMT a -> m a` and its default monad transformer definition. In the `MonadSMT SMT` instance, `liftSMT` would simply be equal to `id`.
 2. The other functions (apart from `liftSMT` **and** `withSolver`, which we will return to in a couple of moments) are removed from the typeclass and split into two versions:
-   1. The "specialized" versions: `fSMT :: args -> SMT a`, which were previously present in the `MonadSMT SMT` instance.
-   2. The polymorphic versions:
+   * The "specialized" versions: `fSMT :: args -> SMT a`, which were previously present in the `MonadSMT SMT` instance.
+   * The polymorphic versions:
       ```hs
       f :: MonadSMT m => args -> m a
       f = liftSMT . fSMT
@@ -249,11 +249,11 @@ Notice, however, that we now have only one base instance: `MonadSMT SMT`, which 
 
 ### Summary
 
-The unification of `OldSMT` (originally referred to as `SMT` before defining the combined datatype) and `NoSMT` is the first step of the monomorphization and specialization task. Along the way, we have simplified the definition of the `MonadSMT` typeclass by introducing `liftSMT :: SMT a -> m a` and defining the majority of the functions in terms of it, bringing them outside of the typeclass' scope.
+The unification of `OldSMT` (originally referred to as `SMT` before defining the combined datatype) and `NoSMT` is the first step of the monomorphization and specialization task. Along the way, we have simplified the definition of the `MonadSMT` typeclass by introducing `liftSMT :: SMT a -> m a` and defining the majority of the functions in terms of it, bringing them outside of the typeclass' scope. The link to the pull request containing the implementation of the `SMT`/`NoSMT` fusion is available [here](https://github.com/runtimeverification/haskell-backend/pull/3156).
 
 ## String interning
 
-An analysis of the profiling report showed that `Id` datatype values are subject to many operations.
+An analysis of the profiling report showed that the values of the `Id` datatype are subject to many operations.
 
 `Id` is a record type, one of the fields of which has the type `Text`:
 ```hs
@@ -268,7 +268,7 @@ The [first attempt](https://github.com/runtimeverification/haskell-backend/pull/
 
 In our attempt to modify the `Ord` instance to take advantage of interning as well, some of our unit and integration tests failed because they assumed that the `Id`s would be sorted alphabetically.  When we profiled it, we noticed that `Kore.Syntax.Id.compare` doesn't play much of a role there, it isn't one of the most expensive cost centers. Moreover, some data persists between invocations of the backend via serialization, and the ordering of `Id`s may change between runs if they are interned in a different order.
 
-However, we wanted to have an easier way to modify or debug the code responsible for string interning. There is a `cacheWidth` parameter in `interned` typeclass of `inern` package, it creates multiple maps to speed up concurrent access. As we didn't need that, we had to create a [newtype](https://github.com/runtimeverification/haskell-backend/blob/75ae33172a2d221a3c8c0aa2434b6aeea3c0bf69/kore/src/Kore/Syntax/Id.hs#L51-L68) and redefine the `intered` instance with `chacheWidth` set to 1.
+However, we wanted to have an easier way to modify or debug the code responsible for string interning. There is a `cacheWidth` parameter in the `Interned` typeclass of the `intern` package, it creates multiple maps to speed up concurrent access. As we didn't need that, we had to create a [newtype](https://github.com/runtimeverification/haskell-backend/blob/75ae33172a2d221a3c8c0aa2434b6aeea3c0bf69/kore/src/Kore/Syntax/Id.hs#L51-L68) and redefine the `Interned` instance with `cacheWidth` set to 1.
 
 Moreover, since the `intern` library is quite small, it seemed easier to implement a [custom interning solution](https://github.com/runtimeverification/haskell-backend/pull/3217) in our code.
 
@@ -290,7 +290,7 @@ data InternedTextCache = InternedTextCache
     , counter :: {-# UNPACK #-} !Word
     }
 ```
-The `InternalTextChache` has two fields:
+`InternedTextCache` has two fields:
   - `internedTexts` is a `HashMap` that stores all the interned strings
   - `counter` is an incremental counter used to generate new unique IDs since `HashMap.size` isn't a constant-time operation
 
@@ -405,4 +405,12 @@ As a result:
 
 In total, the above changes improve performance by approximately 10%.
 
-# Results
+# Conclusion
+
+The first phase of the collaboration between Runtime Verification and Serokell emerged with the discovery phase, conducted to determine the important, optimizable parts of the codebase, with the help of GHC's profiling instrumentation and custom tools.
+
+The 1st part of the monomorphization and specialization task focused on the exploration of two datatypes, `SMT` and `NoSMT`, their unification, and the resulting simplification of the code; in particular, the `MonadSMT` typeclass. This change didn't produce any noticeable effects on the performance, but it is nevertheless integral to the 2nd part of the task, enabling us to progress forward with the changes that will be impactful.
+
+The string interning task focused on solving the problem of optimizing the definitions of `==` and `hashWithSalt` for the `Id` datatype. One of its fields is a `Text` value, and these values take immediate part in the aforementioned definitions. Such operations on `Text`s can be slow. Instead, we assign each `Text` a unique identifier and compare *them* instead. This consequently gives rise to the need for storing such `Text`-identifier pairs in a map, to access or create them during the interning process. This solution introduces a 10% performance improvement.
+
+The Cache hit ratio task, as well as the 2nd part of the monomorphization and specialization task, are to be explored in the following blog post!
