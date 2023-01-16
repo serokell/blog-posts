@@ -335,7 +335,7 @@ instance Ord InternedText where
 
 The `Eq` and `Hashable` instances are straightforward – we use the ID of the interned string for equality comparison and hashing operations.
 
-Our `Ord` instance quickly checks if the IDs of interned strings are equal, if not, we use lexical order to compare the strings themselves.
+Our `Ord` instance quickly checks if the IDs of interned strings are equal. If they are not, we use lexical order to compare the strings themselves.
 
 #### `internText`
 
