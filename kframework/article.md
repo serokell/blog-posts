@@ -1,4 +1,4 @@
-In this blog post, we will be exploring, describing, and dissecting the first phase of the collaboration between Runtime Verification and Serokell. 
+In this blog post, we will be exploring, describing, and dissecting the first phase of the collaboration between Runtime Verification and Serokell.
 
 The collaboration involved the work on making optimizations to [K](https://kframework.org/), a rewrite-based executable semantic framework in which programming languages, type systems, and formal analysis tools can be defined with the help of configurations and rewrite rules. The blog post will contain the details and the results of the discovery phase, the recommendations which are introduced in the Findings section, and the implementation descriptions of 2 global tasks, alongside their performance results.
 
@@ -8,7 +8,7 @@ The collaboration involved the work on making optimizations to [K](https://kfram
 
 The discovery phase, conducted by Vladislav Zavialov, involved a two-week-long investigation of the performance of the K framework's symbolic execution engine, namely: the [Kore language](https://github.com/runtimeverification/haskell-backend/).
 
-With the use of the Glasgow Haskell Compiler's profiling instrumentation, we were able to build the project with profiling support. This can be done by specifying `profiling: True` in the file `cabal.project`. 
+With the use of the Glasgow Haskell Compiler's profiling instrumentation, we were able to build the project with profiling support. This can be done by specifying `profiling: True` in the file `cabal.project`.
 
 For example:
 
@@ -21,7 +21,8 @@ package kore
   optimization: True
 ```
 
-The resulting executable will be slower than the executable built without the support of profiling, because:
+The resulting executable will be slower than the executable built without the profiling support, because:
+
 1. Profiling has runtime overhead, though it is accounted for in the GHC-generated reports.
 2. Profiling prevents certain optimizations at compile time. For example, if a function is designated as a cost centre for profiling, it will not be inlined, and inlining, typically done by GHC for small functions, may unlock further optimizations at compile time.
 
@@ -35,7 +36,7 @@ Here, `+RTS` and `-RTS` delimit the flags processed by GHC's runtime system, and
 
 #### Cost centres
 
-A *cost centre* is a program annotation around a given expression. This expression is assigned a *cost* -- the time or space required to evaluate it. The profiling report contains a table of the cost centres, the locations of their definitions (the name of the module and the source code location), and how much time and space they take. 
+A *cost centre* is a program annotation around a given expression. This expression is assigned a *cost* -- the time or space required to evaluate it. The profiling report contains a table of the cost centres, the locations of their definitions (the name of the module and the source code location), and how much time and space they take.
 
 Here's an example of an entry in such a table:
 
@@ -52,7 +53,7 @@ However, recall that by making certain functions into cost centres, their inlini
 
 ### Inlining
 
-Even without the help of the profiling instrumentation, we're still able to visually detect some parts of the code that can hinder GHC's abilities for optimization. 
+Even without the help of the profiling instrumentation, we're still able to visually detect some parts of the code that can hinder GHC's abilities for optimization.
 
 Consider the following expression:
 
@@ -129,7 +130,7 @@ execute options metadataTools lemmas worker =
 
 For the purposes of this discovery phase investigation, we removed the support of `NoSMT`.
 
-It turned out that the `simplifier` type variable is instantiated to different monad transformer stacks and could not be easily monomorphized in some functions. We developed [a custom tool](https://github.com/serokell/trace-usage) to determine how the monad is being instantiated in practice. 
+It turned out that the `simplifier` type variable is instantiated to different monad transformer stacks and could not be easily monomorphized in some functions. We developed [a custom tool](https://github.com/serokell/trace-usage) to determine how the monad is being instantiated in practice.
 
 Here is the summary of its results on one of the test cases:
 
@@ -172,7 +173,7 @@ We can either use a different data structure than a `HashMap` to avoid hashing a
 
 #### String interning
 
-* **String Interning** is a method of storing exactly one copy of a distinct string value. In general, **interning** is *reusing* objects that are intensionally equal instead of *creating* new ones. The objects must be immutable.
+* **String Interning** is a method of storing exactly one copy of a distinct string value. In general, **interning** is *reusing* objects that are equal instead of *creating* new ones. The objects must be immutable.
 
 The profiling report revealed that there are a lot of operations over values of the datatype `Id`. `Id` is a record type that has one field with the type `Text`. This means that operations such as `==` or `hashWithSalt` operate over `Text` values, which can be slow.
 
@@ -215,7 +216,7 @@ For the sake of convenience, when referring to the original definition of `SMT`,
 
 * `MonadSMT m` is a typeclass that allows accessing `SMT` through monad transformers. It has two base instances: `MonadSMT OldSMT` and `MonadSMT NoSMT`.
 
-We now need to construct the *only* base instance, `MonadSMT SMT`, having got the knowledge of how the functions were defined in the original two base instances for the original two datatypes.
+We now need to construct the *only* base instance, `MonadSMT SMT`, with the knowledge of how the functions were defined in the original two base instances for the original two datatypes.
 
 Suppose the functions declared in the `MonadSMT` typeclass have the following type signature:
 
@@ -223,7 +224,7 @@ Suppose the functions declared in the `MonadSMT` typeclass have the following ty
 f :: MonadSMT m => args -> m a
 ```
 
-We know how `fOldSMT :: args -> OldSMT a` and `fNoSMT :: args -> NoSMT a` were defined in the respective instances, so let's build a definition of `f` for `MonadSMT SMT`! 
+We know how `fOldSMT :: args -> OldSMT a` and `fNoSMT :: args -> NoSMT a` were defined in the respective instances, so let's build a definition of `f` for `MonadSMT SMT`!
 
 It will roughly look like this:
 
@@ -279,6 +280,7 @@ data Id = Id
     , idLocation :: !AstLocation
     }
 ```
+
 This means operations such as `==` or `hashWithSalt` operate over `Text` values, which can be slow.
 
 The [first attempt](https://github.com/runtimeverification/haskell-backend/pull/3122) to solve this problem was to use the [intern](https://hackage.haskell.org/package/intern) package. Modification of `Eq` instance for type `Id` to take advantage of interning resulted in approximately 8% speedup on the integration test suite.
@@ -299,6 +301,7 @@ data InternedText = UnsafeMkInternedText
     , internedId :: {-# UNPACK #-} !Word
     }
 ```
+
 In addition to the original `Text`, the datatype also contains a unique ID associated with this string. The constructor of this datatype should not be used directly to create values. Instead, we will introduce an interface to interact with our interned text cache.
 
 We then define a datatype for the global cache, which will contain all of the process' interned strings:
@@ -309,6 +312,7 @@ data InternedTextCache = InternedTextCache
     , counter :: {-# UNPACK #-} !Word
     }
 ```
+
 `InternedTextCache` has two fields:
   - `internedTexts` is a `HashMap` that stores all the interned strings
   - `counter` is an incremental counter used to generate new unique IDs since `HashMap.size` isn't a constant-time operation
@@ -379,7 +383,7 @@ The function works as follows:
 
   - If the argument `text` has been interned previously, we return the existing `InternedText` instance.
   - Otherwise, we allocate a new `InternedText` and return it.
- 
+
 In other words, multiple evaluations of `internText` with the same argument should return a pointer to the exact same `InternedText` object.
 
 #### `Id`
