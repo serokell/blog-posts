@@ -182,7 +182,7 @@ Unlike some other programming languages, Haskell does not provide a means for in
 ## Implementation
 
 
-When optimizing code, it is crucial to avoid sacrificing simplicity. Drew DeVault describes this principle in his blog: [Simple, correct, fast: in that order](https://drewdevault.com/2018/07/09/Simple-correct-fast.html). Since K is a compute-intensive tool for software quality assurance, the principle is modified: accuracy is paramount, but simplicity and speed must be balanced.
+When optimizing code, it's crucial to avoid sacrificing simplicity. Drew DeVault describes this principle in his blog: [Simple, correct, fast: in that order](https://drewdevault.com/2018/07/09/Simple-correct-fast.html). Since K is a compute-intensive tool for software quality assurance, the principle is modified: accuracy is paramount, but simplicity and speed must be balanced.
 
 ### Monomorphization and specialization, pt. 1: SMT and NoSMT
 
@@ -270,7 +270,7 @@ Notice, however, that we now have only one base instance: `MonadSMT SMT`, which 
 
 #### Summary
 
-The unification of `OldSMT` (originally referred to as `SMT` before defining the combined datatype) and `NoSMT` was the first step of the monomorphization and specialization task. This step was more aimed at simplifying the code, rather than optimizing it. Along the way, we simplified the definition of the `MonadSMT` typeclass by introducing `liftSMT :: SMT a -> m a` and defining the majority of the functions in terms of it, bringing them outside of the typeclass' scope. The link to the pull request containing the implementation of the `SMT`/`NoSMT` fusion is available [here](https://github.com/runtimeverification/haskell-backend/pull/3156).
+The unification of `OldSMT` (originally referred to as `SMT` before defining the combined datatype) and `NoSMT` was the first step of the monomorphization and specialization task. This step was aimed more at simplifying the code rather than optimizing it. Along the way, we simplified the definition of the `MonadSMT` typeclass by introducing `liftSMT :: SMT a -> m a` and defining the majority of the functions in terms of it, bringing them outside of the typeclass' scope. The link to the pull request containing the implementation of the `SMT`/`NoSMT` fusion is available [here](https://github.com/runtimeverification/haskell-backend/pull/3156).
 
 ### String interning
 
