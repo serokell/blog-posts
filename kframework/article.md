@@ -1,6 +1,12 @@
-In this blog post, we will be exploring, describing, and dissecting the first phase of the collaboration between Runtime Verification and Serokell.
+In this blog post, we will be exploring, describing, and dissecting the first phase of the collaboration between [Runtime Verification](https://runtimeverification.com/) and [Serokell](https://serokell.io/).
 
-The collaboration involved the work on making optimizations to [K](https://kframework.org/), a rewrite-based executable semantic framework in which programming languages, type systems, and formal analysis tools can be defined with the help of configurations and rewrite rules. The blog post will contain the details and the results of the discovery phase, the recommendations which are introduced in the Findings section, and the implementation descriptions of 2 global tasks, alongside their performance results.
+The collaboration involved work on making optimizations to [K](https://kframework.org/), a rewrite-based executable semantic framework in which programming languages, type systems, and formal analysis tools can be defined with the help of configurations and rewrite rules. 
+
+The blog post will contain:
+
+* the details and the results of the discovery phase;
+* our recommendations (introduced in the Findings section); 
+* the implementation descriptions of 2 global tasks, alongside their performance results.
 
 ## Discovery phase
 
@@ -181,8 +187,9 @@ Unlike some other programming languages, Haskell does not provide a means for in
 
 ## Implementation
 
-
 When optimizing code, it's crucial to avoid sacrificing simplicity. Drew DeVault describes this principle in his blog: [Simple, correct, fast: in that order](https://drewdevault.com/2018/07/09/Simple-correct-fast.html). Since K is a compute-intensive tool for software quality assurance, the principle is modified: accuracy is paramount, but simplicity and speed must be balanced.
+
+While implementing these changes, we followed Runtime Verification's [GitHub guidelines](https://runtimeverification.com/blog/github-guidelines-for-collaborative-coding) for collaboration.  
 
 ### Monomorphization and specialization, pt. 1: SMT and NoSMT
 
