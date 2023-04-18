@@ -224,13 +224,13 @@ After implementing the changes, the `trace-usage` tool showed that there were no
 
 ### Monomorphization and specialization
 
-We used the `trace-usage` report to identify type variables that could be replaced with concrete types if only one type was instantiated during execution. For those whose type variables were instantiated to multiple different types, we added `SPECIALIZE` pragmas. We found that most functions could be monomorphized, and only a few required specialization. The process of monomorphization and specialization was divided into five pull requests: [part 1](https://github.com/runtimeverification/haskell-backend/pull/3336), [part 2](https://github.com/runtimeverification/haskell-backend/pull/3346), [part 3](https://github.com/runtimeverification/haskell-backend/pull/3375), [part 4](https://github.com/runtimeverification/haskell-backend/pull/3408), and [part 5](https://github.com/runtimeverification/haskell-backend/pull/3408).
+We used the `trace-usage` report to identify type variables that could be replaced with concrete types if only one type was instantiated during execution. For those whose type variables were instantiated to multiple different types, we added `SPECIALIZE` pragmas. We found that most functions could be monomorphized, and only a few required specialization. The process of monomorphization and specialization was divided into five pull requests: [part 1](https://github.com/runtimeverification/haskell-backend/pull/3336), [part 2](https://github.com/runtimeverification/haskell-backend/pull/3346), [part 3](https://github.com/runtimeverification/haskell-backend/pull/3375), [part 4](https://github.com/runtimeverification/haskell-backend/pull/3408), and [part 5](https://github.com/runtimeverification/haskell-backend/pull/3414).
 
 During this process, we also encountered cases of nested `MaybeT` and `ReaderT` caused by redundant `maybeT` and `runReaderT` calls, which added an unnecessary transformer layer in the argument. We resolved these issues by removing these redundant calls, which were straightforward solutions. We implemented these fixes in the pull requests titled [Remove nested ReaderT](https://github.com/runtimeverification/haskell-backend/pull/3418) and [Remove nested MaybeT](https://github.com/runtimeverification/haskell-backend/pull/3419).
 
 ### Summary
 
-In this step, we simplified the types in codebase by introducing a concrete `Simplifier` monad to replace the `SimplifierT` transformer. This was possible because we had previously unified `SMT` and `NoSMT`. We also addressed the issues with nested transformers, which allowed us to monomorphize most of the type variables that were constrained by `MonadSimplify`. This simplified the types and resulted in a speedup of approximately 15%.
+In this step, we simplified the types in codebase by introducing a concrete `Simplifier` monad to replace the `SimplifierT` transformer. This was possible because we had previously unified `SMT` and `NoSMT`. We also addressed the issues with nested transformers, which allowed us to monomorphize most of the type variables that were constrained by `MonadSimplify`. For functions not suitable for monomorphization, we added `SPECIALIZE` pragmas. This simplified the types and resulted in a speedup of approximately 15%.
 
 In addition, the `trace-usage` report indicated that all type variables constrained by `MonadUnify` were instantiated to `UnifierT Simplifier`. However, we cannot monomorphize these type variables as it would create circular dependencies. Nonetheless, it is planned to replace `UnifierT` with a new implementation of the concrete `Unifier` monad on top of `Simplifier`, which will have a more principled implementation of the unification algorithm. The fact that all type variables constrained by `MonadUnify` are instantiated to `UnifierT Simplifier` is a positive indication towards this replacement.
 
@@ -513,7 +513,7 @@ To produce the pre-computed hash value, we used the derived `Hashable` instance 
 
 Although the change resulted in a 6% speedup, it also caused some integration tests to fail, and unfortunately, we were unable to find a way to fix them while keeping the pre-computed hash in `TermAttributes`.
 
-So, to avoid storing pre-computed hash in `TermAttributes`, we [cached the hash](https://github.com/runtimeverification/haskell-backend/pull/3338) of the `TermLikeF` in the `TermLike` itself and extract it in the `Hashable` instance instead of recursively traversing into the `TermLikeF`. To achieve this, we modified the `TermLike` definition:
+So, to avoid storing pre-computed hash in `TermAttributes`, we [cached the hash](https://github.com/runtimeverification/haskell-backend/pull/3338) of the `TermLikeF` in the `TermLike` itself and extracted it in the `Hashable` instance instead of recursively traversing into the `TermLikeF`. To achieve this, we modified the `TermLike` definition:
 
 ```hs
 data TermLike variable = TermLike__
