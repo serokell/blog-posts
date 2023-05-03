@@ -654,7 +654,8 @@ identifier = label "identifier" $ do
   rest <- many $ alphaNumChar <|> char '_'
   pure $ Identifier $ first : rest
 -- Or:
--- identifier = Identifier <$> label "identifier" ((:) <$> (letterChar <|> char '_') <*> many (alphaNumChar <|> char '_'))
+-- identifier = Identifier <$> label "identifier"
+--   ((:) <$> (letterChar <|> char '_') <*> many (alphaNumChar <|> char '_'))
 ```
 
 Now include `SId <$> identifier` to `atom`.
