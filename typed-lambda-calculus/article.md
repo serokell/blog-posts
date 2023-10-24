@@ -1,19 +1,18 @@
 # A Look at Typed Lambda Calculus
 
 This is the second article in our short series on lambda calculus.
-You can find the first article [here](https://serokell.io/blog/untyped-lambda-calculus).
+If you are unfamiliar with lambda calculus, the [first article](https://serokell.io/blog/untyped-lambda-calculus) is a better starting point.
+Now we focus on adding types to it.
+We'll assume knowledge of basic lambda calculus syntax and concepts introduced in the previous article: unrestricted computation, logic system, paradox, Russell's type theory, logical consistency.
 
 We've also [previously covered](https://serokell.io/blog/formal-verification-history) some history of the formal verification and thus type theory.
 Reading that article might provide historical background for what we'll be discussing here.
 
 A typed lambda calculus extends untyped lambda calculus with a type system.
+Note that unlike the untyped lambda calculus, there are multiple typed lambda calculi, differentiated by the features of the type system used.
 The exact features of the type system used can be chosen mostly freely, and we will discuss some common choices in this article.
 
-Since we've discussed untyped lambda calculus in the previous article, now we'll focus more on the applications of type theory.
-We'll also assume knowledge of basic lambda calculus syntax and concepts introduced in the previous article.
-
-We'll also assume knowledge of basic lambda calculus syntax and concepts introduced in the previous article: unrestricted computation, logic system, paradox, Russell's type theory, logical consistency.
-We also noted that the untyped lambda calculus is hard to use as a logic system due to the paradoxes it creates.
+The untyped lambda calculus is hard to use as a logic system due to the paradoxes it creates.
 Adding Russell's type theory to lambda calculus makes it, under certain conditions, logically consistent, which in turn makes it possible to mathematically guarantee certain behaviors (or lack thereof).
 
 The most common argument for the strongly-typed languages is that if a program type checks, it will never segfault (or have any other type-related issues), but I think this argument sells typed languages short.
@@ -55,7 +54,7 @@ Still, it's a good enough mental model unless you're a type theory researcher (a
 
 Using typing relations, we thus assign a type to each term.
 Rules that we use to assign types are called _typing rules_.
-Together, types and typing rules they constitute a _type system_.
+Together, types and typing rules constitute a _type system_.
 
 Type systems offer a lightweight (i.e. without executing a program) tool to check if a program is "correct" -- in the sense that it doesn't lead to stuck terms.
 
@@ -601,7 +600,7 @@ and its actual implementation would use type applications explicitly, i.e.
 $$\lambda\;id.\; pair\;Bool\;Int\; (id\;Bool\;true)\; (id\;Int\;4)$$
 
 In practical applications (like Haskell with `RankNTypes` extension), these explicit applications are inferred from type signatures (and thus made implicit).
-They can also be made explicit with the `TypeApplications` extension.
+In GHC, they can also be made explicit with the `TypeApplications` extension.
 
 ## The lambda cube
 
