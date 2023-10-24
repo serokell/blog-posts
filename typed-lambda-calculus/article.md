@@ -6,13 +6,13 @@ You can find the first article [here](https://serokell.io/blog/untyped-lambda-ca
 We've also [previously covered](https://serokell.io/blog/formal-verification-history) some history of the formal verification and thus type theory.
 Reading that article might provide historical background for what we'll be discussing here.
 
-Typed lambda calculus is simply untyped lambda calculus with types.
+A typed lambda calculus extends untyped lambda calculus with a type system.
 The exact features of the type system used can be chosen mostly freely, and we will discuss some common choices in this article.
 
 Since we've discussed untyped lambda calculus in the previous article, now we'll focus more on the applications of type theory.
 We'll also assume knowledge of basic lambda calculus syntax and concepts introduced in the previous article.
 
-With the untyped lambda calculus, we have discussed unrestricted computation.
+We'll also assume knowledge of basic lambda calculus syntax and concepts introduced in the previous article: unrestricted computation, logic system, paradox, Russell's type theory, logical consistency.
 We also noted that the untyped lambda calculus is hard to use as a logic system due to the paradoxes it creates.
 Adding Russell's type theory to lambda calculus makes it, under certain conditions, logically consistent, which in turn makes it possible to mathematically guarantee certain behaviors (or lack thereof).
 
