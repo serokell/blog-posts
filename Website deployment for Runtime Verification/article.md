@@ -5,7 +5,7 @@ In this blog post, we will provide insights into the website deployment workflow
 Our collaboration focused on creating nix-based deployment workflow for small websites associated with Runtime Verification projects, including:
   - [Kontrol](https://kontrol.runtimeverification.com/): developer tooling for formal verification of smart contracts written in solodity.
   - [ERCx](https://ercx.runtimeverification.com/): developer tooling for ERC token testing.
-  - [Firefly](https://fireflyblockchain.com/): developer tooling for Etherium smart contract testing.
+  - [Firefly](https://fireflyblockchain.com/): developer tooling for Ethereum smart contract testing.
 
 We will walk through a simple example that showcases all the key features of this deployment workflow:
   - Deployment of `master` and `develop` branches using `deploy-rs`.
@@ -45,12 +45,12 @@ To package our website, we need to create a `flake.nix` file in root of our repo
       hello-world-app-package = pkgs.buildYarnPackage {
         name = "hello-world-app-package";
         src = builtins.path { name = "hello-world-app"; path = ./hello-world-app; };
-        postInstall = ''
-          mv ./.next $out/
-        '';
         yarnBuild = ''
           yarn install
           yarn build
+        '';
+        postInstall = ''
+          mv ./.next $out/
         '';
       };
 
@@ -87,12 +87,12 @@ Next, we utilize `buildYarnPackage` to download the website dependencies with ni
 hello-world-app-package = pkgs.buildYarnPackage {
   name = "hello-world-app-package";
   src = builtins.path { name = "hello-world-app"; path = ./hello-world-app; };
-  postInstall = ''
-    mv ./.next $out/
-  '';
   yarnBuild = ''
     yarn install
     yarn build
+  '';
+  postInstall = ''
+    mv ./.next $out/
   '';
 };
 ```
@@ -459,7 +459,7 @@ Now, we need to create `flake.nix` with `deploy` output:
     };
 }
 ```
-We define `nixosConfigurations.hello-world-server` output by specifying previously defiled server configuration in the `modules` attribute.
+We define `nixosConfigurations.hello-world-server` output by specifying previously defined server configuration in the `modules` attribute.
 
 In deploy output we need to define a node named `hello-world-server`. Node can have multiple profiles, but in our case, we only deploy the profile `system`. Activation script for the `system` profile is generated with `deploy-rs.lib.${system}.activate.nixos` from the previously defined server configuration.
 
@@ -560,7 +560,7 @@ With our server prepared for the deployment, we can now proceed with website dep
   activate = pkgs.writeShellScriptBin "activate" ''
     set -euo pipefail
     export XDG_RUNTIME_DIR="/run/user/$UID"
-    mkdir -p "$HOME/.config/systemd/user" "$HOME/.config/systemd/user/default.target.wants"
+    mkdir -p "$HOME/.config/systemd/user/default.target.wants"
     ${copyServices}
     systemctl --user daemon-reload
     systemctl --user restart ${concatStringsSep " " serviceNames}
@@ -687,7 +687,7 @@ Finally, we can define our profile activation script:
 activate = pkgs.writeShellScriptBin "activate" ''
   set -euo pipefail
   export XDG_RUNTIME_DIR="/run/user/$UID"
-  mkdir -p "$HOME/.config/systemd/user" "$HOME/.config/systemd/user/default.target.wants"
+  mkdir -p "$HOME/.config/systemd/user/default.target.wants"
   ${copyServices}
   systemctl --user daemon-reload
   systemctl --user restart ${concatStringsSep " " serviceNames}
