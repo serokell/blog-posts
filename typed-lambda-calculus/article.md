@@ -39,6 +39,8 @@ The semantics of this operator should be reasonably familiar to a practicing pro
 
 The introduction of the $\mathbf{if}$ operator creates a bit of a kink.
 What do we do if $\gamma$ is neither $true$, $false$, nor a redex?
+E.g. $\mathbf{if}\; (\lambda x. x)\; \mathbf{then}\;\ldots\;\mathbf{else} \;\ldots$
+
 Such terms are called "stuck", the computation, according to our rules, can not proceed.
 We want to avoid stuck terms!
 
@@ -46,14 +48,18 @@ To do that, we'll have to place some restrictions on what $\gamma$ could be.
 
 ### Typing relations, rules, and systems
 
-To express such restrictions, we introduce the so-called _typing relation_, written as $t : T$, read as "term $t$ has type $T$".
-We also introduce _types_, which can be thought of as sets of terms of a certain general form.
+To express such restrictions, we introduce the so-called _typing relation_.
+A typing relation is a relation, in this case meaning a set of pairs, which assigns a _type_ to each and every expression in the language.
 
+One such individual assignment we'll call _typing judgement_, and will write it separated by a column: $t : T$, read as "term $t$ has type $T$".
+
+Types can be thought of as sets of terms of a certain general form.
 Turns out (Reynolds, 1984), this naive interpretation of types as sets doesn't hold to rigorous scrutiny.
 Still, it's a good enough mental model unless you're a type theory researcher (and if you are, hi, very nice of you to read this article, please get in touch if you have corrections).
 
-Using typing relations, we thus assign a type to each term.
-Rules that we use to assign types are called _typing rules_.
+Typing relation thus assigns a type to each term.
+In most practically relevant cases, specifying the typing relation by direct enumeration is at best impractical, and is usually impossible.
+We can instead specify it by writing out a finite set of rules, called _typing rules_, from which the typing relation can be derived.
 Together, types and typing rules constitute a _type system_.
 
 Type systems offer a lightweight (i.e. without executing a program) tool to check if a program is "correct" -- in the sense that it doesn't lead to stuck terms.
@@ -68,12 +74,12 @@ $$
 \end{array}
 $$
 
-where $\text{premises}$ is zero or more semicolon-separated typing relations, and $\text{conclusion}$, also often called judgment, is a single typing relation.
+where $\text{premises}$ is zero or more semicolon-separated typing judgements, and $\text{conclusion}$ is a single typing judgement.
 
 If there are no premises, i.e. the conclusion is an axiom, the horizontal line is often omitted.
 
 Let us introduce the type $Bool,$ which represents a set of $true,$ $false,$ and any redexes that eventually evaluate to either.
-Now we can write typing relations for our boolean values $true$ and $false$ as axioms:
+Now we can write typing rules for our boolean values $true$ and $false$ as axioms:
 
 $$
 \begin{array}{lll}
@@ -146,12 +152,12 @@ All lambda-abstractions must be explicitly typed like this.
 If we know the type of the abstraction argument, we can infer the type of the result by substituting the known type of the variable into the typing rules for the abstraction body.
 Formally, this idea is expressed by introducing a _typing context_.
 
-A typing context is a set of typing relations for variables that are "in scope", i.e. relations that are locally known but not necessarily globally true.
-Note that variables are _not_ assumed to be identified by their names here: each variable will have a corresponding distinct typing relation in the context even if their names are the same.
+A typing context is a set of typing judgements for variables that are "in scope", i.e. judgements that are locally known but not necessarily globally true.
+Note that variables are _not_ assumed to be identified by their names here: each variable will have a corresponding distinct typing judgement in the context even if their names are the same.
 Practically speaking, typing context can be thought of as a mapping from variables to types and is often implemented as such.
 
-The "current" context is usually denoted by $\Gamma,$ and is written to the left of other typing relations, separated by $\vdash$ (a symbol for logical entailment).
-We can also extend the context by simply adding new comma-separated typing relations, e.g. $\Gamma, x : T$ is the context $\Gamma$, extended by the relation $x:T.$
+The "current" context is usually denoted by $\Gamma,$ and is written to the left of other typing judgements, separated by $\vdash$ (a symbol for logical entailment).
+We can also extend the context by simply adding new comma-separated typing judgements, e.g. $\Gamma, x : T$ is the context $\Gamma$, extended by the judgement $x:T.$
 
 Using all this new syntax, we can define a typing rule for abstractions now:
 
@@ -167,7 +173,7 @@ This rule simply says that if -- given the current context plus the type of the 
 Pretty straightforward, but the notation may seem a bit arcane.
 Spend a minute to understand it, we'll be using it more down the line.
 
-For individual variables, the typing relation would then be rather trivial:
+For individual variables, the typing rule would then be rather trivial:
 
 $$
 \begin{array}{c}
@@ -300,7 +306,7 @@ We will omit the proof of the soundness of the simply typed lambda calculus with
 
 The short sketch is to prove soundness we need to prove two propositions:
 
-1. A typed term can not be stuck, i.e. it is either a value or a computation step is possible.
+1. A typed term can not be stuck.
 2. If a typed term is beta-reduced, the result is also a typed term.
 
 Both are proven by structural induction on terms, but you'll also have to formally define the computation semantics, which here we glossed over.
@@ -525,7 +531,7 @@ This rule ensures we can in fact use $id : \forall\alpha.\;\alpha\to\alpha$ in a
 
 On the other hand, the generalization rule works kind of in reverse: it adds a universal quantifier to a polytype.
 The idea here is that an implicit quantification in $\Gamma\vdash t:\sigma$ can be made explicit if the type variable in question $\alpha$ does not appear free in the context.
-The consequence of this rule is that variables that end up free in a typing relation are implicitly universally quantified.
+The consequence of this rule is that variables that end up free in a typing judgement are implicitly universally quantified.
 
 #### Recursive bindings
 
