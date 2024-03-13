@@ -353,7 +353,7 @@ At the use site, type variables are _instantiated_ to concrete types.
 The implementation must be the same regardless of the specific instantiation.
 
 Ad-hoc polymorphism is, generally speaking, pretty ad-hoc.
-It doesn't have really much of a theoretical background to speak of (but there's an approach to making it less ad-hoc (Wadler, 1989a)).
+It doesn't have much of a theoretical background to speak of, although there's an approach to making it less ad-hoc (Wadler, 1989a).
 In contrast, parametric polymorphism does have a strong theoretical foundation.
 
 ### Hindley-Milner type system
