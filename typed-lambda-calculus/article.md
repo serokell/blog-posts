@@ -24,7 +24,7 @@ In this article, we're concerned with the basics, for the most part, so we won't
 ## Lambda calculus with atomic boolean values
 
 We will now introduce atomic values to the lambda calculus.
-While it is feasible to construct a value representation using only λ-abstractions (using Church encoding or otherwise) for almost any value we might be interested in, practically speaking, it's not very convenient.
+While it is feasible to construct a value representation using only λ-abstractions (using Church encoding or otherwise) for almost any value we might be interested in, practically speaking, it's not very convenient, rather memory-inefficient, and performance of the Church encoding on modern systems isn't great.
 
 Thus, we introduce atomic values $true$ and $false$.
 
@@ -49,7 +49,10 @@ To do that, we'll have to place some restrictions on what $\gamma$ could be.
 ### Typing relations, rules, and systems
 
 To express such restrictions, we introduce the so-called _typing relation_.
-A typing relation is a relation, in this case meaning a set of pairs, which assigns a _type_ to each and every expression in the language.
+A typing relation is a relation, in this case meaning a set of pairs, which assigns a _type_ to syntactically valid terms.
+Not all syntactically valid terms can have a type assigned to them.
+Hence, we call terms that have a type _well-typed_, and the others _ill-typed_.
+The point of having a type system is to reject ill-typed terms, as those are the ones likely to get "stuck".
 
 One such individual assignment we'll call _typing judgement_, and will write it separated by a column: $t : T$, read as "term $t$ has type $T$".
 
@@ -57,7 +60,6 @@ Types can be thought of as sets of terms of a certain general form.
 Turns out (Reynolds, 1984), this naive interpretation of types as sets doesn't hold to rigorous scrutiny.
 Still, it's a good enough mental model unless you're a type theory researcher (and if you are, hi, very nice of you to read this article, please get in touch if you have corrections).
 
-Typing relation thus assigns a type to each term.
 In most practically relevant cases, specifying the typing relation by direct enumeration is at best impractical, and is usually impossible.
 We can instead specify it by writing out a finite set of rules, called _typing rules_, from which the typing relation can be derived.
 Together, types and typing rules constitute a _type system_.
@@ -116,7 +118,7 @@ In this particular example, it makes sense if you think about it.
 The example above is trivial enough, but consider you might have $\mathbf{if}\;\text{<long and hard computation>}\;\mathbf{then}\;true\;\mathbf{else}\;(\lambda x.\; x),$ and this becomes much less clear what the type should be without executing the program.
 That is not to say this is a fundamental restriction, more powerful type systems can lift it, but we won't discuss them here.
 
-We call a type system _sound_ if it assigns (relates) a single type to each term.
+We call a type system _sound_ if it assigns (relates) at most one type to each term.
 
 ### Typing lambda-abstractions, variables and applications
 
@@ -221,58 +223,13 @@ $$
 
 The practical application of these rules is we can use those to assign types to terms and thus ensure the program doesn't get stuck.
 
-To do that, we build typing trees, which just chain typing rules in a tree-like structure.
+In practice, we'd have some inference algorithm to decide on types of terms (and whether they have one).
+In this theoretical introduction, we'll just assume there's some way to get the type of a given term, without getting into the specifics of how it works.
+
+As a proof that a given term has a given type, we can use typing trees.
+Typing trees just chain typing rules in a tree-like structure.
 
 As a simple example, let us show that term $(\lambda x: Bool.\; x)\;true$ has type $Bool$ in some arbitrary context $\Gamma$.
-
-To build the typing tree, we start with the term in question and find the typing rule where the consequent matches it best.
-In this case, this is the $\text{(App)}$ rule:
-
-$$
-\begin{array}{c}
-\Gamma \vdash t_1 : T_1 \to T_2, t_2 : T_1 \\
-\hline
-\Gamma \vdash t_1\; t_2 : T_2
-\end{array} \quad\text{(App)}
-$$
-
-Here we annotate each typing rule with a name for clarity.
-
-We then instantiate all placeholders we can:
-
-$$
-\begin{array}{c}
-\Gamma \vdash (\lambda x:Bool.\; x) : T_1 \to T_2;\quad \Gamma \vdash true : T_1 \\
-\hline
-\Gamma \vdash (\lambda x:Bool.\; x)\; true : T_2
-\end{array} \quad\text{(App)}
-$$
-
-For each condition, we do the same in turn:
-
-$$
-\begin{array}{c}
-\begin{array}{c}
-\begin{array}{c}
-x : T_2 \in \Gamma, x:Bool
-\\\hline
-\Gamma, x:Bool \vdash x : T_2
-\end{array}\quad\text{(Var)}
-\\\hline
-\Gamma \vdash (\lambda x:Bool.\; x) : Bool \to T_2;
-\end{array}\begin{array}{c}\\\text{(Abs)}\end{array}
-\quad
-\begin{array}{c}
-\\\\\Gamma \vdash true : Bool
-\end{array}\\
-\hline
-\Gamma \vdash (\lambda x:Bool.\; x)\; true : T_2
-\end{array}\quad\begin{array}{c}\\\\\text{(App)}\end{array}
-$$
-
-(notice how $T_1$ becomes $Bool$ due to the use of $\text{(Abs)}$ rule)
-
-And finally, we can go the other way, filling up the remaining placeholders:
 
 $$
 \begin{array}{c}
@@ -293,6 +250,17 @@ x : Bool \in \Gamma, x:Bool
 \Gamma \vdash (\lambda x:Bool.\; x)\; true : Bool
 \end{array}\quad\begin{array}{c}\\\\\text{(App)}\end{array}
 $$
+
+It may be more natural to read this typing tree bottom-up.
+We start with the initial premise, i.e. the expression in question has the expected type.
+This is due to the $\text{App}$ rule, where $t_1$ is instantiated (i.e. replaced) with $(\lambda x:Bool.\; x)$, $t_2$ with $true$, $T_1$ with $Bool$ and $T_2$ with $Bool$.
+The second premise of the $\text{App}$ rule, namely that $true: Bool$, is trivially true due to $\text{AxT}$.
+The first premise is true due to the $\text{Abs}$ rule, wherein $T_1$ and $T_2$ are instantiated with $Bool$, and $t$ with $x$.
+The premise of the $\text{Var}$ rule in turn is true, as the judgement $x:Bool$ is trivially an element of the typing context $\Gamma, x: Bool$ (i.e. an arbitrary context $\Gamma$ extended by the judgement $x: Bool$).
+
+Typing inference algorithms essentially build such typing trees iteratively.
+However, there isn't necessarily a single way to build them: a given type system may have multiple inference algorithms.
+On the other hand, a type system may be sound, but undecidable, in which case it will not have a general inference algorithm at all.
 
 ### The impossibility of simply typed lambda calculus without atomic values
 
@@ -336,8 +304,9 @@ The reason for this is the lack of polymorphism.
 
 ## Polymorphic lambda-calculi
 
-Polymorphism, essentially, is the ability of the type system to represent terms that contain arbitrary types.
-Practically speaking, a fully-typed program will not contain any polymorphic types, but its parts, especially during type checking or type inference, might.
+Polymorphism, essentially, is the ability of the type system to represent terms that can have arbitrary types.
+Practically speaking, a fully-typed program will not have any terms with polymorphic types, as it is, essentially, a placeholder.
+But its parts, especially during type checking or type inference, might.
 
 We need to distinguish two different kinds of polymorphism (Strachey, 2000):
 
@@ -353,7 +322,7 @@ At the use site, type variables are _instantiated_ to concrete types.
 The implementation must be the same regardless of the specific instantiation.
 
 Ad-hoc polymorphism is, generally speaking, pretty ad-hoc.
-It doesn't have much of a theoretical background to speak of, although there's an approach to making it less ad-hoc (Wadler, 1989a).
+It doesn't have much of a theoretical background to speak of, although there's an approach to making it less ad-hoc (Wadler, 1989).
 In contrast, parametric polymorphism does have a strong theoretical foundation.
 
 ### Hindley-Milner type system
@@ -449,24 +418,28 @@ Polytypes also include monotypes, in addition to quantified types.
 The quantifier $\forall$ _binds_ the type variables, so in a type expression $\forall \alpha_1\;\ldots\;\alpha_n.\; \tau,$ all of $\alpha_i$ are _bound_.
 Type variables that are not bound are called _free_.
 
-Additionally, type variables may be bound by the typing context.
-The reason for this addition is nested let-bindings.
+The crucial difference between monotypes and polytypes is the notion of equivalence.
+Monotypes are considered equivalent if they are syntactically the same, i.e. have the same terms in the same places.
+So, for example, a monotype $\alpha$ is only equivalent to $\alpha,$ i.e. itself.
+With polytypes, the equivalence is considered up to the renaming of bound variables (assuming no conflicts with free type variables of course).
+So, for example, $\forall \alpha. \alpha \to \beta$ is equivalent to $\forall \gamma. \gamma \to \beta.$
+Notice we couldn't rename $\alpha$ to $\beta$, as that would result in an entirely different polytype -- this is the same quirk as with α-equivalence of abstractions in untyped λ-calculus.
 
 We also need a function $free$ to define typing rules.
-$free$ collects all free variables in a type expression.
+$free$ collects all free variables from its argument.
 It is defined as follows:
 
 $$
 \begin{array}{lcl}
 free(\alpha) & = & \{\alpha\} \\
 free(C\;\tau_1\;\ldots\;\tau_n) & = & \bigcup\limits_{i=1}^n free(\tau_i) \\
-free(\Gamma) & = & \bigcup\limits_{x:\sigma \in \Gamma} free(\sigma) \\
 free(\forall \alpha.\; \sigma) & = & free(\sigma) - \{\alpha\} \\
-free(\Gamma \vdash e:\sigma) & = & free(\sigma) - free(\Gamma) \\
+free(\Gamma) & = & \bigcup\limits_{x:\sigma \in \Gamma} free(\sigma) \\
 \end{array}
 $$
 
-If a type variable occurs unbound in a typing, it is implicitly treated as universally quantified.
+The function is properly defined on type expressions (i.e. polytypes and consequently monotypes).
+However, for notational convenience the last equation extends it also to typing contexts.
 
 #### The principal type
 
@@ -495,6 +468,7 @@ $$
 \sqsubseteq \forall\beta_1\ldots\beta_m.\;\{\alpha_i\mapsto\tau_i\}\tau
 \end{array}
 $$
+where $\tau_i \in \{\tau_1, \ldots, \tau_n\},$ and each of $\tau_i$ can only mention type variables $\beta_j.$
 
 This rule essentially says that a more general type can be made less general by substitution.
 The $\beta_i \notin free(\forall\alpha_1\ldots\alpha_n.\;\tau)$ condition ensures that unbound variables are not accidentally replaced and are treated as constants.
@@ -519,10 +493,16 @@ Other equivalent formulations exist, but this one is enough for our purposes for
 
 Variable, application, and abstraction rules should already look somewhat familiar -- indeed, those are almost exactly the same as those in simply typed lambda calculus.
 One notable feature is that the variable rule allows variables to have polytypes, while application and abstraction do not.
-This, together with the let-in rule, enforces the rule that only let-in bindings are inferred as polymorphic.
+This, together with the let-in rule, enforces the constraint that only let-in bindings are inferred as polymorphic.
 
-The let-in rule is unsurprisingly similar to the abstraction rule.
-The only difference is it uses the polytype $\sigma$ instead of the monotype $\tau.$
+The let-in rule is unsurprisingly similar to a combination of application and abstraction rules.
+In fact, if we do combine them as follows:
+$$
+\begin{array}{cl}
+\begin{array}{c}\quad\Gamma\vdash t_0:\tau;\quad\Gamma,\;x:\tau\vdash t_1:\tau'\\\hline \Gamma\vdash (\lambda x.\; t_1)\;t_0:\tau'\end{array}
+\end{array}
+$$
+we see that the only substantial difference is $\text{let-in}$ uses the polytype $\sigma$ instead of the monotype $\tau$ for the type of $x.$
 
 The last two rules deserve a bit of a closer look.
 
@@ -531,7 +511,11 @@ This rule ensures we can in fact use $id : \forall\alpha.\;\alpha\to\alpha$ in a
 
 On the other hand, the generalization rule works kind of in reverse: it adds a universal quantifier to a polytype.
 The idea here is that an implicit quantification in $\Gamma\vdash t:\sigma$ can be made explicit if the type variable in question $\alpha$ does not appear free in the context.
-The consequence of this rule is that variables that end up free in a typing judgement are implicitly universally quantified.
+The immediate consequence of this rule is that variables that end up free in a typing judgement are implicitly universally quantified.
+
+Instantiation and generalization rules working together allow for essentially moving quantifications to the top level of a type.
+Indeed, as polytypes are not allowed neither in abstactions nor applications, when a polytype would occur there, instantiation rule would need to be used, replacing bound type variables with fresh free ones.
+Conversely, whenever a monotype with free variables occurs in a polytype position, generalization rule can be used to quantify them again.
 
 #### Recursive bindings
 
@@ -542,7 +526,7 @@ Its semantics are pretty much the same as in untyped lambda calculus, and its ty
 $$fix : \forall\alpha.\;(\alpha\to\alpha)\to\alpha.$$
 Note that this combinator can not be defined (or rather, typed) in terms of HM, so it has to be introduced as a built-in primitive.
 
-Then, the syntactical form for recursive bindings can be introduced as a syntactic sugar:
+Then, the syntactical form for recursive bindings can be introduced as syntactic sugar:
 $$\mathbf{rec}\;v = t_1\;\mathbf{in}\;t_2 \equiv
 \mathbf{let}\;v = fix\;(\lambda v.\;t_1)\;\mathbf{in}\;t_2$$
 
@@ -551,7 +535,7 @@ Alternatively, an extension to the typing ruleset with the same semantics is pos
 This is all rather straightforward, but it comes at a price.
 With the introduction of $fix,$ non-terminating terms can be formulated, which otherwise isn't the case.
 
-For example, the term $fix\;id : \forall\alpha.\;\alpha$ is a non-terminating computation.
+For example, the term $fix\;id : \forall\alpha.\;\alpha,$ where $id$ is the identity function, is a non-terminating computation.
 
 Additionally, as evidenced above, $\forall\alpha.\;\alpha$ becomes inhabited.
 This introduces various logical consistency issues, which are not usually an issue for a general-purpose programming language but are an issue for a theorem prover.
@@ -658,7 +642,7 @@ $\lambda_{\underline\omega}$, a.k.a. System F<u>ω</u> is System Fω without typ
 
 $\lambda_P$ is simply typed lambda calculus with dependent types.
 
-$\lambda_C$, a.k.a. $\lambda_{P\omega},$ is the calculus of constructions (Coquand, 1986), famously used as the basis for the Coq proof assistant, but also with other dependently-typed languages.
+$\lambda_C$, a.k.a. $\lambda_{P\omega},$ is the calculus of constructions (Coquand, 1986), famously used as the and for the Coq proof assistant, but also with other dependently-typed languages.
 Here, the border between terms and types is virtually gone.
 
 We will not discuss these advanced type systems in any more detail here, but I thought I should at least mention them.
@@ -688,13 +672,48 @@ So let's briefly review what we covered.
 
 3. How would you describe all contexts from exercise 2 in the Hindley-Milner type system?
 
-4. Implement a simply typed lambda calculus type checker and interpreter in your favorite programming language. Likely easier to start from an untyped lambda calculus interpreter, then introduce atomic values and types. See the previous article for hints on implementing the former. Feel free to add more atomic types than just $Bool$.
+4. Implement a simply typed lambda calculus type checker and interpreter in your favorite programming language. Likely easier to start from an untyped lambda calculus interpreter, then introduce atomic values and types. See the previous article for hints on implementing the former.
+
+    Note the article does not discuss any particular inference algorithms. For simply-typed λ-calculus it's not really an issue, as strictly speaking no _inference_ is necessary, the type of an expression always immediately follows from types of its sub-expressions.
+    Here is a sketch for a function $ty,$ which returns a type of an expression in the definition of STLC given here:
+    $$
+    \begin{align}
+    ty(\Gamma, x) &=
+    \cases{
+      \tau & if $x:\tau\in\Gamma$,\\
+      \text{ILL}& otherwise
+    }
+    \\ ty(\Gamma, e_1\; e_2) & =
+    \cases{
+    \tau' & if $ty(\Gamma, e_1) = \tau\to\tau'$\\
+    & and $ty(\Gamma, e_2) = \tau$, \\
+    \text{ILL} & otherwise
+    }
+    \\ ty(\Gamma, \mathbf{if}\;e_1\;\mathbf{then}\;e_2\;\mathbf{else}\;e_3) & =
+    \cases{
+      \tau & if $ty(\Gamma, e_1) = Bool$\\
+      & and $ty(\Gamma, e_2) = \tau$\\
+      & and $ty(\Gamma, e_3) = \tau$\\
+      \text{ILL} & otherwise
+    }
+    \\ ty(\Gamma, \lambda x:\tau. e) & =
+      \tau \to ty(\Gamma \cup \{ x: \tau\}, e)
+    \\ ty(\Gamma, true) & = Bool
+    \\ ty(\Gamma, false) & = Bool
+    \end{align}
+    $$
+
+    Here, $x$ denotes a variable, $e,$ $e_1,$ $e_2,$ $e_3$ denote arbitrary sub-expressions, $\tau$ and $\tau'$ denote arbitrary types.
+    The value $\text{ILL}$ denotes the result that the term is ill-typed.
+    You should output an error in this case.
+
+    Feel free to add more atomic types than just $Bool$.
 
 ## References
 
-(Barendregt, 1991) Barendregt, Henk. "Introduction to generalized type systems." Journal of functional programming 1, no. 2 (1991): 125-154.
+(Barendregt, 1991) Barendregt, Henk. "Introduction to generalized type systems." Journal of Functional Programming 1, no. 2 (1991): 125-154.
 
-(Coquand, 1986) Coquand, T., & Huet, G. (1986). The calculus of constructions (Doctoral dissertation, INRIA).
+(Coquand, 1986) Coquand, Thierry, and Gérard Huet. "The calculus of constructions." PhD diss., INRIA, 1986.
 
 (Damas, 1982) Damas, Luis, and Robin Milner. "Principal type-schemes for functional programs." In Proceedings of the 9th ACM SIGPLAN-SIGACT symposium on Principles of programming languages, pp. 207-212. 1982.
 
@@ -712,6 +731,6 @@ So let's briefly review what we covered.
 
 (Strachey, 2000) Strachey, Christopher. "Fundamental concepts in programming languages." Higher-order and symbolic computation 13.1 (2000): 11-49.
 
-(Wadler, 1989a) Wadler, Philip, and Stephen Blott. "How to make ad-hoc polymorphism less ad hoc." In Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on Principles of programming languages, pp. 60-76. 1989.
+(Wadler, 1989) Wadler, Philip, and Stephen Blott. "How to make ad-hoc polymorphism less ad hoc." In Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on Principles of programming languages, pp. 60-76. 1989.
 
 (Wells, 1999) Wells, Joe B. "Typability and type checking in System F are equivalent and undecidable." Annals of Pure and Applied Logic 98.1-3 (1999): 111-156.
