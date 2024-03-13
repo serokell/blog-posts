@@ -21,7 +21,11 @@ In some cases, the whole domain can be expressed in types.
 
 In this article, we're concerned with the basics, for the most part, so we won't get too much into the more expressive type systems like System FC or systems with dependent types.
 
-## Lambda calculus with atomic boolean values
+## Simply typed lambda calculus with atomic boolean values
+
+> Well-Typed Expressions Do Not Go Wrong
+>
+> -- Robin Milner, "A Theory of Type Polymorphism in Programming"
 
 We will now introduce atomic values to the lambda calculus.
 While it is feasible to construct a value representation using only λ-abstractions (using Church encoding or otherwise) for almost any value we might be interested in, practically speaking, it's not very convenient, rather memory-inefficient, and performance of the Church encoding on modern systems isn't great.
@@ -49,12 +53,12 @@ To do that, we'll have to place some restrictions on what $\gamma$ could be.
 ### Typing relations, rules, and systems
 
 To express such restrictions, we introduce the so-called _typing relation_.
-A typing relation is a relation, in this case meaning a set of pairs, which assigns a _type_ to syntactically valid terms.
+A typing relation is a relation, in this case meaning a set of pairs, which assigns _types_ to syntactically valid terms.
 Not all syntactically valid terms can have a type assigned to them.
-Hence, we call terms that have a type _well-typed_, and the others _ill-typed_.
+We call terms that have a type _well-typed_, and the others _ill-typed_.
 The point of having a type system is to reject ill-typed terms, as those are the ones likely to get "stuck".
 
-One such individual assignment we'll call _typing judgement_, and will write it separated by a column: $t : T$, read as "term $t$ has type $T$".
+One such individual assignment we'll call a _typing judgement_, and will write it separated by a column: $t : T$, read as "term $t$ has type $T$".
 
 Types can be thought of as sets of terms of a certain general form.
 Turns out (Reynolds, 1984), this naive interpretation of types as sets doesn't hold to rigorous scrutiny.
@@ -64,7 +68,7 @@ In most practically relevant cases, specifying the typing relation by direct enu
 We can instead specify it by writing out a finite set of rules, called _typing rules_, from which the typing relation can be derived.
 Together, types and typing rules constitute a _type system_.
 
-Type systems offer a lightweight (i.e. without executing a program) tool to check if a program is "correct" -- in the sense that it doesn't lead to stuck terms.
+Type systems offer a lightweight (i.e. without executing a program) tool to check if a program is "correct" -- in the sense that it doesn't produce stuck terms.
 
 Typing rules are usually written in the form
 
@@ -149,7 +153,7 @@ Hence, we need to introduce an explicit typing notation:
 
 $$\lambda x : T. \; \ldots$$
 
-All lambda-abstractions must be explicitly typed like this.
+All λ-abstractions must be explicitly typed like this.
 
 If we know the type of the abstraction argument, we can infer the type of the result by substituting the known type of the variable into the typing rules for the abstraction body.
 Formally, this idea is expressed by introducing a _typing context_.
@@ -223,7 +227,7 @@ $$
 
 The practical application of these rules is we can use those to assign types to terms and thus ensure the program doesn't get stuck.
 
-In practice, we'd have some inference algorithm to decide on types of terms (and whether they have one).
+In actual practice, we'd have some inference algorithm to decide on types of terms (and whether they have one).
 In this theoretical introduction, we'll just assume there's some way to get the type of a given term, without getting into the specifics of how it works.
 
 As a proof that a given term has a given type, we can use typing trees.
@@ -253,12 +257,12 @@ $$
 
 It may be more natural to read this typing tree bottom-up.
 We start with the initial premise, i.e. the expression in question has the expected type.
-This is due to the $\text{App}$ rule, where $t_1$ is instantiated (i.e. replaced) with $(\lambda x:Bool.\; x)$, $t_2$ with $true$, $T_1$ with $Bool$ and $T_2$ with $Bool$.
+This is justified by the $\text{App}$ rule, where $t_1$ is instantiated (i.e. replaced) with $(\lambda x:Bool.\; x)$, $t_2$ with $true$, $T_1$ and $T_2$ with $Bool$.
 The second premise of the $\text{App}$ rule, namely that $true: Bool$, is trivially true due to $\text{AxT}$.
 The first premise is true due to the $\text{Abs}$ rule, wherein $T_1$ and $T_2$ are instantiated with $Bool$, and $t$ with $x$.
 The premise of the $\text{Var}$ rule in turn is true, as the judgement $x:Bool$ is trivially an element of the typing context $\Gamma, x: Bool$ (i.e. an arbitrary context $\Gamma$ extended by the judgement $x: Bool$).
 
-Typing inference algorithms essentially build such typing trees iteratively.
+Actual inference algorithms ultimately constructively build such proofs.
 However, there isn't necessarily a single way to build them: a given type system may have multiple inference algorithms.
 On the other hand, a type system may be sound, but undecidable, in which case it will not have a general inference algorithm at all.
 
@@ -304,9 +308,14 @@ The reason for this is the lack of polymorphism.
 
 ## Polymorphic lambda-calculi
 
-Polymorphism, essentially, is the ability of the type system to represent terms that can have arbitrary types.
-Practically speaking, a fully-typed program will not have any terms with polymorphic types, as it is, essentially, a placeholder.
-But its parts, especially during type checking or type inference, might.
+> Double-barreled names in science may be special for two reasons: some belong to ideas so subtle that they required two collaborators to develop; and some belong to ideas so sublime that they possess two independent discoverers.
+> \[... T]he Hindley-Milner type system and the Girard-Reynolds polymorphic lambda calculus \[are the] ideas of the second sort.
+>
+> -- Philip Wadler, "The Girard-Reynolds Isomorphism"
+
+Polymorphism, essentially, is the ability of the type system to deal with terms that can have arbitrary types.
+Practically speaking, a fully-typed program will not have any terms with polymorphic types, as a polymorphic type is basically a placeholder to be replaced with concrete types during compilation.
+But parts of a program, especially during type checking or type inference, might have polymorphic types.
 
 We need to distinguish two different kinds of polymorphism (Strachey, 2000):
 
@@ -347,7 +356,7 @@ HM (usually with many extensions) is used as a base for many functional language
 <summary>On Haskell's type system</summary>
 
 I say HM is used as a base for Haskell.
-This is on some technical level correct, but I feel a deluge of "uh, actually" coming, so I'll get this out of the way.
+This is on some technical level correct, but I feel a deluge of "um, actually" coming, so I'll get this out of the way.
 For a while, Haskell used a variation of System Fω at the back end, at some point switching to System FC, while on the front end both Haskell98 and Haskell2010 use a variation on HM with type classes and monomorphism restriction.
 If we include various GHC extensions, things quickly get very complicated, but at the core, it's still somewhat similar to HM.
 
@@ -357,7 +366,7 @@ If we include various GHC extensions, things quickly get very complicated, but a
 #### Let-polymorphism
 
 HM makes one concession for the sake of type inference.
-It only allows so-called let-polymorphism instead of unconstrained parametric polymorphism.
+It only allows the so-called let-polymorphism instead of unconstrained parametric polymorphism.
 
 To explain what this means with an example: one would like to have polymorphic type inference for expressions like
 
@@ -468,7 +477,7 @@ $$
 \sqsubseteq \forall\beta_1\ldots\beta_m.\;\{\alpha_i\mapsto\tau_i\}\tau
 \end{array}
 $$
-where $\tau_i \in \{\tau_1, \ldots, \tau_n\},$ and each of $\tau_i$ can only mention type variables $\beta_j.$
+where $\tau_i \in \{\tau_1, \ldots, \tau_n\},$ and each of $\tau_i$ can mention type variables $\beta_j.$
 
 This rule essentially says that a more general type can be made less general by substitution.
 The $\beta_i \notin free(\forall\alpha_1\ldots\alpha_n.\;\tau)$ condition ensures that unbound variables are not accidentally replaced and are treated as constants.
@@ -514,7 +523,7 @@ The idea here is that an implicit quantification in $\Gamma\vdash t:\sigma$ can 
 The immediate consequence of this rule is that variables that end up free in a typing judgement are implicitly universally quantified.
 
 Instantiation and generalization rules working together allow for essentially moving quantifications to the top level of a type.
-Indeed, as polytypes are not allowed neither in abstactions nor applications, when a polytype would occur there, instantiation rule would need to be used, replacing bound type variables with fresh free ones.
+Indeed, as polytypes are allowed neither in abstactions nor applications, when a polytype would occur there, instantiation rule would need to be used, replacing bound type variables with fresh free ones.
 Conversely, whenever a monotype with free variables occurs in a polytype position, generalization rule can be used to quantify them again.
 
 #### Recursive bindings
@@ -642,12 +651,17 @@ $\lambda_{\underline\omega}$, a.k.a. System F<u>ω</u> is System Fω without typ
 
 $\lambda_P$ is simply typed lambda calculus with dependent types.
 
-$\lambda_C$, a.k.a. $\lambda_{P\omega},$ is the calculus of constructions (Coquand, 1986), famously used as the and for the Coq proof assistant, but also with other dependently-typed languages.
+$\lambda_C$, a.k.a. $\lambda_{P\omega},$ is the calculus of constructions (Coquand, 1986), famously used as the base for the Coq proof assistant, but also with other dependently-typed languages.
 Here, the border between terms and types is virtually gone.
 
 We will not discuss these advanced type systems in any more detail here, but I thought I should at least mention them.
 
 ## Conclusions
+
+> We need to develop our insight into computing processes and to recognise and isolate the central concepts \[...].
+> To do this we must become familiar with them and give them names even before we are really satisfied that we have described them precisely.
+>
+> -- Christopher Strachey, "Fundamental Concepts in Programming Languages"
 
 The topic of type theory is rather vast, so it's infeasible to cover it in a single blog article in any considerable detail.
 
@@ -655,10 +669,10 @@ Hopefully, I've introduced enough basics here so that an interested reader can c
 
 So let's briefly review what we covered.
 
-- We learned the basic conventions and syntax of the type theory (or at least its modern style) on the example of simply explicitly typed lambda calculus with atomic booleans.
+- We learned the basic conventions and syntax of the type theory (or at least its modern style), using simply explicitly typed lambda calculus with atomic booleans as a demonstrative example.
 - We then discussed the Hindley-Milner type system for rank-1 polymorphic lambda calculus in some detail.
-- We also discussed how unbound recursion makes Hindley-Milner type logics inconsistent.
-- Then we briefly discussed System F, which is a generalization of the Hindley-Milner type system (or rather, vice versa, HM is a constrained version of System F)
+- We also discussed how unbound recursion makes Hindley-Milner-type logics inconsistent.
+- Then we briefly discussed System F, which is a generalization of the Hindley-Milner type system.
 - System F being one possible extension of simply typed lambda calculus, we also very briefly mentioned other possible extensions, including dependently typed ones using the model of the lambda cube.
 
 ## Exercises
@@ -674,8 +688,9 @@ So let's briefly review what we covered.
 
 4. Implement a simply typed lambda calculus type checker and interpreter in your favorite programming language. Likely easier to start from an untyped lambda calculus interpreter, then introduce atomic values and types. See the previous article for hints on implementing the former.
 
-    Note the article does not discuss any particular inference algorithms. For simply-typed λ-calculus it's not really an issue, as strictly speaking no _inference_ is necessary, the type of an expression always immediately follows from types of its sub-expressions.
-    Here is a sketch for a function $ty,$ which returns a type of an expression in the definition of STLC given here:
+    Note the article does not discuss any particular inference algorithms. For simply-typed λ-calculus with explicitly typed abstraction arguments, it's not really an issue.
+    The type of an expression always immediately follows from the types of its sub-expressions.
+    Here is a sketch for a function $ty,$ which returns the type of an expression in the definition of STLC given here:
     $$
     \begin{align}
     ty(\Gamma, x) &=
