@@ -1,25 +1,29 @@
 # A Look at Typed Lambda Calculus
 
 This is the second article in our short series on lambda calculus.
-If you are unfamiliar with lambda calculus, the [first article](https://serokell.io/blog/untyped-lambda-calculus) is a better starting point.
-Now we focus on adding types to it.
-We'll assume knowledge of basic lambda calculus syntax and concepts introduced in the previous article: unrestricted computation, logic system, paradox, Russell's type theory, logical consistency.
+If you are unfamiliar with lambda calculus, we recommend starting with the [first article](https://serokell.io/blog/untyped-lambda-calculus).
+In this piece, we focus on introducing types to lambda calculus.
 
-We've also [previously covered](https://serokell.io/blog/formal-verification-history) some history of the formal verification and thus type theory.
-Reading that article might provide historical background for what we'll be discussing here.
+We've also [previously covered](https://serokell.io/blog/formal-verification-history) the history of formal verification and, by extension, type theory.
+Reading that article might provide a historical background for the topics we'll discuss here.
 
-A typed lambda calculus extends untyped lambda calculus with a type system.
-Note that unlike the untyped lambda calculus, there are multiple typed lambda calculi, differentiated by the features of the type system used.
-The exact features of the type system used can be chosen mostly freely, and we will discuss some common choices in this article.
+We assume familiarity with the basic lambda calculus syntax, which we covered in the previous article.
+Additionally, we assume basic understanding of the related concepts, including unrestricted computation, logic systems, paradoxes, Russell's type theory, and logical consistency.
+
+Typed lambda calculus extends the untyped lambda calculus by introducing a type system.
+It's important to note that, unlike untyped lambda calculus, there are multiple typed lambda calculi, each differentiated by the specific features of the type system used.
+The exact features of the type system can be chosen with considerable flexibility.
+In this article, we will explore some of the common choices.
 
 The untyped lambda calculus is hard to use as a logic system due to the paradoxes it creates.
-Adding Russell's type theory to lambda calculus makes it, under certain conditions, logically consistent, which in turn makes it possible to mathematically guarantee certain behaviors (or lack thereof).
+Adding Russell's type theory to lambda calculus makes it, under certain conditions, logically consistent, which, in turn, makes it possible to mathematically guarantee certain behaviors (or lack thereof).
 
 The most common argument for the strongly-typed languages is that if a program type checks, it will never segfault (or have any other type-related issues), but I think this argument sells typed languages short.
-A sufficiently strict and expressive type system allows for encoding much more than simply "not segfaulting".
+A sufficiently strict and expressive type system allows for encoding much more than simply "not segfaulting."
 In some cases, the whole domain can be expressed in types.
 
-In this article, we're concerned with the basics, for the most part, so we won't get too much into the more expressive type systems like System FC or systems with dependent types.
+In this article, we are primarily focused on the basics, and therefore, we won’t delve deeply into the more expressive type systems such as System FC or those with dependent types.
+
 
 ## Simply typed lambda calculus with atomic boolean values
 
@@ -32,8 +36,8 @@ While it is feasible to construct a value representation using only λ-abstracti
 
 Thus, we introduce atomic values $true$ and $false$.
 
-Since we introduced atomic values, we also need to introduce an eliminator (i.e. a consumer) for these values.
-In this case let's consider an $\mathbf{if} \ldots \mathbf{then} \ldots \mathbf{else} \ldots$ operator.
+Since we've introduced atomic values, we also need to introduce an eliminator (i.e. a consumer) for these values.
+In this case, let's consider an $\mathbf{if} \ldots \mathbf{then} \ldots \mathbf{else} \ldots$ operator.
 
 The semantics of this operator should be reasonably familiar to a practicing programmer, but let's informally write them them out anyway:
 
@@ -45,7 +49,8 @@ The introduction of the $\mathbf{if}$ operator creates a bit of a kink.
 What do we do if $\gamma$ is neither $true$, $false$, nor a redex?
 E.g. $\mathbf{if}\; (\lambda x. x)\; \mathbf{then}\;\ldots\;\mathbf{else} \;\ldots$
 
-Such terms are called "stuck", the computation, according to our rules, can not proceed.
+Such terms are called "stuck" — the computation, according to our rules, can not proceed.
+
 We want to avoid stuck terms!
 
 To do that, we'll have to place some restrictions on what $\gamma$ could be.
@@ -54,6 +59,7 @@ To do that, we'll have to place some restrictions on what $\gamma$ could be.
 
 To express such restrictions, we introduce the so-called _typing relation_.
 A typing relation is a relation, in this case meaning a set of pairs, which assigns _types_ to syntactically valid terms.
+
 Not all syntactically valid terms can have a type assigned to them.
 We call terms that have a type _well-typed_, and the others _ill-typed_.
 The point of having a type system is to reject ill-typed terms, as those are the ones likely to get "stuck".
@@ -68,7 +74,7 @@ In most practically relevant cases, specifying the typing relation by direct enu
 We can instead specify it by writing out a finite set of rules, called _typing rules_, from which the typing relation can be derived.
 Together, types and typing rules constitute a _type system_.
 
-Type systems offer a lightweight (i.e. without executing a program) tool to check if a program is "correct" -- in the sense that it doesn't produce stuck terms.
+Type systems offer a lightweight (i.e. without executing a program) tool to check if a program is "correct" -- in a sense that it doesn't produce stuck terms.
 
 Typing rules are usually written in the form
 
@@ -85,6 +91,7 @@ where $\text{premises}$ is zero or more semicolon-separated typing judgements, a
 If there are no premises, i.e. the conclusion is an axiom, the horizontal line is often omitted.
 
 Let us introduce the type $Bool,$ which represents a set of $true,$ $false,$ and any redexes that eventually evaluate to either.
+
 Now we can write typing rules for our boolean values $true$ and $false$ as axioms:
 
 $$
@@ -160,6 +167,7 @@ Formally, this idea is expressed by introducing a _typing context_.
 
 A typing context is a set of typing judgements for variables that are "in scope", i.e. judgements that are locally known but not necessarily globally true.
 Note that variables are _not_ assumed to be identified by their names here: each variable will have a corresponding distinct typing judgement in the context even if their names are the same.
+
 Practically speaking, typing context can be thought of as a mapping from variables to types and is often implemented as such.
 
 The "current" context is usually denoted by $\Gamma,$ and is written to the left of other typing judgements, separated by $\vdash$ (a symbol for logical entailment).
@@ -315,6 +323,7 @@ The reason for this is the lack of polymorphism.
 
 Polymorphism, essentially, is the ability of the type system to deal with terms that can have arbitrary types.
 Practically speaking, a fully-typed program will not have any terms with polymorphic types, as a polymorphic type is basically a placeholder to be replaced with concrete types during compilation.
+
 But parts of a program, especially during type checking or type inference, might have polymorphic types.
 
 We need to distinguish two different kinds of polymorphism (Strachey, 2000):
@@ -322,7 +331,7 @@ We need to distinguish two different kinds of polymorphism (Strachey, 2000):
 - _Ad-hoc,_ which defines a common interface for an arbitrary set of individually specified types, and
 - _Parametric,_ which allows using abstract symbols in type signatures, representing arbitrary types, instead of concrete types.
 
-Ad-hoc polymorphism is the more common type, and is used extensively in popular programming languages like, say, C++ and such, where it's called "function/method/operator overloading".
+Ad-hoc polymorphism is the more common type, and is used extensively in popular programming languages like, say, C++ and such, where it's called "function/method/operator overloading."
 Essentially, ad-hoc polymorphism is a way to make a single function (or, more accurately, a single API endpoint) behave differently for different types.
 For example, summing integers is pretty different from floating-point numbers, but using a single operator for both is convenient.
 
@@ -340,13 +349,16 @@ First, let us discuss the so-called rank-1 polymorphism.
 
 We introduce type variables using the universal quantifier, $\forall.$
 The exact place where the variables are introduced matters.
+
 In particular, rank-1 polymorphism allows the universal quantifier only on the top level of types.
 Practically, this means that $\forall \alpha.\;\alpha \to \alpha$ is okay, but $\forall \beta.\;(\forall \alpha.\;\alpha \to \alpha)\to \beta \to \beta$ is not.
 
 There's an argument to be made about how $Bool\to (\forall \alpha.\; \alpha \to Bool)$ is _practically_ rank-1 polymorphic as it is isomorphic to $\forall \alpha.\;Bool\to \alpha \to Bool,$ but we'll gloss over this point here.
 
 Rank-1 polymorphic type system with type inference is first described by Roger Hindley in (Hindley, 1969), and later rediscovered by Robin Milner in (Milner, 1978).
+
 A formal analysis and correctness proof was later performed by Luis Damas in (Damas, 1982).
+
 This type system is called the Damas-Hindley-Milner type system, or more commonly the Hindley-Milner type system.
 We will call it HM below.
 
@@ -428,10 +440,13 @@ The quantifier $\forall$ _binds_ the type variables, so in a type expression $\f
 Type variables that are not bound are called _free_.
 
 The crucial difference between monotypes and polytypes is the notion of equivalence.
+
 Monotypes are considered equivalent if they are syntactically the same, i.e. have the same terms in the same places.
 So, for example, a monotype $\alpha$ is only equivalent to $\alpha,$ i.e. itself.
+
 With polytypes, the equivalence is considered up to the renaming of bound variables (assuming no conflicts with free type variables of course).
 So, for example, $\forall \alpha. \alpha \to \beta$ is equivalent to $\forall \gamma. \gamma \to \beta.$
+
 Notice we couldn't rename $\alpha$ to $\beta$, as that would result in an entirely different polytype -- this is the same quirk as with α-equivalence of abstractions in untyped λ-calculus.
 
 We also need a function $free$ to define typing rules.
@@ -464,6 +479,7 @@ We denote substitution of a type variable $\alpha$ for a monotype $\tau$ in an e
 If some type $\tau'$ can be produced from $\tau$ by substitution, it is said that $\tau$ is more general than $\tau',$ written as $\tau \sqsubseteq \tau'.$
 $\sqsubseteq$ defines a partial order on types.
 Note that the more general type is "smaller" than the less general type.
+
 This is a feature of treating types as sets: the more general the type, the fewer possible values it can have.
 The most general type $\forall\alpha.\;\alpha$ is usually considered uninhabited (with a few caveats), i.e. it has no values at all.
 
@@ -480,6 +496,7 @@ $$
 where $\tau_i \in \{\tau_1, \ldots, \tau_n\},$ and each of $\tau_i$ can mention type variables $\beta_j.$
 
 This rule essentially says that a more general type can be made less general by substitution.
+
 The $\beta_i \notin free(\forall\alpha_1\ldots\alpha_n.\;\tau)$ condition ensures that unbound variables are not accidentally replaced and are treated as constants.
 
 #### Typing rules
@@ -501,7 +518,9 @@ This is just one possible formulation of the ruleset.
 Other equivalent formulations exist, but this one is enough for our purposes for now.
 
 Variable, application, and abstraction rules should already look somewhat familiar -- indeed, those are almost exactly the same as those in simply typed lambda calculus.
+
 One notable feature is that the variable rule allows variables to have polytypes, while application and abstraction do not.
+
 This, together with the let-in rule, enforces the constraint that only let-in bindings are inferred as polymorphic.
 
 The let-in rule is unsurprisingly similar to a combination of application and abstraction rules.
@@ -519,10 +538,13 @@ The instantiation rule says that if a given expression $t$ has a general type $\
 This rule ensures we can in fact use $id : \forall\alpha.\;\alpha\to\alpha$ in any matching context, e.g. $Bool\to Bool.$
 
 On the other hand, the generalization rule works kind of in reverse: it adds a universal quantifier to a polytype.
+
 The idea here is that an implicit quantification in $\Gamma\vdash t:\sigma$ can be made explicit if the type variable in question $\alpha$ does not appear free in the context.
+
 The immediate consequence of this rule is that variables that end up free in a typing judgement are implicitly universally quantified.
 
 Instantiation and generalization rules working together allow for essentially moving quantifications to the top level of a type.
+
 Indeed, as polytypes are allowed neither in abstactions nor applications, when a polytype would occur there, instantiation rule would need to be used, replacing bound type variables with fresh free ones.
 Conversely, whenever a monotype with free variables occurs in a polytype position, generalization rule can be used to quantify them again.
 
@@ -531,6 +553,7 @@ Conversely, whenever a monotype with free variables occurs in a polytype positio
 In the discussion so far, we glossed over recursive bindings.
 
 The original paper mentions recursion can be implemented using the fixed-point combinator $fix$.
+
 Its semantics are pretty much the same as in untyped lambda calculus, and its type is
 $$fix : \forall\alpha.\;(\alpha\to\alpha)\to\alpha.$$
 Note that this combinator can not be defined (or rather, typed) in terms of HM, so it has to be introduced as a built-in primitive.
@@ -606,20 +629,24 @@ In GHC, they can also be made explicit with the `TypeApplications` extension.
 With System F, we've introduced the concept of _terms depending on types_ via the type abstraction.
 
 A natural question that might come from this is, what other kinds of dependencies might we introduce?
+
 Dependence of terms on terms is a given since it's a feature of untyped lambda calculus.
 But we can have dependence of terms upon types, types upon terms, and types upon types.
+
 Essentially, we have three axes, so this whole variant space constitutes, topologically speaking, a cube.
 
 Behold, the lambda cube:
 
 <center>
 
-![An image of the lambda cube](./lambda-cube-plain.svg)
+![An image of the lambda cube](https://hackmd.io/_uploads/SkaIf910a.svg)
 
 </center>
 
 Going directly up in the picture introduces dependence of types upon types, i.e. user-defined type constructors.
+
 Going left introduces dependence of terms upon types, i.e. System F style polymorphism.
+
 Going right introduces dependence of types upon terms, i.e. Martin-Löf style dependent types.
 
 Thus, we have the following variations:
@@ -645,6 +672,7 @@ $\lambda_2$ is System F, discussed above.
 
 $\lambda_\omega$ is System Fω.
 It extends System F with type operators and is a different, much more complex system.
+
 In short, System Fω allows defining type constructors inside the calculus itself instead of considering those as primitives, i.e. allows for user-defined types.
 
 $\lambda_{\underline\omega}$, a.k.a. System F<u>ω</u> is System Fω without type abstraction/application, or simply typed lambda calculus with user-defined types.
@@ -652,6 +680,7 @@ $\lambda_{\underline\omega}$, a.k.a. System F<u>ω</u> is System Fω without typ
 $\lambda_P$ is simply typed lambda calculus with dependent types.
 
 $\lambda_C$, a.k.a. $\lambda_{P\omega},$ is the calculus of constructions (Coquand, 1986), famously used as the base for the Coq proof assistant, but also with other dependently-typed languages.
+
 Here, the border between terms and types is virtually gone.
 
 We will not discuss these advanced type systems in any more detail here, but I thought I should at least mention them.
@@ -689,7 +718,9 @@ So let's briefly review what we covered.
 4. Implement a simply typed lambda calculus type checker and interpreter in your favorite programming language. Likely easier to start from an untyped lambda calculus interpreter, then introduce atomic values and types. See the previous article for hints on implementing the former.
 
     Note the article does not discuss any particular inference algorithms. For simply-typed λ-calculus with explicitly typed abstraction arguments, it's not really an issue.
+
     The type of an expression always immediately follows from the types of its sub-expressions.
+
     Here is a sketch for a function $ty,$ which returns the type of an expression in the definition of STLC given here:
     $$
     \begin{align}
@@ -719,6 +750,7 @@ So let's briefly review what we covered.
     $$
 
     Here, $x$ denotes a variable, $e,$ $e_1,$ $e_2,$ $e_3$ denote arbitrary sub-expressions, $\tau$ and $\tau'$ denote arbitrary types.
+
     The value $\text{ILL}$ denotes the result that the term is ill-typed.
     You should output an error in this case.
 
