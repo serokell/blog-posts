@@ -126,7 +126,8 @@ For example, $\mathbf{if}\;true\;\mathbf{then}\;true\;\mathbf{else}\;(\lambda x.
 This is true in general: any sufficiently strict type system will reject some "correct" terms, but that's basically a consequence of Gödel's incompleteness theorems, so either we have to deal with a system that allows for paradoxes (inconsistency), or we have to live with some arguably correct terms being rejected (incompleteness).
 
 In this particular example, it makes sense if you think about it.
-The example above is trivial enough, but consider you might have $\mathbf{if}\;\text{<long and hard computation>}\;\mathbf{then}\;true\;\mathbf{else}\;(\lambda x.\; x),$ and this becomes much less clear what the type should be without executing the program.
+The example above is trivial enough, but consider you might have $\mathbf{if}\;\text{<long and hard computation>}\;\mathbf{then}\;true\;\mathbf{else}\;(\lambda x.\; x).$
+Here, it is quite unclear what the type of the whole expression should be without executing the program.
 That is not to say this is a fundamental restriction, more powerful type systems can lift it, but we won't discuss them here.
 
 We call a type system _sound_ if it assigns (relates) at most one type to each term.
@@ -268,7 +269,7 @@ We start with the initial premise, i.e. the expression in question has the expec
 This is justified by the $\text{App}$ rule, where $t_1$ is instantiated (i.e. replaced) with $(\lambda x:Bool.\; x)$, $t_2$ with $true$, $T_1$ and $T_2$ with $Bool$.
 The second premise of the $\text{App}$ rule, namely that $true: Bool$, is trivially true due to $\text{AxT}$.
 The first premise is true due to the $\text{Abs}$ rule, wherein $T_1$ and $T_2$ are instantiated with $Bool$, and $t$ with $x$.
-The premise of the $\text{Var}$ rule in turn is true, as the judgement $x:Bool$ is trivially an element of the typing context $\Gamma, x: Bool$ (i.e. an arbitrary context $\Gamma$ extended by the judgement $x: Bool$).
+The premise of the $\text{Abs}$ rule in turn is true due to the $\text{Var}$ rule, as the judgement $x:Bool$ is trivially an element of the typing context $\Gamma, x: Bool$ (i.e. an arbitrary context $\Gamma$ extended by the judgement $x: Bool$).
 
 Actual inference algorithms ultimately constructively build such proofs.
 However, there isn't necessarily a single way to build them: a given type system may have multiple inference algorithms.
@@ -317,7 +318,7 @@ The reason for this is the lack of polymorphism.
 ## Polymorphic lambda-calculi
 
 > Double-barreled names in science may be special for two reasons: some belong to ideas so subtle that they required two collaborators to develop; and some belong to ideas so sublime that they possess two independent discoverers.
-> \[... T]he Hindley-Milner type system and the Girard-Reynolds polymorphic lambda calculus \[are the] ideas of the second sort.
+> \[...] the Hindley-Milner type system and the Girard-Reynolds polymorphic lambda calculus \[are the] ideas of the second sort.
 >
 > -- Philip Wadler, "The Girard-Reynolds Isomorphism"
 
@@ -326,12 +327,22 @@ Practically speaking, a fully-typed program will not have any terms with polymor
 
 But parts of a program, especially during type checking or type inference, might have polymorphic types.
 
+<p><details>
+<summary>On polymorphic types as placeholders</summary>
+
+Viewing polymorphic types as placeholders to be replaced is justified in the context of this theoretical introduction, and it gives a useful intuition.
+However, in practice, things like dynamic dispatch make it a bit more complicated.
+
+***
+
+</details></p>
+
 We need to distinguish two different kinds of polymorphism (Strachey, 2000):
 
 - _Ad-hoc,_ which defines a common interface for an arbitrary set of individually specified types, and
 - _Parametric,_ which allows using abstract symbols in type signatures, representing arbitrary types, instead of concrete types.
 
-Ad-hoc polymorphism is the more common type, and is used extensively in popular programming languages like, say, C++ and such, where it's called "function/method/operator overloading."
+Ad-hoc polymorphism is more common, and is used extensively in popular programming languages like C++, Java, etc, where it's called "function/method/operator overloading."
 Essentially, ad-hoc polymorphism is a way to make a single function (or, more accurately, a single API endpoint) behave differently for different types.
 For example, summing integers is pretty different from floating-point numbers, but using a single operator for both is convenient.
 
@@ -384,7 +395,7 @@ To explain what this means with an example: one would like to have polymorphic t
 
 $$(\lambda id.\; \ldots (id\;true) \ldots (id\;123) \ldots)\;(\lambda x.\; x),$$
 
-but type inference in polymorphic lambda calculus is in general undecidable (Wells, 1999).
+but type inference in polymorphic lambda calculus is in general undecidable without explicit type annotations (Wells, 1999).
 
 To work around that, HM stipulates that polymorphic types can only be inferred for let-bindings, e.g. bindings of the form
 
@@ -478,8 +489,8 @@ We denote substitution of a type variable $\alpha$ for a monotype $\tau$ in an e
 
 If some type $\tau'$ can be produced from $\tau$ by substitution, it is said that $\tau$ is more general than $\tau',$ written as $\tau \sqsubseteq \tau'.$
 $\sqsubseteq$ defines a partial order on types.
-Note that the more general type is "smaller" than the less general type.
 
+Note that the more general type is "smaller" than the less general type.
 This is a feature of treating types as sets: the more general the type, the fewer possible values it can have.
 The most general type $\forall\alpha.\;\alpha$ is usually considered uninhabited (with a few caveats), i.e. it has no values at all.
 
@@ -497,7 +508,7 @@ where $\tau_i \in \{\tau_1, \ldots, \tau_n\},$ and each of $\tau_i$ can mention 
 
 This rule essentially says that a more general type can be made less general by substitution.
 
-The $\beta_i \notin free(\forall\alpha_1\ldots\alpha_n.\;\tau)$ condition ensures that unbound variables are not accidentally replaced and are treated as constants.
+The $\beta_i \notin free(\forall\alpha_1\ldots\alpha_n.\;\tau)$ condition ensures that free variables are not accidentally replaced and are treated as constants.
 
 #### Typing rules
 
@@ -520,14 +531,13 @@ Other equivalent formulations exist, but this one is enough for our purposes for
 Variable, application, and abstraction rules should already look somewhat familiar -- indeed, those are almost exactly the same as those in simply typed lambda calculus.
 
 One notable feature is that the variable rule allows variables to have polytypes, while application and abstraction do not.
-
 This, together with the let-in rule, enforces the constraint that only let-in bindings are inferred as polymorphic.
 
 The let-in rule is unsurprisingly similar to a combination of application and abstraction rules.
 In fact, if we do combine them as follows:
 $$
-\begin{array}{cl}
-\begin{array}{c}\quad\Gamma\vdash t_0:\tau;\quad\Gamma,\;x:\tau\vdash t_1:\tau'\\\hline \Gamma\vdash (\lambda x.\; t_1)\;t_0:\tau'\end{array}
+\begin{array}{c}
+\Gamma\vdash t_0:\tau;\quad\Gamma,\;x:\tau\vdash t_1:\tau'\\\hline \Gamma\vdash (\lambda x.\; t_1)\;t_0:\tau'
 \end{array}
 $$
 we see that the only substantial difference is $\text{let-in}$ uses the polytype $\sigma$ instead of the monotype $\tau$ for the type of $x.$
@@ -538,9 +548,7 @@ The instantiation rule says that if a given expression $t$ has a general type $\
 This rule ensures we can in fact use $id : \forall\alpha.\;\alpha\to\alpha$ in any matching context, e.g. $Bool\to Bool.$
 
 On the other hand, the generalization rule works kind of in reverse: it adds a universal quantifier to a polytype.
-
 The idea here is that an implicit quantification in $\Gamma\vdash t:\sigma$ can be made explicit if the type variable in question $\alpha$ does not appear free in the context.
-
 The immediate consequence of this rule is that variables that end up free in a typing judgement are implicitly universally quantified.
 
 Instantiation and generalization rules working together allow for essentially moving quantifications to the top level of a type.
@@ -555,7 +563,7 @@ In the discussion so far, we glossed over recursive bindings.
 The original paper mentions recursion can be implemented using the fixed-point combinator $fix$.
 
 Its semantics are pretty much the same as in untyped lambda calculus, and its type is
-$$fix : \forall\alpha.\;(\alpha\to\alpha)\to\alpha.$$
+$$fix : \forall\alpha.\;(\alpha\to\alpha)\to\alpha$$
 Note that this combinator can not be defined (or rather, typed) in terms of HM, so it has to be introduced as a built-in primitive.
 
 Then, the syntactical form for recursive bindings can be introduced as syntactic sugar:
@@ -585,7 +593,7 @@ $$\lambda\;id.\; pair\; (id\; true)\; (id\; 4)$$
 
 This comes down to type inference for higher-rank polymorphism being undecidable, but this issue is readily alleviated by explicit type signatures.
 
-System F, independently discovered by Jean-Yves Girard (Girard, 1972) and John Reynolds (Reynolds, 1974), also called polymorphic lambda calculus or second-order lambda calculus is a generalization of Hindley-Milner type system to arbitrary-rank polymorphism.
+System F, independently discovered by Jean-Yves Girard (Girard, 1972) and John Reynolds (Reynolds, 1974), also called polymorphic lambda calculus or second-order lambda calculus, is a generalization of Hindley-Milner type system to arbitrary-rank polymorphism.
 
 System F, unlike Hindley-Milner, formalizes parametric polymorphism explicitly in the calculus itself, introducing value-level lambda-abstractions over _types_.
 This essentially makes specialization explicit.
@@ -595,19 +603,32 @@ An interested reader is highly encouraged to look into (Pierce, 2002).
 
 The primary new syntactical form introduced in F is the abstraction over types, denoted with a capital lambda: $\Lambda\alpha.\; t$
 
+Since there is type abstraction, there is also type application, denoted as $t\;[\tau],$ where $t$ is a term and $\tau$ is a type.
+Square brackets are mainly used to visually disambiguate type applications from term applications and don't have any special meaning.
+
+Syntax for types is similar to HM, but it's not split into monotypes and polytypes, meaning universal quantification may appear anywhere in the type, not just on the top level:
+
+$$
+\begin{array}{rrll}
+\tau & ::= & \alpha & \text{type variable}
+\\ & | & \tau_1\to\tau_2 & \text{function type}
+\\ & | & \forall \alpha .\; \tau & \text{quantified type}
+\end{array}
+$$
+
 Typing rules are that of simply typed lambda calculus with the addition of
 
 $$
 \begin{array}{cl}
 \begin{array}{c}
-\Gamma\vdash t:\forall\alpha.\;\sigma\\
+\Gamma\vdash t:\forall\alpha.\;\tau_1\\
 \hline
-\Gamma\vdash t\;\tau:\{\alpha\mapsto\tau\}\sigma
+\Gamma\vdash t\;[\tau_2]:\{\alpha\mapsto\tau_2\}\tau_1
 \end{array} & \text{type application} \\
 \begin{array}{c}
-\Gamma\vdash t:\sigma;\quad\alpha\notin free(\Gamma)\\
+\Gamma\vdash t:\tau;\quad\alpha\notin free(\Gamma)\\
 \hline
-\Gamma\vdash \Lambda\alpha.\;t : \forall\alpha.\;\sigma
+\Gamma\vdash \Lambda\alpha.\;t : \forall\alpha.\;\tau
 \end{array} & \text{type abstraction}
 \end{array}
 $$
@@ -616,12 +637,38 @@ $$
 
 Hence, assuming
 $pair : \forall\alpha.\;\forall\beta.\;\alpha\to\beta\to Pair\;\alpha\;\beta,$
-the motivating example would be typed roughly as
+where the $Pair$ type constructor is assumed to be a primitive for simplicity, the motivating example would be typed roughly as
 $$(\forall\alpha.\; \alpha\to\alpha)\to Pair\;Bool\;Int,$$
 and its actual implementation would use type applications explicitly, i.e.
-$$\lambda\;id.\; pair\;Bool\;Int\; (id\;Bool\;true)\; (id\;Int\;4)$$
+$$\lambda\;id:\forall\alpha.\alpha\to\alpha.\; pair\;[Bool]\;[Int]\; (id\;[Bool]\;true)\; (id\;[Int]\;4)$$
 
-In practical applications (like Haskell with `RankNTypes` extension), these explicit applications are inferred from type signatures (and thus made implicit).
+<p><details>
+<summary>On assuming <i>Pair</i> is a primitive</summary>
+
+Polymorphic lambda calculi, unlike STLC, are powerful enough to admit Church encodings again.
+For instance, we could define the pair type as
+
+$$Pair\;\alpha\;\beta = \forall \rho. (\alpha\to\beta\to\rho) \to \rho
+$$
+and producers and eliminators for it as
+$$\begin{align}
+pair &= \Lambda \alpha. \Lambda \beta. \lambda x: \alpha. \lambda y: \beta. \Lambda \rho. \lambda s: \alpha \to \beta \to \rho. s\;x\;y\\
+fst &= \Lambda \alpha. \Lambda \beta. \lambda p: Pair\;\alpha\;\beta. p\;(\lambda x:\alpha. \lambda y:\beta. x)\\
+snd &= \Lambda \alpha. \Lambda \beta. \lambda p: Pair\;\alpha\;\beta. p\;(\lambda x:\alpha. \lambda y:\beta. y)
+\end{align}$$
+with their types correspondingly
+$$\begin{align}
+pair &: \forall\alpha. \forall \beta. \alpha \to \beta \to Pair\;\alpha\;\beta\\
+fst &: \forall \alpha. \forall \beta.  Pair\;\alpha\;\beta \to \alpha\\
+snd &: \forall \alpha. \forall \beta.  Pair\;\alpha\;\beta \to \beta\\
+\end{align}$$
+
+Of course, it's still inefficient, so practical applications of this encoding are limited.
+Still, it's nice that we can limit the base calculus to only have the $\to$ type constructor, and not lose anything in terms of expressive power.
+
+</details></p>
+
+In practical applications (like Haskell with `RankNTypes` extension), these explicit applications are inferred from type signatures.
 In GHC, they can also be made explicit with the `TypeApplications` extension.
 
 ## The lambda cube
@@ -631,7 +678,7 @@ With System F, we've introduced the concept of _terms depending on types_ via th
 A natural question that might come from this is, what other kinds of dependencies might we introduce?
 
 Dependence of terms on terms is a given since it's a feature of untyped lambda calculus.
-But we can have dependence of terms upon types, types upon terms, and types upon types.
+But we can also have dependence of terms upon types, types upon terms, and types upon types.
 
 Essentially, we have three axes, so this whole variant space constitutes, topologically speaking, a cube.
 
@@ -639,7 +686,7 @@ Behold, the lambda cube:
 
 <center>
 
-![An image of the lambda cube](https://hackmd.io/_uploads/SkaIf910a.svg)
+![An image of the lambda cube](https://raw.githubusercontent.com/serokell/blog-posts/8070f3d49a911fda76c87bf22e3c9720d3a4c77b/typed-lambda-calculus/lambda-cube-plain.svg)
 
 </center>
 
@@ -671,16 +718,14 @@ Let us briefly discuss some of the options.
 $\lambda_2$ is System F, discussed above.
 
 $\lambda_\omega$ is System Fω.
-It extends System F with type operators and is a different, much more complex system.
+It extends System F with type operators, which makes it much more complex, but also more expressive.
+In short, System Fω additionally allows quantification, abstraction and application for type _constructors_, essentially turning the type level into a simply-typed λ-calculus in its own right.
 
-In short, System Fω allows defining type constructors inside the calculus itself instead of considering those as primitives, i.e. allows for user-defined types.
-
-$\lambda_{\underline\omega}$, a.k.a. System F<u>ω</u> is System Fω without type abstraction/application, or simply typed lambda calculus with user-defined types.
+$\lambda_{\underline\omega}$, a.k.a. System F<u>ω</u> is System Fω without type abstraction/application on the term level. Practicall speaking, this boils down to simply typed lambda calculus with user-defined types.
 
 $\lambda_P$ is simply typed lambda calculus with dependent types.
 
 $\lambda_C$, a.k.a. $\lambda_{P\omega},$ is the calculus of constructions (Coquand, 1986), famously used as the base for the Coq proof assistant, but also with other dependently-typed languages.
-
 Here, the border between terms and types is virtually gone.
 
 We will not discuss these advanced type systems in any more detail here, but I thought I should at least mention them.
@@ -702,7 +747,7 @@ So let's briefly review what we covered.
 - We then discussed the Hindley-Milner type system for rank-1 polymorphic lambda calculus in some detail.
 - We also discussed how unbound recursion makes Hindley-Milner-type logics inconsistent.
 - Then we briefly discussed System F, which is a generalization of the Hindley-Milner type system.
-- System F being one possible extension of simply typed lambda calculus, we also very briefly mentioned other possible extensions, including dependently typed ones using the model of the lambda cube.
+- System F being one possible extension of simply typed lambda calculus, we also very briefly mentioned other possible extensions, including dependently typed ones, using the model of the lambda cube.
 
 ## Exercises
 
@@ -718,7 +763,6 @@ So let's briefly review what we covered.
 4. Implement a simply typed lambda calculus type checker and interpreter in your favorite programming language. Likely easier to start from an untyped lambda calculus interpreter, then introduce atomic values and types. See the previous article for hints on implementing the former.
 
     Note the article does not discuss any particular inference algorithms. For simply-typed λ-calculus with explicitly typed abstraction arguments, it's not really an issue.
-
     The type of an expression always immediately follows from the types of its sub-expressions.
 
     Here is a sketch for a function $ty,$ which returns the type of an expression in the definition of STLC given here:
