@@ -604,7 +604,7 @@ An interested reader is highly encouraged to look into (Pierce, 2002).
 The primary new syntactical form introduced in F is the abstraction over types, denoted with a capital lambda: $\Lambda\alpha.\; t$
 
 Since there is type abstraction, there is also type application, denoted as $t\;[\tau],$ where $t$ is a term and $\tau$ is a type.
-Square brackets are mainly used to visually disambiguate type applications from term applications and don't have any special meaning.
+Square brackets are used to visually disambiguate type applications from term applications and don't have any special meaning.
 
 Syntax for types is similar to HM, but it's not split into monotypes and polytypes, meaning universal quantification may appear anywhere in the type, not just on the top level:
 
@@ -637,7 +637,7 @@ $$
 
 Hence, assuming
 $pair : \forall\alpha.\;\forall\beta.\;\alpha\to\beta\to Pair\;\alpha\;\beta,$
-where the $Pair$ type constructor is assumed to be a primitive for simplicity, the motivating example would be typed roughly as
+where the $Pair$ type constructor is assumed to be a primitive for simplicity, the motivating example could be typed as
 $$(\forall\alpha.\; \alpha\to\alpha)\to Pair\;Bool\;Int,$$
 and its actual implementation would use type applications explicitly, i.e.
 $$\lambda\;id:\forall\alpha.\alpha\to\alpha.\; pair\;[Bool]\;[Int]\; (id\;[Bool]\;true)\; (id\;[Int]\;4)$$
@@ -653,8 +653,8 @@ $$
 and producers and eliminators for it as
 $$\begin{align}
 pair &= \Lambda \alpha. \Lambda \beta. \lambda x: \alpha. \lambda y: \beta. \Lambda \rho. \lambda s: \alpha \to \beta \to \rho. s\;x\;y\\
-fst &= \Lambda \alpha. \Lambda \beta. \lambda p: Pair\;\alpha\;\beta. p\;(\lambda x:\alpha. \lambda y:\beta. x)\\
-snd &= \Lambda \alpha. \Lambda \beta. \lambda p: Pair\;\alpha\;\beta. p\;(\lambda x:\alpha. \lambda y:\beta. y)
+fst &= \Lambda \alpha. \Lambda \beta. \lambda p: Pair\;\alpha\;\beta. p\;[\alpha]\;(\lambda x:\alpha. \lambda y:\beta. x)\\
+snd &= \Lambda \alpha. \Lambda \beta. \lambda p: Pair\;\alpha\;\beta. p\;[\beta]\;(\lambda x:\alpha. \lambda y:\beta. y)
 \end{align}$$
 with their types correspondingly
 $$\begin{align}
